@@ -7,6 +7,9 @@
 -- column nothing ever created, through a dialect that cannot drop a column with a constraint on it.
 -- The mechanism stays -- numbered files, applied in order, recorded in `schema_migrations` -- and it
 -- is what carries the files that come after this one, where there will be rows to carry.
+-- ⚠️ For the same reason this file is still **edited in place** while that stays true: a `0002` that
+-- rebuilt a table to narrow a `check` would be carrying a database nobody has. The day one exists,
+-- this paragraph is where the rule changes.
 --
 -- What Postgres held that is not here, and where it went:
 --
@@ -207,7 +210,9 @@ create index notifications_created_at_idx on notifications (created_at);
 -- column with one legal value, so an upsert has a conflict target to name.
 create table notification_settings (
   singleton integer primary key check (singleton = 1),
-  preferred_locale text not null default 'en' check (preferred_locale in ('en', 'it', 'fr', 'es', 'de')),
+  -- Two languages (ADR 0012), and the same two `localeSchema` parses this column back with: a value
+  -- outside them is a read that throws, not a preference nobody uses.
+  preferred_locale text not null default 'en' check (preferred_locale in ('en', 'it')),
   -- The host and last four characters of the webhook: what is read back instead of the secret.
   slack_webhook_hint text,
   updated_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
