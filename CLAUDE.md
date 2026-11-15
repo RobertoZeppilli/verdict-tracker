@@ -29,12 +29,13 @@ finche' la #211 e la #213 non lo portano in locale.
 ## Regole
 
 - **Lingua**: documenti e dominio in italiano; codice e database in inglese, usando solo i nomi
-  della tabella in `GLOSSARY.md` (es. Rilevanza = `Significance`, mai `priority`). L'**interfaccia è
-  tradotta in cinque lingue** (ADR 0008): le stringhe nascono in inglese in `src/modules/i18n`, la
-  grammatica del prodotto (`featured`, `notable`, `digest`, `preview`, `note:` e gli altri prefissi)
-  resta in inglese in ogni lingua, i **nomi** del glossario si traducono dentro le frasi con la
-  parola di quella lingua (in italiano Tecnologia, non `Technology`) e restano inglesi solo come
-  identificatori, Note di rilascio e Sintesi non si traducono.
+  della tabella in `GLOSSARY.md` (es. Rilevanza = `Significance`, mai `priority`). L'**interfaccia
+  è tradotta in inglese e italiano** (ADR 0012): le stringhe nascono in inglese in
+  `src/modules/i18n`, la grammatica del prodotto (`featured`, `notable`, `digest`, `preview`,
+  `note:` e gli altri prefissi) resta in inglese in ogni lingua, i **nomi** del glossario si
+  traducono dentro le frasi con la parola di quella lingua (in italiano Tecnologia, non
+  `Technology`) e restano inglesi solo come identificatori, Note di rilascio e Sintesi non si
+  traducono.
 - **Moduli** (ADR 0006): `src/modules/<modulo>/{domain,server,ui}`, import tra moduli solo dall'indice;
   `domain` è TypeScript puro e testato.
 - **Tipi** dagli schemi Zod; niente `any` né cast non validati; file sotto ~200 righe; commenti solo per
