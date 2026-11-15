@@ -1,11 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { DEFAULT_LOCALE, type Locale, localeSchema } from "@/modules/i18n";
+import { DEFAULT_LOCALE, type Locale, storedLocaleSchema } from "@/modules/i18n";
 import { NotificationChannelSchema, NotificationEventSchema } from "../domain/events";
 import type { Preference } from "../domain/preferences";
 
 const SettingsRowSchema = z.object({
-  preferred_locale: localeSchema,
+  // `storedLocaleSchema` and not `localeSchema`, which is what a write goes through: a row saved
+  // when the product published five languages can name one it does not any more (ADR 0012), and a
+  // preference that cannot be honoured reads as the default instead of taking `/settings` down.
+  preferred_locale: storedLocaleSchema,
   // The hint and never the URL: `slack_webhook_url` lives in a table `anon` is granted nothing on,
   // so naming it here would fail the query rather than return a secret (#172).
   slack_webhook_hint: z.string().nullable(),

@@ -14,8 +14,8 @@ import NotFound from "../not-found";
 // place (issue #215).
 // ⚠️ In every language, although a static host serves one 404 for the whole site and the English one
 // is the one it keeps: `output: "export"` refuses a route that returns no parameters at all, and
-// the parameters of a route under `[locale]` are produced once per language. The four it does not
-// serve are deleted by the same script that puts the fifth in place.
+// the parameters of a route under `[locale]` are produced once per language. The ones it does not
+// serve are deleted by the same script that puts the English one in place.
 export function generateStaticParams(): { rest: string[] }[] {
   return STATIC_SITE ? [{ rest: [STATIC_NOT_FOUND_SEGMENT] }] : [];
 }

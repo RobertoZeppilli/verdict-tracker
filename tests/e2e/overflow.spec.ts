@@ -122,12 +122,14 @@ for (const width of WIDTHS) {
     test("the public pages stay inside the window", async ({ page }) => {
       // `/it` is the landing again in the longer language: Italian prose runs past English almost
       // everywhere, so the page that is all prose is the one that would break a measure first
-      // (ADR 0008). `/it/terms` is here as well because a document page is where the longest
-      // unbreakable words sit -- `identificatore` in the privacy table is the one measured.
+      // (ADR 0008). `/it/terms` and `/it/privacy` are here as well because a document page is where
+      // the longest unbreakable words sit: `responsabilità` on the one and `identificatore`, in the
+      // 22ch column of the table, on the other.
       // ⚠️ German was the worst case for both of these and left with ADR 0012: the compounds
-      // `Nutzungsbedingungen` and `Gewährleistung` are not printed any more, so what this measures
-      // is the longest the product still has and not the longest it ever had.
-      for (const path of ["/", "/it", "/it/terms", "/faq", `/technologies/${technology.slug}`, `/technologies/${technology.slug}?from=2.0.0`]) {
+      // `Nutzungsbedingungen` and `Gewährleistung` were five characters longer than anything
+      // printed now, so what this measures is the longest the product still has.
+      const pages = ["/", "/it", "/it/terms", "/it/privacy", "/faq"];
+      for (const path of [...pages, `/technologies/${technology.slug}`, `/technologies/${technology.slug}?from=2.0.0`]) {
         await page.goto(path);
         await expectNoOverflow(page, path);
       }

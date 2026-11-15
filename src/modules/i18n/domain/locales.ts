@@ -27,6 +27,17 @@ export function isLocale(value: string): value is Locale {
   return localeSchema.safeParse(value).success;
 }
 
+// A language read back **out of storage**, which is not the same question as a language in an
+// address. A row written while the product published five of them can hold one it does not publish
+// any more (ADR 0012), and a preference that cannot be honoured is no reason for the page that
+// shows it to fail to open: it reads as the default instead. It is the same answer the readers
+// already give a row that is missing altogether.
+// ⚠️ `localeSchema` stays strict and is what every **write** goes through, so this widens nothing on
+// the way in: it only keeps a value that is already in the database from taking a page down.
+export const storedLocaleSchema = z
+  .string()
+  .transform((value): Locale => (isLocale(value) ? value : DEFAULT_LOCALE));
+
 // The default locale carries no prefix: `/technologies/vite` is the English page and the address
 // that was already indexed (ADR 0008). The others are prefixed.
 export function localePath(locale: Locale, path: string): string {

@@ -138,8 +138,8 @@ for (const theme of THEMES) {
       await scan(page, theme);
     });
 
-    // The Settings page, which is one choice and the frame around it: the language picker is five
-    // links that each lead to this page in another language, so what axe has to find here is a
+    // The Settings page, which is one choice and the frame around it: the language picker is a link
+    // per language, each leading to this page in that language, so what axe has to find here is a
     // current one that says so (`aria-current`) and a heading over the set.
     test("the settings page", async ({ page }) => {
       await page.goto("/settings");
@@ -304,7 +304,7 @@ for (const locale of ["it"] as const) {
     test("the dashboard with something that needs action", async ({ page }) => {
       await clearFollows();
       await addFollows([technology.id]);
-      // The bell's panel is opened here, and this is where its four translations are audited: the
+      // The bell's panel is opened here, and this is where its translation is audited: the
       // accessible name carries a number inside a translated sentence, which is the shape 2.5.3 is
       // broken by, and `mark all as seen` is a second control one language could give the same name.
       await clearNotifications();

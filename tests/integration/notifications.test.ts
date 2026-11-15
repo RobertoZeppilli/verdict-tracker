@@ -222,6 +222,20 @@ describe("the Notification settings saved on this copy", () => {
     expect((await readNotificationSettings(anonClient())).preferredLocale).toBe("en");
   });
 
+  // ⚠️ The row this writes is one a database that is already out there can hold: the Postgres enum
+  // `public.locale` still names all five languages, nothing rewrote the rows that were saved before
+  // ADR 0012, and the integration suite itself used to leave `es` in this very row. A read that
+  // threw on it would be `/settings` refusing to open and the Slack job dying, so the preference
+  // that cannot be honoured reads as the default instead (`storedLocaleSchema`). It is written with
+  // the service client because the typed writer cannot express it any more, which is the point.
+  it("reads a language that left the product as the default, instead of failing the read", async () => {
+    const seeded = await serviceClient()
+      .from("notification_settings")
+      .upsert({ singleton: true, preferred_locale: "de" }, { onConflict: "singleton" });
+    expect(seeded.error).toBeNull();
+    expect((await readNotificationSettings(anonClient())).preferredLocale).toBe(DEFAULT_LOCALE);
+  });
+
   // The settings are one row, so a second save finds the first instead of making a second: the
   // `singleton` primary key is what says so, and nothing else could (issue #210).
   it("keeps the settings to one row however often they are saved", async () => {

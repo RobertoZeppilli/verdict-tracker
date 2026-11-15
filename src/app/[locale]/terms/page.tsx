@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 // Issue #131: every claim on this page is one the code makes true, and the page says nothing the
 // app does not do. The follow limit was the clause that cost the most care here, because it was a
 // number: it left with the Plan (issue #209, ADR 0011), so there is no figure left to keep true.
-// ⚠️ `governing`: the five translations are not five contracts. The English one holds, and the page
+// ⚠️ `governing`: the two translations are not two contracts. The English one holds, and the page
 // says so at the foot of itself rather than leaving a reader to wonder.
 export default async function TermsPage() {
   const t = await getTranslator();

@@ -6,6 +6,7 @@ export {
   localeAlternates,
   localePath,
   localeSchema,
+  storedLocaleSchema,
   stripLocale,
   type Locale,
 } from "./domain/locales";

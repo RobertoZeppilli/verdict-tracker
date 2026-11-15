@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { barePath, DEFAULT_LOCALE, isLocale, localeAlternates, localePath, LOCALES, stripLocale } from "./locales";
+import {
+  barePath,
+  DEFAULT_LOCALE,
+  isLocale,
+  localeAlternates,
+  localePath,
+  LOCALES,
+  storedLocaleSchema,
+  stripLocale,
+} from "./locales";
 
 describe("isLocale", () => {
   it("accepts the two published languages", () => {
@@ -17,6 +26,27 @@ describe("isLocale", () => {
     // language it has no dictionary for and treats it as the path it now is, which the catch-all
     // answers with the app's own 404. On the showcase the 308 in `vercel.json` gets there first.
     for (const retired of ["fr", "es", "de"]) expect(isLocale(retired)).toBe(false);
+  });
+});
+
+describe("storedLocaleSchema", () => {
+  it("reads back a language the product publishes", () => {
+    expect(storedLocaleSchema.parse("it")).toBe("it");
+    expect(storedLocaleSchema.parse("en")).toBe("en");
+  });
+
+  it("reads a language that left as the default, instead of failing the read", () => {
+    // The row this parses was written when the product published five languages, and `de` was a
+    // preference somebody saved (ADR 0012). A preference that cannot be honoured any more is not a
+    // reason for `/settings` or the Slack job to stop working, which is what `localeSchema.parse`
+    // on the same column would be.
+    expect(storedLocaleSchema.parse("de")).toBe("en");
+    expect(storedLocaleSchema.parse("fr")).toBe("en");
+  });
+
+  it("refuses what was never a language at all", () => {
+    expect(storedLocaleSchema.safeParse(7).success).toBe(false);
+    expect(storedLocaleSchema.safeParse(null).success).toBe(false);
   });
 });
 

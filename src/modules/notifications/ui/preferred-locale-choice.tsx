@@ -28,7 +28,7 @@ export function PreferredLocaleChoice({ saved, action }: { saved: Locale; action
 
   return (
     <form action={save}>
-      {/* No optimistic mark here: which of the five is pending is not something `useActionState`
+      {/* No optimistic mark here: which press is pending is not something `useActionState`
           says, and a row where two look chosen for an instant says less than one that waits. The
           wait is announced instead, on the list the presses are in. */}
       <ul aria-busy={pending || undefined} className="mt-4 flex flex-wrap gap-2">

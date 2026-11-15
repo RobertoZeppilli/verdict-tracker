@@ -31,8 +31,8 @@ const SLACK_OFF: Readonly<Record<(typeof LIVE_EVENTS)[number], MessageKey>> = {
 // (#194), where the other language choice is.
 //
 // A server component, so the rows are drawn from the database on the first paint and a reload shows
-// what was saved rather than what a script had in hand; only the switch and the five language
-// presses are client components, which is where the action and its error live.
+// what was saved rather than what a script had in hand; only the switch and the language presses
+// are client components, which is where the action and its error live.
 export function NotificationSettings({
   preferences,
   slackHint,
