@@ -36,8 +36,7 @@ guardare.** Branch `238-inglese-e-italiano`. L'interfaccia parla **inglese e ita
 spagnolo e tedesco sono fuori dal selettore, dai dizionari e dalla vetrina, con l'**ADR 0012** che
 supera la 0008 nella sola parte che conta le lingue e sei **308** in `vercel.json` che tengono in
 piedi `/fr`, `/es` e `/de`. Il modulo `i18n` scende a due, `GLOSSARY.md` perde la tabella fr/es/de,
-e il `check` su `preferred_locale` dello schema SQLite scende con loro, perché `localeSchema` è lo
-schema con cui quella colonna viene riletta.
+e con loro il `check` su `preferred_locale` dello schema SQLite.
 
 Suite girate **sul runner**, con Supabase locale: `lint` e `typecheck` puliti, `test` 776/776,
 `test:integration` 93/93, `build` e `i18n:client-keys --check` verdi, `build:static` verde (2.078
@@ -58,16 +57,14 @@ che vengono dalla #210) e 1 saltato (`slack-dialog`, che si salta da sé senza l
    una riga con `es` — e la suite di integrazione ne lasciava una — chiudeva `/settings`. Adesso le
    due letture passano da `storedLocaleSchema`, che legge una lingua uscita come il default. **Lo
    scrittore della #211 tenga la stessa distinzione**: severo in scrittura, tollerante in lettura.
-3. ⚠️ **Il risparmio di una lingua in meno sta nell'export, non nel sitemap.** La #238 lo motiva con
-   "ogni lingua moltiplica le pagine di `pnpm build:static`", e per i **documenti** è vero: ogni
-   pagina esce una volta per lingua. Per gli **indirizzi dichiarati** quasi no: 2.078 adesso, contro
-   i ~2.100 di prima, perché la pagina Release era già dichiarata solo in inglese dall'emendamento
-   del 2026-10-28. Chi misurerà il peso dopo la #214 deve guardare l'export, non il sitemap.
+3. ⚠️ **Il risparmio di una lingua in meno sta nell'export, non nel sitemap.** Per i **documenti**
+   la motivazione della #238 è vera: ogni pagina esce una volta per lingua. Per gli **indirizzi
+   dichiarati** quasi no, 2.078 contro i ~2.100 di prima, perché la pagina Release era già
+   dichiarata solo in inglese (emendamento del 2026-10-28). Chi misura il peso guardi l'export.
 4. ⚠️ **`Intl.PluralRules("it")` ha una forma `many` e l'inglese no**, e `select(1_000_000)` ci cade
-   dentro: è l'unica differenza di plurale che resta fra le due lingue, e il test di `translate` ci
-   sta sopra adesso (prima provava col francese, che conta lo zero come uno). Di conseguenza **i
-   dizionari italiani portano già le forme `many`** dove l'inglese ha un contato, perché
-   `dictionaries.test.ts` le pretende: un messaggio nuovo con `{count}` va scritto con tutte e tre.
+   dentro: è l'unica differenza di plurale fra le due lingue, e il test di `translate` ci sta sopra
+   adesso (prima col francese, che conta lo zero come uno). Quindi **i dizionari italiani portano già
+   le forme `many`**: un messaggio nuovo con `{count}` va scritto con tutte e tre.
 
 ### La prossima mossa
 
