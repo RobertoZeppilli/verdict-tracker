@@ -17,7 +17,7 @@ function row(options: Partial<Row> = {}): Row {
   return { ...base, actionRequired: stated ? base.actionRequired : base.summary ? base.summary.actionRequired : null };
 }
 
-// The English words these verdicts are read in; the other four are held by the parity test.
+// The English words these verdicts are read in; the Italian ones are held by the parity test.
 const t = createTranslator("en", dictionaryFor("en"));
 
 describe("rowVerdict", () => {

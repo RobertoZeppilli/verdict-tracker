@@ -3,7 +3,7 @@ import { type Dictionary, interpolate, type Message, type MessageParams } from "
 import type { MessageKey } from "./messages";
 
 // `Intl.PluralRules` is built into the platform, which is the whole reason the module writes its own
-// plurals instead of taking a library for them (ADR 0008): the rules of five languages are already
+// plurals instead of taking a library for them (ADR 0008): the rules of every language are already
 // in the runtime, and what is left to write is the choice of a form and the interpolation.
 const rules = new Map<Locale, Intl.PluralRules>();
 
@@ -33,7 +33,7 @@ export type Translator<Key extends string = MessageKey> = (key: Key, params?: Me
 
 // The translator of one page. It takes the dictionary rather than fetching it, so it is pure and
 // so the browser is handed exactly the one language it is reading: a `createTranslator` that looked
-// the dictionary up would pull all five into the client bundle through the import.
+// the dictionary up would pull every dictionary into the client bundle through the import.
 export function createTranslator<Given extends Dictionary>(
   locale: Locale,
   dictionary: Given,

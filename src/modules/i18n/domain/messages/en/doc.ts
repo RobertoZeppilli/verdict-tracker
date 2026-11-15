@@ -10,7 +10,7 @@ export const doc = {
   // The reader reaches the English text from the language picker in the foot, so the sentence
   // carries no link of its own.
   "doc.governing":
-    "This page is published in five languages. Where they differ, the English text is the one that holds.",
+    "This page is published in English and Italian. Where they differ, the English text is the one that holds.",
   "doc.link.privacy": "privacy notice",
   "doc.link.account": "account page",
   "doc.link.faq": "FAQ",

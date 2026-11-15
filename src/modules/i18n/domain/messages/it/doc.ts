@@ -8,7 +8,7 @@ export const doc = {
   // pagine che vincolano: le altre tre raccontano, e una traduzione che racconta male è un errore
   // da correggere, non un conflitto da arbitrare.
   "doc.governing":
-    "Questa pagina è pubblicata in cinque lingue. Dove non coincidono, è il testo inglese quello che vale.",
+    "Questa pagina è pubblicata in inglese e in italiano. Dove non coincidono, è il testo inglese quello che vale.",
   "doc.link.privacy": "informativa sulla privacy",
   "doc.link.account": "pagina dell'account",
   "doc.link.faq": "FAQ",

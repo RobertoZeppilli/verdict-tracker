@@ -4,7 +4,7 @@ import { dictionaryFor } from "../domain/messages";
 import { CLIENT_KEYS } from "./client-keys";
 
 // The messages handed to the browser, which are not all of them. `LocaleProvider` carries a
-// dictionary because a Client Component cannot import one (it would pull all five languages into
+// dictionary because a Client Component cannot import one (it would pull both languages into
 // the bundle), and it used to carry the whole of it: the words of `privacy`, `terms` and `faq`
 // travelled inside every page, inlined in the HTML and again in the RSC payload, to be read by
 // nothing. What the browser can ask for is decided by the client chunks themselves

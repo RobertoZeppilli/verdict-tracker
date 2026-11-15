@@ -9,7 +9,7 @@ import { serverEnv } from "@/env/server";
 // unset in production, where every request gets the same 404 as a route that was never written.
 //
 // `route` is the pattern, not one path (`/[locale]/technologies/[slug]`), so one call reaches every
-// slug in every one of the five languages: a test knows which page it changed, not which of the
+// slug in both languages: a test knows which page it changed, not which of the
 // five renders of it a prefetch happened to warm.
 const BodySchema = z.object({
   secret: z.string().min(32),

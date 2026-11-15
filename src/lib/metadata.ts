@@ -9,12 +9,12 @@ export type PageMeta = {
   title: string;
   description: string;
   // The path without a language prefix, the way the English page is addressed: the prefix of the
-  // other four is added here, in one place, so no page writes `/it/...` by hand.
+  // other language is added here, in one place, so no page writes `/it/...` by hand.
   path: string;
   locale: Locale;
   // A Release is an `article`, a Technology page is the list of its Releases.
   type?: "article" | "website";
-  // Whether the page declares its four other addresses as translations of itself. Off for the
+  // Whether the page declares its other address as a translation of itself. Off for the
   // Release page, whose body is the same word for word in every language (ADR 0008, emendamento del
   // 2026-10-28). ⚠️ Dropping it from the sitemap alone would change nothing: Google crawls the URLs
   // an `hreflang` here names, so it has to be off in both places.
@@ -42,7 +42,7 @@ export function pageMetadata({
     title,
     description,
     // The canonical is there either way, and it names this page in the language it is being read
-    // in: what `hreflang: false` drops is the set of the other four, not the page's own address.
+    // in: what `hreflang: false` drops is the set of the others, not the page's own address.
     alternates: { canonical: url, ...(hreflang ? { languages: localeAlternates(path) } : {}) },
     openGraph: { type, url, title, description, siteName: SITE_NAME },
   };

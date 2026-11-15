@@ -15,7 +15,7 @@ import {
 
 const none: PathCounts = { total: 0, featured: 0, notable: 0, digest: 0, actionRequired: 0, safe: 0, missing: 0, unjudged: 0 };
 
-// The English words, which is what these choices are read in; the other four languages are held
+// The English words, which is what these choices are read in; the Italian ones are held
 // by `messages/dictionaries.test.ts`.
 const t = createTranslator("en", dictionaryFor("en"));
 

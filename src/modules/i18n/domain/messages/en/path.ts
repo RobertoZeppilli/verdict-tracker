@@ -38,7 +38,7 @@ export const path = {
     other: "are {count} releases",
   },
   // The clauses of that sentence, joined by `path.list.last`. The comma between the others is
-  // punctuation and stays in the code: every one of these five languages writes it the same way.
+  // punctuation and stays in the code: both languages write it the same way.
   "path.list.last": "{items} and {last}",
   "path.clause.action": {
     one: "{count} needs action",

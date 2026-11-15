@@ -44,7 +44,7 @@ export function pathVerdict(counts: PathCounts, t: Translator): Verdict {
 }
 
 // The clauses of the sentence, joined with a comma and an `and` that the dictionary writes: the
-// comma is punctuation these five languages share, the conjunction is not.
+// comma is punctuation both languages share, the conjunction is not.
 function joinClauses(clauses: readonly string[], t: Translator): string {
   if (clauses.length <= 1) return clauses[0] ?? "";
   return t("path.list.last", { items: clauses.slice(0, -1).join(", "), last: clauses.at(-1) ?? "" });

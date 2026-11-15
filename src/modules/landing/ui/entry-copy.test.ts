@@ -9,7 +9,7 @@ describe("entryFace", () => {
     expect(faceIn("en")).toEqual({ href: "/dashboard", label: "Go to your dashboard" });
   });
 
-  // ADR 0008: the landing exists in five languages, and the Italian one has to open the Italian
+  // ADR 0008: the landing exists in both languages, and the Italian one has to open the Italian
   // Dashboard, not the English one. The label moves with the address: a face that kept its English
   // word on an Italian page would be the half-translation this test exists to refuse.
   it("keeps the language on the address and on the label", () => {

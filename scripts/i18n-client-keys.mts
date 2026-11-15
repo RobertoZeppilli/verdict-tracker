@@ -5,7 +5,7 @@ import { DEFAULT_LOCALE, dictionaryFor } from "@/modules/i18n";
 // Which messages the browser is handed, decided by reading the client bundle instead of guessing.
 // `LocaleProvider` used to carry the whole dictionary -- 505 messages, 44.830 bytes, the words of
 // `privacy`, `terms` and `faq` included -- into every page, inlined in the HTML and again in the
-// RSC payload. A Client Component cannot import the dictionaries itself (it would pull all five
+// RSC payload. A Client Component cannot import the dictionaries itself (it would pull both
 // languages into the bundle), so the selection has to be made on the server, and the only honest
 // source for it is what the bundler actually emitted: a key the browser can ask for is a key whose
 // literal survives into a chunk.

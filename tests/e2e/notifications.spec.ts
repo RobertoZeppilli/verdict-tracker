@@ -138,11 +138,11 @@ test("the bell is in the bar of the app, on every one of its pages", async ({ pa
   await expect(bell(page)).toBeVisible();
 });
 
-test("the bar holds one row at 320px in German, with the number in it", async ({ page }) => {
+test("the bar holds one row at 320px in Italian, with the number in it", async ({ page }) => {
   await addNotification(featured);
   await addNotification(notable, "notable_release");
   await page.setViewportSize({ width: 320, height: 667 });
-  await page.goto("/de/dashboard");
+  await page.goto("/it/dashboard");
   await arrived(page);
 
   await expect(bell(page)).toBeVisible();
