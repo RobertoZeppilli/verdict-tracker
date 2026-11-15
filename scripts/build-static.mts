@@ -114,7 +114,7 @@ async function installNotFound(exported: string): Promise<void> {
     throw new Error(`No ${STATIC_NOT_FOUND_SEGMENT}.html in the export: the catch-all route changed.`);
   await rm(path.join(exported, "404.html"), { force: true });
   await rename(written, path.join(exported, "404.html"));
-  // The same document in the other four languages, which no host will ever ask for: one 404 is
+  // The same document in the other language, which no host will ever ask for: one 404 is
   // served for the whole site and it is the English one, chosen before anything knows what the
   // reader was looking for.
   for (const locale of LOCALES) {

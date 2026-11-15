@@ -1,5 +1,15 @@
 # Interfaccia in cinque lingue, contenuto nella lingua in cui è stato pubblicato
 
+⚠️ **Superata dall'ADR [0012](./0012-interfaccia-in-inglese-e-italiano.md) il 2026-11-15, nella sola
+parte che conta le lingue: l'interfaccia si legge in inglese e italiano, e francese, spagnolo e
+tedesco sono usciti.** Tutto il resto di questo ADR vale ancora — le stringhe che nascono in inglese,
+il prefisso nell'indirizzo, la grammatica del prodotto che non si traduce, i nomi del glossario
+dentro le frasi, le Note di rilascio e le Sintesi che restano come sono pubblicate, il selettore, il
+modulo di dominio, l'albero di rotte unico e l'emendamento del 2026-10-28 — e la 0012 lo elenca riga
+per riga. La nota sta in testa e non in fondo perché sono centoquattordici righe: chi legge "cinque"
+qui deve sapere subito che sono due, **e dove sta scritto "cinque", "quattro" o "le tre lingue" in
+quello che segue, si legge come storia**.
+
 L'interfaccia si legge in **inglese, italiano, francese, spagnolo e tedesco**; l'inglese resta la
 base e la lingua in cui le stringhe nascono. Questo cambia la regola di `CLAUDE.md` e di
 `GLOSSARY.md` "codice, database e interfaccia in inglese", che da qui vale per **codice e database**:

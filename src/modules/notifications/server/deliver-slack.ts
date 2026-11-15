@@ -1,7 +1,14 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { createTranslator, DEFAULT_LOCALE, dictionaryFor, type Locale, localePath, localeSchema } from "@/modules/i18n";
+import {
+  createTranslator,
+  DEFAULT_LOCALE,
+  dictionaryFor,
+  type Locale,
+  localePath,
+  storedLocaleSchema,
+} from "@/modules/i18n";
 import { releasePath } from "@/modules/releases";
 import { NotificationChannelSchema, NotificationEventSchema } from "../domain/events";
 import { slackMessage } from "../domain/slack";
@@ -30,7 +37,10 @@ const CandidateSchema = z.array(
 
 const SecretSchema = z.object({ slack_webhook_url: z.string() });
 
-const SettingsSchema = z.object({ preferred_locale: localeSchema });
+// `storedLocaleSchema` and not `localeSchema`: a row saved when the product published five
+// languages can name one it does not any more (ADR 0012), and the Digest going out in English is a
+// better answer than the job throwing on it.
+const SettingsSchema = z.object({ preferred_locale: storedLocaleSchema });
 
 const PreferenceSchema = z.array(
   z.object({ event: NotificationEventSchema, channel: NotificationChannelSchema, enabled: z.boolean() }),

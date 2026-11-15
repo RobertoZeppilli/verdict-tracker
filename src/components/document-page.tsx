@@ -8,7 +8,7 @@ import { SiteHeader } from "./site-header";
 // a 404 in the installed app too.
 // ⚠️ **The sentences around it still describe an account**: deleting it, signing in with GitHub,
 // what is kept while it exists. The name stops being a link here so that nothing on the page is
-// broken, but the five documents want a rewrite of their own, which is prose in five languages and
+// broken, but the five documents want a rewrite of their own, which is prose in both languages and
 // not a line of code.
 export function AccountLink({ label }: { label: string }) {
   return label;

@@ -2,7 +2,7 @@ import { releasePath } from "./release-page";
 
 export type SitemapTechnology = { id: string; slug: string; lastModified: Date };
 export type SitemapRelease = { technologyId: string; version: string; lastModified: Date };
-// `kind` is what tells the route which pages are declared in all five languages and which only in
+// `kind` is what tells the route which pages are declared in both languages and which only in
 // the default one (ADR 0008, emendamento del 2026-10-28): a Release page has the same body word for
 // word in every language, so it is declared once. The distinction is here and not read back out of
 // the path in the route, where a regular expression over a slug would be guessing.

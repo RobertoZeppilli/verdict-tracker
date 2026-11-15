@@ -26,8 +26,8 @@ function absolute(path: string): string {
   return path === "/" ? url.origin : url.toString();
 }
 
-// One entry per page per language, each naming the others (ADR 0008): `alternates.languages` is
-// what tells a crawler that these five addresses are one page in five languages and not five pages
+// One entry per page per language, each naming the other (ADR 0008): `alternates.languages` is
+// what tells a crawler that these two addresses are one page in two languages and not two pages
 // saying the same thing. The addresses are built by `localePath`, the same function the canonical
 // of each page is built from, so the sitemap cannot drift from the pages it lists.
 function entry(path: string, lastModified?: Date): MetadataRoute.Sitemap {
@@ -45,8 +45,9 @@ function entry(path: string, lastModified?: Date): MetadataRoute.Sitemap {
 
 // A page whose body is the same word for word in every language is declared once, in the default
 // one, with no `hreflang` (ADR 0008, emendamento del 2026-10-28). It is the Release page, and it is
-// what the sitemap is made of: declaring its ~2.060 paths five times was ~80% of the ISR writes the
-// plan includes. The page itself stays reachable, and correct, in all five languages.
+// what the sitemap is made of: declaring its ~2.060 paths once per language was ~80% of the ISR
+// writes the plan includes, measured when there were five of them. The page itself stays reachable,
+// and correct, in both languages.
 function defaultLocaleEntry(path: string, lastModified: Date): MetadataRoute.Sitemap {
   return [
     {

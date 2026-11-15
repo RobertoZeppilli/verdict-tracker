@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { type FixtureTechnology, seedTechnology } from "./fixtures";
 
-// ADR 0008: five languages, English without a prefix. This file is about the plumbing and not about
-// the words: what is checked here is that the right page is served at the right address, says which
-// language it is in, and names its siblings. The words themselves are checked where they are
-// written: the app in its own specs, the landing in `landing.spec`, the five document pages in
-// `legal.spec`.
+// ADR 0008 and ADR 0012: two languages, English without a prefix. This file is about the plumbing
+// and not about the words: what is checked here is that the right page is served at the right
+// address, says which language it is in, and names its sibling. The words themselves are checked
+// where they are written: the app in its own specs, the landing in `landing.spec`, the five document
+// pages in `legal.spec`.
 
 let technology: FixtureTechnology;
 
@@ -15,14 +15,23 @@ test.beforeAll(async () => {
   ]);
 });
 
-test("English is served with no prefix, and every other language with one", async ({ page }) => {
+test("English is served with no prefix, and Italian with one", async ({ page }) => {
   await page.goto("/faq");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
 
-  for (const locale of ["it", "fr", "es", "de"]) {
-    await page.goto(`/${locale}/faq`);
-    await expect(page.locator("html")).toHaveAttribute("lang", locale);
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await page.goto("/it/faq");
+  await expect(page.locator("html")).toHaveAttribute("lang", "it");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+});
+
+// ADR 0012 took French, Spanish and German out and left the proxy alone, which is what this asserts
+// from the installed app's side: a copy somebody downloads has no old links to save, so `/de` is a
+// path that matches nothing and the catch-all answers for it. The showcase is the other case and
+// answers 308 from `vercel.json`, which `src/app/showcase-redirects.test.ts` holds.
+test("a language that was published and is not any more is a 404 in the installed app", async ({ page }) => {
+  for (const retired of ["fr", "es", "de"]) {
+    const response = await page.goto(`/${retired}/faq`);
+    expect(response?.status()).toBe(404);
   }
 });
 
@@ -59,7 +68,7 @@ test("a page names its address in every language, and English as the default", a
 
   for (const [locale, suffix] of [
     ["en", `/technologies/${technology.slug}`],
-    ["de", `/de/technologies/${technology.slug}`],
+    ["it", `/it/technologies/${technology.slug}`],
     ["x-default", `/technologies/${technology.slug}`],
   ]) {
     await expect(page.locator(`link[rel="alternate"][hreflang="${locale}"]`)).toHaveAttribute(
@@ -84,14 +93,15 @@ test("a link keeps the language it was clicked in", async ({ page }) => {
 // `beforeAll` is not in it. What they assert is the **shape** of the addresses, over the real
 // Catalog that CI syncs before building (`tests/integration/sitemap.test.ts` says the same thing
 // from the other side: the route is prerendered and an E2E against the build cannot drive it).
-test("the sitemap lists every page in all five languages, each naming the others", async ({ request }) => {
+test("the sitemap lists every page in both languages, each naming the other", async ({ request }) => {
   const xml = await (await request.get("/sitemap.xml")).text();
-  for (const locale of ["it", "fr", "es", "de"]) {
-    expect(xml).toContain(`/${locale}/faq`);
-    // A Technology page keeps its five addresses: one path segment under `/technologies`.
-    expect(xml).toMatch(new RegExp(`<loc>[^<]*/${locale}/technologies/[^/<]+</loc>`));
-  }
+  expect(xml).toContain("/it/faq");
+  // A Technology page keeps both its addresses: one path segment under `/technologies`.
+  expect(xml).toMatch(/<loc>[^<]*\/it\/technologies\/[^/<]+<\/loc>/);
   expect(xml).toContain('hreflang="x-default"');
+  // And nothing is declared for the three languages that left (ADR 0012): the sitemap is built from
+  // `LOCALES`, so this is what proves the list and the published addresses are the same list.
+  for (const retired of ["fr", "es", "de"]) expect(xml).not.toContain(`/${retired}/`);
 });
 
 // ADR 0008, emendamento del 2026-10-28: the Release page is declared once, in the default language.
@@ -101,7 +111,7 @@ test("the sitemap declares a Release page once, in the default language only", a
   const xml = await (await request.get("/sitemap.xml")).text();
 
   expect(xml).toMatch(/<loc>https?:\/\/[^/<]+\/technologies\/[^/<]+\/[^/<]+<\/loc>/);
-  expect(xml).not.toMatch(/<loc>[^<]*\/(it|fr|es|de)\/technologies\/[^/<]+\/[^/<]+<\/loc>/);
+  expect(xml).not.toMatch(/<loc>[^<]*\/it\/technologies\/[^/<]+\/[^/<]+<\/loc>/);
 });
 
 test("a Release page declares no translations of itself, and still names itself canonical", async ({ page }) => {
@@ -115,7 +125,7 @@ test("a Release page declares no translations of itself, and still names itself 
   await expect(page.locator("html")).toHaveAttribute("lang", "it");
 });
 
-// The picker, which is what makes the five languages a choice instead of five addresses. ADR 0008
+// The picker, which is what makes the two languages a choice instead of two addresses. ADR 0008
 // puts it in the foot for the reason the No Dead End Rule gives: a reader, on a public page, at
 // phone width, with nothing to open to find it.
 test("the picker is in the foot at 390px, and changes language from there", async ({ page }) => {
@@ -140,8 +150,8 @@ test("the picker is in the foot at 390px, and changes language from there", asyn
 // and `useSearchParams` in the foot of the root layout would cost the ISR of all 70 pages.
 test("changing language keeps the query the reader was looking at", async ({ page }) => {
   await page.goto("/technologies?category=library");
-  await page.locator("footer").getByRole("navigation", { name: "language" }).getByRole("link", { name: "Deutsch" }).click();
-  await expect(page).toHaveURL("/de/technologies?category=library");
+  await page.locator("footer").getByRole("navigation", { name: "language" }).getByRole("link", { name: "Italiano" }).click();
+  await expect(page).toHaveURL("/it/technologies?category=library");
 });
 
 // Nothing in the interface says what language it is in; a Release page in another language says that

@@ -138,8 +138,8 @@ for (const theme of THEMES) {
       await scan(page, theme);
     });
 
-    // The Settings page, which is one choice and the frame around it: the language picker is five
-    // links that each lead to this page in another language, so what axe has to find here is a
+    // The Settings page, which is one choice and the frame around it: the language picker is a link
+    // per language, each leading to this page in that language, so what axe has to find here is a
     // current one that says so (`aria-current`) and a heading over the set.
     test("the settings page", async ({ page }) => {
       await page.goto("/settings");
@@ -267,15 +267,15 @@ for (const theme of THEMES) {
   });
 }
 
-// The same audit outside English, which is the criterion the five languages carry: WCAG 2.2 AA is
-// held in all of them, not only in the one the strings were written in (ADR 0008). It is what the
-// 320px measurement in `overflow.spec` cannot see, because a translation breaks accessibility in
-// ways that are not width: an accessible name that lost the visible word inside it (2.5.3), two
-// controls that ended up with one name, a `lang` that does not match the prose.
+// The same audit outside English, which is the criterion a translated interface carries: WCAG 2.2 AA
+// is held in both languages, not only in the one the strings were written in (ADR 0008, ADR 0012).
+// It is what the 320px measurement in `overflow.spec` cannot see, because a translation breaks
+// accessibility in ways that are not width: an accessible name that lost the visible word inside it
+// (2.5.3), two controls that ended up with one name, a `lang` that does not match the prose.
 // ⚠️ The dark theme alone, and three pages per language: contrast is a property of the palette and
 // not of the words (`theme-contrast.test.ts` reads the palette itself), so a second theme here
-// would double twelve scans to find what the English pass already covers.
-for (const locale of ["it", "fr", "es", "de"] as const) {
+// would double the scans to find what the English pass already covers.
+for (const locale of ["it"] as const) {
   test.describe(`${locale} holds the audit too`, () => {
     test.beforeEach(async ({ page }) => {
       await useTheme(page, "dark");
@@ -304,7 +304,7 @@ for (const locale of ["it", "fr", "es", "de"] as const) {
     test("the dashboard with something that needs action", async ({ page }) => {
       await clearFollows();
       await addFollows([technology.id]);
-      // The bell's panel is opened here, and this is where its four translations are audited: the
+      // The bell's panel is opened here, and this is where its translation is audited: the
       // accessible name carries a number inside a translated sentence, which is the shape 2.5.3 is
       // broken by, and `mark all as seen` is a second control one language could give the same name.
       await clearNotifications();

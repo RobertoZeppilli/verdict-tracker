@@ -258,4 +258,20 @@ describe("the schema of the first migration", () => {
     );
     database.close();
   });
+
+  // ADR 0012 left two languages, and `localeSchema` is what reads this column back
+  // (`readNotificationSettings`): a row holding `de` would not be a stale preference, it would be a
+  // read that throws and a Settings page that does not open. The column refuses it instead.
+  it("takes only a language the interface is published in", () => {
+    const database = open();
+    const write = database.prepare(
+      "insert into notification_settings (singleton, preferred_locale) values (1, ?)",
+    );
+    for (const retired of ["fr", "es", "de"]) expect(() => write.run(retired)).toThrow(/constraint/i);
+    write.run("it");
+    expect(database.prepare("select preferred_locale as locale from notification_settings").get()).toMatchObject(
+      { locale: "it" },
+    );
+    database.close();
+  });
 });

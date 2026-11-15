@@ -18,7 +18,7 @@ export function webhookHint(url: string): string {
 
 // One line of the message: the Technology, the Version and where to read the rest. The event is kept
 // rather than a word, because `featured` and `notable` are the product's grammar and stay in English
-// in all five languages (ADR 0008).
+// in both languages (ADR 0008).
 export type SlackLine = {
   event: ReleaseEvent;
   technologyName: string;

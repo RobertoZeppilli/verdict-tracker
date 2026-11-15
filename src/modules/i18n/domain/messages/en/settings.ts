@@ -16,7 +16,7 @@ export const settings = {
   "settings.language.note":
     "The language is part of the address, so a page can be shared in the language it was read in. Release notes and summaries stay in their original language.",
   // The Notifications section (issue #171). `featured`, `notable`, `slack` and the
-  // bell's own words are the product's grammar and stay English in all five languages; the names of
+  // bell's own words are the product's grammar and stay English in both languages; the names of
   // the glossary are translated inside the sentences, as everywhere else (ADR 0008).
   "settings.notifications.title": "Notifications",
   "settings.notifications.intro":

@@ -15,9 +15,10 @@ import { FOOT } from "./site-foot";
 //    columns stand at the quarters of the page at every width.
 // 2. The **language** is the fourth column again, a column like the other two: it had been folded
 //    into two sub-columns to keep the foot short, and two columns that mean nothing read as a table
-//    of nothing. Five names in a column make the foot **11px taller**, which was a Dashboard
-//    regression until its standing column was clamped by its own grid area (`standing-column.tsx`);
-//    `dashboard.spec.ts`, "the columns apart", holds that end of it.
+//    of nothing. Measured when there were five names: a column of them made the foot **11px
+//    taller**, which was a Dashboard regression until its standing column was clamped by its own
+//    grid area (`standing-column.tsx`); `dashboard.spec.ts`, "the columns apart", holds that end of
+//    it. Two names (ADR 0012) do not reach that height, and the clamp stays where it is.
 // On a phone the mark takes a row of its own and the three groups sit under it, two side by side
 // and the language across the width as a wrapping row (`LocalePicker`, the foot variant): the mark
 // used to be a column of the grid, and `product` and `legal` were living on what was left of 390px.

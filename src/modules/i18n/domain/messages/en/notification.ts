@@ -1,5 +1,5 @@
 // The bell and its panel. The strings are born here and every other language translates this file
-// (ADR 0008). `featured` and `notable` stay in English in all five: they are the names of a
+// (ADR 0008). `featured` and `notable` stay in English in both: they are the names of a
 // Significance, which is the product's own grammar and not text.
 export const notification = {
   "notification.title": "notifications",

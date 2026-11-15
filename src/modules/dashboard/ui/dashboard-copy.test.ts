@@ -13,8 +13,8 @@ import {
 } from "./dashboard-copy";
 
 // The English translator, because these are the English words the functions are read in. The
-// choice between the sentences is what this file tests; that the other four languages have all of
-// them is `messages/dictionaries.test.ts` (ADR 0008).
+// choice between the sentences is what this file tests; that Italian has all of them is
+// `messages/dictionaries.test.ts` (ADR 0008).
 const t = createTranslator("en", dictionaryFor("en"));
 
 function row(options: Partial<StandingRow> = {}): StandingRow {

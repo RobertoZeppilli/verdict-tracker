@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   description: "Releases of the technologies you follow, summarized like compiler diagnostics.",
 };
 
-// The five languages are prerendered: the locale is a root parameter, so without this every page
+// Both languages are prerendered: the locale is a root parameter, so without this every page
 // under it would be rendered on demand and the ISR of the public pages would be the thing that
 // paid for the translation (ADR 0008).
 export function generateStaticParams(): { locale: string }[] {
@@ -54,7 +54,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[lo
         {/* The language and its dictionary, for the half of the tree that cannot read them from
             the server: a Client Component cannot call `next/root-params`, and every internal link is
             a client one. The dictionary is resolved here, once per page, so the browser is handed
-            the one language it is reading and not all five -- and of that one language, only the
+            the one language it is reading and not both -- and of that one language, only the
             messages the client chunks can ask for (`clientDictionary`). */}
         {/* A provider renders no element of its own, so `main` and `footer` stay direct children
             of `body`, which `globals.css` needs them to be. */}

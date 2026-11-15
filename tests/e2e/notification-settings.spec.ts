@@ -130,13 +130,13 @@ test("the language of slack is saved, and is not the language of the site", asyn
   await page.getByRole("button", { name: "save" }).click();
   await expect(page.getByRole("heading", { level: 3, name: "language of slack" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Write Slack in Deutsch" }).click();
-  await expect(page.getByRole("button", { name: "Write Slack in Deutsch" })).toHaveAttribute(
+  await page.getByRole("button", { name: "Write Slack in Italiano" }).click();
+  await expect(page.getByRole("button", { name: "Write Slack in Italiano" })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
   await expect(async () => {
-    expect(await savedLocale()).toBe("de");
+    expect(await savedLocale()).toBe("it");
   }).toPass();
 
   // The site is still English: the language of the page is the one in the address (ADR 0008).
@@ -144,23 +144,27 @@ test("the language of slack is saved, and is not the language of the site", asyn
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
 
   await page.reload();
-  await expect(page.getByRole("button", { name: "Write Slack in Deutsch" })).toHaveAttribute(
+  await expect(page.getByRole("button", { name: "Write Slack in Italiano" })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
 });
 
-test("the German page keeps its switches at 320px", async ({ page }) => {
+// ⚠️ This was the German page until ADR 0012, and German was the worst case for the width of a word.
+// Italian is the language that is left, and `Release featured sulla campanella` is still four
+// characters longer than the English label: the measurement is the same one, on the longest label
+// the product now has.
+test("the Italian page keeps its switches at 320px", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 });
-  await page.goto("/de/settings");
+  await page.goto("/it/settings");
 
-  const german = page.getByRole("checkbox", { name: "featured Releases an der Glocke" });
-  await expect(german).toHaveAttribute("aria-checked", "true");
-  await german.click();
-  await expect(german).toHaveAttribute("aria-checked", "false");
+  const italian = page.getByRole("checkbox", { name: "Release featured sulla campanella" });
+  await expect(italian).toHaveAttribute("aria-checked", "true");
+  await italian.click();
+  await expect(italian).toHaveAttribute("aria-checked", "false");
 
   // The press must stay inside the window, which is what the switch's own column is measured by.
-  const box = await german.boundingBox();
+  const box = await italian.boundingBox();
   expect(box).not.toBeNull();
   if (box) expect(box.x + box.width).toBeLessThanOrEqual(320);
 });

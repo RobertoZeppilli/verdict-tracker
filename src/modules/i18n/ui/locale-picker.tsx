@@ -8,14 +8,14 @@ import { useLocale, useTranslator } from "./locale-context";
 // it reachable **by a visitor**, on a public page, at 390px: a choice a visitor cannot reach is a
 // choice they have not got (DESIGN.md, No Dead End Rule). Settings repeats it because a signed-in
 // reader looks for the language where the other preferences are, and the account panel sends them
-// there with a line instead of carrying the five names itself.
+// there with a line instead of carrying the names itself.
 //
 // ⚠️ It is a plain `a` and not `LocaleLink`, which is the one place in the app that is true:
 // `LocaleLink` strips the prefix off a href and puts **the current language** back on, which is
 // exactly what a picker must not do -- every entry would point at the page it is already on. A plain
 // anchor also asks for a new document, so the `lang` on `html` and the dictionary of the layout
-// arrive together, and it prefetches nothing: five languages prefetched from the foot of all 70
-// pages is a lot of traffic for a choice most readers make once.
+// arrive together, and it prefetches nothing: a language prefetched from the foot of all 70 pages
+// is traffic spent on a choice most readers make once.
 //
 // ⚠️ The query belongs to the page -- `?next=` on the login, `?week=` on the Digest, the filters of
 // the Catalog -- and `usePathname` does not carry it. It is written onto the anchor **as it is
@@ -35,7 +35,7 @@ export function LocalePicker({ variant }: { variant: "foot" | "page" }) {
   const path = barePath(pathname);
   const title = t("shell.language");
 
-  // On the Settings page the picker is a row of five controls under the heading the page gives it,
+  // On the Settings page the picker is a row of controls under the heading the page gives it,
   // each 44px tall, which is the target size a choice made with the thumb asks for. The current one
   // is the only one filled: a page of settings has to say what is set, and `aria-current` alone says
   // it to a screen reader and to nobody else.
@@ -63,10 +63,12 @@ export function LocalePicker({ variant }: { variant: "foot" | "page" }) {
 
   // In the foot the picker is the fourth column above 640px and a wrapping row below it, and that
   // is one markup with the breakpoint doing the work. ⚠️ It was two sub-columns for a while, to keep
-  // the foot from growing: five names in a column cost 11px, which the Dashboard was paying for
-  // until its standing column was clamped by its own grid area (`standing-column.tsx`). On a phone
-  // a column of five under two columns of three would have been a third of the foot's height for a
-  // choice most readers make once, so there it lies down into a row across the width.
+  // the foot from growing: back when there were five names, a column of them cost 11px, which the
+  // Dashboard was paying for until its standing column was clamped by its own grid area
+  // (`standing-column.tsx`). On a phone a column of five under two columns of three would have been
+  // a third of the foot's height for a choice most readers make once, so there it lies down into a
+  // row across the width. Two names (ADR 0012) fit either way, and the markup is left as it is
+  // because the breakpoint is what does the work and not the count.
   return (
     <nav aria-label={title}>
       <h2 className="text-text-muted">{title}</h2>

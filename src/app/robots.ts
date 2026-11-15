@@ -9,7 +9,7 @@ export const dynamic = "force-static";
 // `/technologies$` and not `/technologies`: a plain prefix would shut out every Technology page
 // under it. The `$` anchor is not in the original standard, but Google and Bing both read it, and
 // these three pages carry `robots: { index: false }` of their own as well.
-// Every one of these exists in five languages since ADR 0008, and a rule written for the English
+// Every one of these exists in both languages since ADR 0008, and a rule written for the English
 // address alone would leave `/it/dashboard` open to crawling. `/api/` and `/test/` are outside the
 // languages and are listed as they are; `/auth/` left with the login (issue #210).
 const PRIVATE = ["/technologies$", "/dashboard", "/settings"] as const;

@@ -7,8 +7,9 @@ import { clearFollows, addFollows, arrived, type FixtureTechnology, seedTechnolo
 // own as new notes arrive. The fixture below is deliberately hostile: a cited line too long for any
 // caret row, an identifier wider than a phone, and a bare URL with nowhere to break.
 
-// 320px is the narrowest width this product holds, and it arrives with the three languages: German
-// is the worst case for word length and the limit ADR 0008 commits to is no overflow at 320px.
+// 320px is the narrowest width this product holds, and the limit ADR 0008 commits to is no overflow
+// there. It arrived with the languages, when German was the worst case for word length; German left
+// with ADR 0012 and the width stayed, because the limit was never about one language.
 const WIDTHS = [1440, 1280, 768, 390, 320];
 
 const LONG_QUOTE =
@@ -119,12 +120,16 @@ for (const width of WIDTHS) {
     });
 
     test("the public pages stay inside the window", async ({ page }) => {
-      // `/it` and `/de` are the landing again in the two longer languages: Italian prose runs past
-      // English almost everywhere and German runs past Italian, so the page that is all prose is
-      // the one that would break a measure first (ADR 0008). `/de/terms` is here as well because
-      // it is the page of German compounds: `Nutzungsbedingungen` and `Gewährleistung` are the
-      // longest unbreakable words the product prints, and a document page is where they sit.
-      for (const path of ["/", "/it", "/de", "/de/terms", "/faq", `/technologies/${technology.slug}`, `/technologies/${technology.slug}?from=2.0.0`]) {
+      // `/it` is the landing again in the longer language: Italian prose runs past English almost
+      // everywhere, so the page that is all prose is the one that would break a measure first
+      // (ADR 0008). `/it/terms` and `/it/privacy` are here as well because a document page is where
+      // the longest unbreakable words sit: `responsabilità` on the one and `identificatore`, in the
+      // 22ch column of the table, on the other.
+      // ⚠️ German was the worst case for both of these and left with ADR 0012: the compounds
+      // `Nutzungsbedingungen` and `Gewährleistung` were five characters longer than anything
+      // printed now, so what this measures is the longest the product still has.
+      const pages = ["/", "/it", "/it/terms", "/it/privacy", "/faq"];
+      for (const path of [...pages, `/technologies/${technology.slug}`, `/technologies/${technology.slug}?from=2.0.0`]) {
         await page.goto(path);
         await expectNoOverflow(page, path);
       }
@@ -144,10 +149,10 @@ for (const width of WIDTHS) {
     });
 
     test("the signed-in pages stay inside the window", async ({ page }) => {
-      // The German ones are measured beside the English: the Standing panel is 326px wide and its
-      // verdict is one line by rule (DESIGN.md), so the language with the longest words is the one
-      // that would push it out. `/de/settings` is the page the language itself is chosen on.
-      for (const path of ["/dashboard", "/technologies", "/settings", "/de/dashboard", "/de/technologies", "/de/settings"]) {
+      // The Italian ones are measured beside the English: the Standing panel is 326px wide and its
+      // verdict is one line by rule (DESIGN.md), so the language with the longer words is the one
+      // that would push it out. `/it/settings` is the page the language itself is chosen on.
+      for (const path of ["/dashboard", "/technologies", "/settings", "/it/dashboard", "/it/technologies", "/it/settings"]) {
         await page.goto(path);
         await expectNoOverflow(page, path);
       }

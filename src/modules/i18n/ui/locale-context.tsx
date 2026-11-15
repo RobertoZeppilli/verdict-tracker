@@ -11,7 +11,7 @@ type LocaleValue = { locale: Locale; dictionary: Dictionary };
 // Client Component cannot call it. This context is that half, written once in the root layout, so
 // a link or a picker deep in the tree never has to be handed the language as a prop.
 // It carries the dictionary with the language because `t` is needed on this side of the boundary
-// too, and a client component that imported the dictionaries itself would pull **all five** into
+// too, and a client component that imported the dictionaries itself would pull **both** into
 // the bundle: the one being read arrives as a prop instead, already merged over English.
 const LocaleContext = createContext<LocaleValue>({ locale: DEFAULT_LOCALE, dictionary: {} });
 

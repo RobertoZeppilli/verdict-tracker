@@ -9,7 +9,7 @@ import { PreferredLocaleChoice } from "./preferred-locale-choice";
 //
 // ⚠️ **Drawn only once Verdict is in a Slack workspace**, which is when there is a channel to write
 // to (decided with the user on 2026-10-28): a choice of language for messages that have nowhere to
-// land is a preference about nothing, and the row of five presses would be the loudest thing in a
+// land is a preference about nothing, and the row of presses would be the loudest thing in a
 // zone that, until then, is about the language of the pages. When the channel is removed it goes
 // away again, and the value stays saved in the database for the day a channel comes back.
 export function PreferredLocaleSection({

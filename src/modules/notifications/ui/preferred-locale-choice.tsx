@@ -6,7 +6,7 @@ import { useTranslator } from "@/modules/i18n/ui";
 import { SeverityLabel } from "@/modules/releases/ui";
 import type { LocaleSaved, SaveLocale } from "../domain/saving";
 
-// The same five controls as the picker above it on this page, at the same 44px, because they are the
+// The same controls as the picker above it on this page, at the same 44px, because they are the
 // same choice made twice: there the language of the page, which is an address to follow (ADR 0008);
 // here the language Slack is written in, which has no address to read and so is a value
 // to save (ADR 0009). The look is shared on purpose, and what separates them is that one is a row of
@@ -28,7 +28,7 @@ export function PreferredLocaleChoice({ saved, action }: { saved: Locale; action
 
   return (
     <form action={save}>
-      {/* No optimistic mark here: which of the five is pending is not something `useActionState`
+      {/* No optimistic mark here: which press is pending is not something `useActionState`
           says, and a row where two look chosen for an instant says less than one that waits. The
           wait is announced instead, on the list the presses are in. */}
       <ul aria-busy={pending || undefined} className="mt-4 flex flex-wrap gap-2">

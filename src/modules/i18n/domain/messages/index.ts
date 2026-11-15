@@ -1,9 +1,6 @@
 import { DEFAULT_LOCALE, type Locale } from "../locales";
 import type { Dictionary, Message } from "../message";
-import { DE } from "./de";
 import { EN } from "./en";
-import { ES } from "./es";
-import { FR } from "./fr";
 import { IT } from "./it";
 
 export { EN, type MessageKey } from "./en";
@@ -13,17 +10,17 @@ export { EN, type MessageKey } from "./en";
 export type MessageDictionary = Readonly<Record<keyof typeof EN, Message>>;
 
 // The translations, by language. English is not here: it is the base every one of them is merged
-// over, so it cannot be one of them.
-// All four are written now, so the fallback in `dictionaryFor` has nothing left to catch: it stays
-// because it is what keeps a fifth language from shipping with holes in it, not because any of
-// these four needs it. The parity test is what proves that, language by language.
-// ⚠️ Italian and English are the user's own; French, Spanish and German entered unreviewed by a
-// native speaker and are to be reviewed before the launch (ADR 0008).
+// over, so it cannot be one of them. Since ADR 0012 there is exactly one, Italian, and it is the
+// user's own: French, Spanish and German are out, and what sent them out is that no native speaker
+// had reviewed them (ADR 0008 had reserved that review for before the launch, and it never happened).
+// Italian is written in full, so the fallback in `dictionaryFor` has nothing left to catch: it stays
+// because it is what keeps a third language from shipping with holes in it, not because Italian
+// needs it. The parity test is what proves that, language by language.
 // The type is still `Partial`: a language added to `LOCALES` without a dictionary has to be a
 // compiling, honest state, or the only way to add one would be to write it all first.
 const TRANSLATIONS: Readonly<
   Partial<Record<Exclude<Locale, typeof DEFAULT_LOCALE>, Dictionary>>
-> = { it: IT, fr: FR, es: ES, de: DE };
+> = { it: IT };
 
 const merged = new Map<Locale, MessageDictionary>();
 
