@@ -18,6 +18,10 @@ cosa era stata decisa.
 
 ### Novembre 2026 (`docs/handoff/2026-11.md`)
 
+- Il trentottesimo giro: la prima fetta della #211 finita e verde, 2026-11-12
+  - ⚠️ `MIGRATIONS_DIRECTORY` trova i `.sql` con `import.meta.url` e non è provata dopo il bundle
+  - ⚠️ Lo schema SQLite è un file solo e non diciotto migrazioni tradotte, e il file dice perché
+  - ⚠️ `enforce_current_version` è scomparso: la regola della Versione in uso non ha più una casa
 - Il trentasettesimo giro: la #210 finita e verde, e le quattro cose rotte, 2026-11-12
   - ⚠️ Un titolo di test duplicato ferma Playwright in fase di raccolta: non gira *niente*
   - ⚠️ Gli e2e vogliono un worker solo (`workers: 1`): senza lo Sviluppatore il conteggio è globale
