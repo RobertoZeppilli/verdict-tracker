@@ -39,53 +39,58 @@ piedi `/fr`, `/es` e `/de`. Il modulo `i18n` scende a due, `GLOSSARY.md` perde l
 e il `check` su `preferred_locale` dello schema SQLite scende con loro, perché `localeSchema` è lo
 schema con cui quella colonna viene riletta.
 
-Suite girate **sul runner**, con Supabase locale: `lint` e `typecheck` puliti, `test` 773/773,
-`test:integration` 92/92, `build` e `i18n:client-keys --check` verdi, `build:static` verde (2.078
-indirizzi nel sitemap, 4.048 documenti), `test:e2e` **268 passati e 1 saltato** (`slack-dialog`, che
-si salta da sé senza le credenziali Slack). I due e2e flaky del menu sono passati al primo colpo
-questo giro.
+Suite girate **sul runner**, con Supabase locale: `lint` e `typecheck` puliti, `test` 776/776,
+`test:integration` 93/93, `build` e `i18n:client-keys --check` verdi, `build:static` verde (2.078
+indirizzi nel sitemap, 4.048 documenti), `test:e2e` 266 al primo colpo, **2 flaky** (i due del menu,
+che vengono dalla #210) e 1 saltato (`slack-dialog`, che si salta da sé senza le credenziali Slack).
 
-### Le tre cose che il giro ha scoperto, e che nel codice non si vedono
+### Le quattro cose che il giro ha scoperto, e che nel codice non si vedono
 
-1. ⚠️ **Il risparmio di una lingua in meno sta nell'export, non nel sitemap.** La #238 lo motiva con
+1. ⚠️ **Due prove dell'`integration` sono flaky anche su `main`**, e non solo "nell'ordine
+   sbagliato" come diceva `AMBIENTE.md`: cinque corse `db:reset` + `test:integration` su `main`,
+   ciascuna da sola, hanno dato due verdi, due rossi da uno e un rosso da due. Sempre
+   `paged-reads.test.ts:113`, `expected 1201 to be 1200`, perché quella prova conta **tutto** il
+   database e l'ordine dei file che Vitest sceglie cambia fra una corsa e l'altra. La seconda corsa
+   di seguito passa sempre. Misurato e scritto in `AMBIENTE.md`: **chi lo vede lo rifaccia girare
+   prima di dare la colpa al proprio diff.**
+2. ⚠️ **L'enum Postgres `public.locale` nomina ancora cinque lingue, e nessuno ha riscritto le
+   righe.** `readNotificationSettings` e il job di Slack facevano `.parse` su quella colonna, quindi
+   una riga con `es` — e la suite di integrazione ne lasciava una — chiudeva `/settings`. Adesso le
+   due letture passano da `storedLocaleSchema`, che legge una lingua uscita come il default. **Lo
+   scrittore della #211 tenga la stessa distinzione**: severo in scrittura, tollerante in lettura.
+3. ⚠️ **Il risparmio di una lingua in meno sta nell'export, non nel sitemap.** La #238 lo motiva con
    "ogni lingua moltiplica le pagine di `pnpm build:static`", e per i **documenti** è vero: ogni
    pagina esce una volta per lingua. Per gli **indirizzi dichiarati** quasi no: 2.078 adesso, contro
    i ~2.100 di prima, perché la pagina Release era già dichiarata solo in inglese dall'emendamento
-   del 2026-10-28. Chi misurerà il peso dopo la #214 deve guardare l'export e non il sitemap.
-2. ⚠️ **`Intl.PluralRules("it")` ha una forma `many` e l'inglese no**, e `select(1_000_000)` ci cade
-   dentro. È l'unica differenza di plurale che resta fra le due lingue, e il test di `translate` che
-   provava "i plurali sono quelli della lingua data" ci sta sopra adesso: prima lo provava col
-   francese, che conta lo zero come uno. ⚠️ Di conseguenza **i dizionari italiani portano già le
-   forme `many`** dove l'inglese ha un contato, perché `dictionaries.test.ts` le pretende lingua per
-   lingua: una Sintesi o un messaggio nuovo con `{count}` va scritto con tutte e tre.
-3. ⚠️ **La trappola delle tre e2e del sitemap si è ripresentata, e `AMBIENTE.md` aveva ragione**:
-   dopo un `catalog:sync` va buttato `.next`, o `seo.spec.ts:79` e le due di `locales.spec.ts` sul
-   sitemap leggono la cache ISR presa quando il Catalogo era vuoto. Con `rm -rf .next` e una build
-   nuova passano tutte e tre. Non è una regressione, è l'ordine.
+   del 2026-10-28. Chi misurerà il peso dopo la #214 deve guardare l'export, non il sitemap.
+4. ⚠️ **`Intl.PluralRules("it")` ha una forma `many` e l'inglese no**, e `select(1_000_000)` ci cade
+   dentro: è l'unica differenza di plurale che resta fra le due lingue, e il test di `translate` ci
+   sta sopra adesso (prima provava col francese, che conta lo zero come uno). Di conseguenza **i
+   dizionari italiani portano già le forme `many`** dove l'inglese ha un contato, perché
+   `dictionaries.test.ts` le pretende: un messaggio nuovo con `{count}` va scritto con tutte e tre.
 
 ### La prossima mossa
 
 **La seconda fetta della #211**: lo strato di lettura e scrittura che sostituisce `supabase-js`,
 tabella per tabella, con dentro la regola della Versione in uso che `enforce_current_version` ha
-lasciato senza casa. È il pezzo grosso, ed è quello che sblocca i tre criteri di accettazione ancora
-aperti — niente import di `@supabase/*`, `test:integration` senza servizi esterni, i comandi verdi
-senza Docker. Poi lo script che esporta la produzione nel file iniziale (**le Sintesi sono già
-pagate e non si ricomprano**), e infine via la cartella `supabase/` e `deploy-database.yml`. Dopo la
-#211: #212 → #213 → #217 → #214 → #218 → #221 → #222 → #216, con la **#222** `ready-for-human` e
-una porta a senso unico. ⚠️ La #238 era "Blocked by #211" e l'ha scavalcata su indicazione
-dell'utente: non toccava il database, e nessuna PR era in volo.
+lasciato senza casa. È il pezzo grosso, e sblocca i tre criteri di accettazione ancora aperti —
+niente import di `@supabase/*`, `test:integration` senza servizi esterni, i comandi verdi senza
+Docker. Poi lo script che esporta la produzione nel file iniziale (**le Sintesi sono già pagate e
+non si ricomprano**), e infine via la cartella `supabase/` e `deploy-database.yml`. Dopo la #211:
+#212 → #213 → #217 → #214 → #218 → #221 → #222 → #216, con la **#222** `ready-for-human` e una
+porta a senso unico. ⚠️ La #238 era "Blocked by #211" e l'ha scavalcata su indicazione dell'utente:
+non toccava il database, e nessuna PR era in volo.
 
 ### Cosa resta a te
 
 1. ⚠️ **La decisione sui cinque documenti, ancora da prendere**, e adesso costa meno: `terms` nomina
    l'accesso con GitHub, `privacy` e `faq` spiegano come si cancella l'account, `contact` dice che è
-   un bottone. È prosa legale due volte su cinque, ma in **due lingue** e non in cinque, e **nessuna
-   issue aperta la copre**: la #221 è la landing, la #216 i contributi. Serve una issue sua.
+   un bottone. Prosa legale due volte su cinque, ma in **due lingue**, e **nessuna issue aperta la
+   copre** (#221 è la landing, #216 i contributi): serve una issue sua.
 2. ⚠️ **Quello che la migrazione della #210 ha aperto in produzione fino alla #222**: il dettaglio è
    nel diario di novembre, sotto il trentaseiesimo giro, e vale parola per parola.
-3. ⚠️ **Le suite in locale vogliono un ordine preciso**, e girarle nell'altro verso dà rossi che non
-   sono regressioni: l'`integration` **prima** del `catalog:sync`, e `rm -rf .next` dopo. L'ordine
-   giusto sta in `AMBIENTE.md`, ed è quello che la CI usa in due lavori separati.
+3. ⚠️ **Le suite in locale vogliono un ordine preciso** — `integration` prima del `catalog:sync`,
+   `rm -rf .next` dopo — e i rossi che dà l'ordine sbagliato sono elencati in `AMBIENTE.md`.
 4. **Due cose per la #214**, che è quella che pubblica: ⚠️ `package.json` dice ancora
    `"name": "release-tracker"`, e ⚠️ **non ha nessun `engines`**. La CI si salva da sé perché
    `ci.yml` fissa `node-version: 24`, ma `node:sqlite` su Node 22 gira stampando

@@ -130,6 +130,16 @@ Spostato qui da `../HANDOFF.md` dal trentottesimo giro, 2026-11-12.
   regressione, è l'ordine sbagliato. Quello che funziona è quello della CI, due lavori separati:
   `pnpm db:reset` e `pnpm test:integration` **prima**, `pnpm catalog:sync` e `pnpm build` e
   `pnpm test:e2e` **dopo**.
+- ⚠️ **Ma non è solo l'ordine, ed è una misura del trentanovesimo giro (2026-11-15): quelle due
+  prove sono flaky anche su `main` con un database appena resettato.** Cinque corse `db:reset` +
+  `test:integration` su `main`, ciascuna da sola, hanno dato 92/92, 92/92, un rosso, un rosso e due
+  rossi; sempre `paged-reads.test.ts:113` con `expected 1201 to be 1200` e, quando sono due,
+  `takes each pending Release only once across concurrent runs` accanto. **Conta tutto il database**,
+  quindi una riga lasciata da un altro file del run la rompe, e l'ordine dei file che Vitest sceglie
+  cambia fra una corsa e l'altra. La seconda corsa di seguito passa sempre. In CI non si è mai visto,
+  perché là il job parte da un database nuovo e gira una volta sola. **Chi vede quel rosso lo
+  rifaccia girare prima di dargli la colpa del proprio diff**, e chi tocca `paged-reads` lo faccia
+  contare le righe che ha seminato invece di tutte.
 - ⚠️ **Dopo un `catalog:sync` va buttato `.next`.** La sitemap resta quella presa quando il Catalogo
   era vuoto — la cache ISR sopravvive a una build nuova — e tre test se ne accorgono:
   `seo.spec.ts:79` e le due di `locales.spec.ts` sulla sitemap. Con `rm -rf .next` passano.
