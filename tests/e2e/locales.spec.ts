@@ -2,10 +2,10 @@ import { expect, test } from "@playwright/test";
 import { type FixtureTechnology, seedTechnology } from "./fixtures";
 
 // ADR 0008 and ADR 0012: two languages, English without a prefix. This file is about the plumbing
-// and not about the words: what is checked here is that the right page is served at the right address, says which
-// language it is in, and names its siblings. The words themselves are checked where they are
-// written: the app in its own specs, the landing in `landing.spec`, the five document pages in
-// `legal.spec`.
+// and not about the words: what is checked here is that the right page is served at the right
+// address, says which language it is in, and names its sibling. The words themselves are checked
+// where they are written: the app in its own specs, the landing in `landing.spec`, the five document
+// pages in `legal.spec`.
 
 let technology: FixtureTechnology;
 
