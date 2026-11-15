@@ -101,7 +101,7 @@ describe("the webhook as a secret", () => {
   it("leaves the browser's own upserts on the settings working", async () => {
     const { error } = await anonClient()
       .from("notification_settings")
-      .upsert({ singleton: true, preferred_locale: "de" }, { onConflict: "singleton" });
+      .upsert({ singleton: true, preferred_locale: "it" }, { onConflict: "singleton" });
     expect(error).toBeNull();
   });
 

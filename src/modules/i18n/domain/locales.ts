@@ -2,7 +2,10 @@ import { z } from "zod";
 
 // English first because it is the base: the strings are written in it and every other locale is a
 // translation of it (ADR 0008). The order is the one the picker reads in.
-export const LOCALES = ["en", "it", "fr", "es", "de"] as const;
+// ⚠️ Two and not five since ADR 0012: French, Spanish and German are out. Nothing reads a list of
+// what left -- the retired prefixes are answered by the 308 in `vercel.json` on the showcase and by
+// the app's own 404 in the installed copy, neither of which needs to know their names.
+export const LOCALES = ["en", "it"] as const;
 
 export const localeSchema = z.enum(LOCALES);
 
@@ -14,13 +17,10 @@ export type Locale = z.infer<typeof localeSchema>;
 export const DEFAULT_LOCALE = "en" as const satisfies Locale;
 
 // The name of each language in itself, which is the only name a reader of that language can be
-// expected to recognise: a German speaker looking for German looks for `Deutsch`.
+// expected to recognise: an Italian speaker looking for Italian looks for `Italiano`.
 export const LOCALE_NAMES: Readonly<Record<Locale, string>> = {
   en: "English",
   it: "Italiano",
-  fr: "Français",
-  es: "Español",
-  de: "Deutsch",
 };
 
 export function isLocale(value: string): value is Locale {
@@ -56,7 +56,8 @@ export function barePath(path: string): string {
 }
 
 // Every address of one page, for `hreflang`. `x-default` points at the English one: it is what a
-// crawler serves to a reader whose language we do not publish.
+// crawler serves to a reader whose language we do not publish -- which since ADR 0012 is every
+// reader who does not read English or Italian.
 export function localeAlternates(path: string): Record<string, string> {
   const { path: bare } = stripLocale(path);
   return {

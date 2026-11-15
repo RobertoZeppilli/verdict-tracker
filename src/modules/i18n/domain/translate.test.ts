@@ -7,6 +7,8 @@ const dictionary = {
   named: "signed in as {handle}",
   twice: "{a} and {a}",
   counted: { one: "{count} breaking change", other: "{count} breaking changes" },
+  // Italian has a `many` form and English has not, which is what the test below is built on.
+  italianCounted: { one: "{count} modifica", many: "{count} di modifiche", other: "{count} modifiche" },
 };
 
 describe("createTranslator", () => {
@@ -33,11 +35,16 @@ describe("createTranslator", () => {
 
   it("chooses the forms of the language it was given, not of English", () => {
     // `Intl.PluralRules` is the whole reason the module writes no plural rules of its own, and this
-    // is the difference it already makes inside the five languages of the product: **French counts
-    // zero as one**, so `0 breaking change` is right there and wrong in English. Nothing in the
-    // module had to know that.
-    expect(createTranslator("fr", dictionary)("counted", { count: 0 })).toBe("0 breaking change");
-    expect(createTranslator("en", dictionary)("counted", { count: 0 })).toBe("0 breaking changes");
+    // is the difference it makes between the two languages of the product: **Italian has a `many`
+    // form that English has not got**, and a million falls in it. Nothing in the module had to know
+    // that. ⚠️ The example used to be French counting zero as one, which read better; French left
+    // with ADR 0012, and a test of a language the product does not publish is a test of `Intl`.
+    expect(createTranslator("it", dictionary)("italianCounted", { count: 1_000_000 })).toBe(
+      "1000000 di modifiche",
+    );
+    expect(createTranslator("en", dictionary)("italianCounted", { count: 1_000_000 })).toBe(
+      "1000000 modifiche",
+    );
   });
 
   it("falls back to `other` when a counted message is given no count", () => {
