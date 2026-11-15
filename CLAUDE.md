@@ -18,14 +18,17 @@ finche' la #211 e la #213 non lo portano in locale.
 
 ## Leggi prima
 
-1. `docs/HANDOFF.md`: stato attuale e da dove ripartire. Il diario delle sessioni passate sta in
-   `docs/handoff/<anno>-<mese>.md`, **da non leggere per intero**: l'indice è dentro `HANDOFF.md`.
-   ⚠️ Prima di dare qualcosa per non deciso, cerca lì: `grep -rn "<parola>" docs/handoff/`.
-2. PRD: issue GitHub #1. Lavoro: issue #2 e seguenti (`gh issue list`, `gh issue view N`).
+1. **Si parte dalla issue**: PRD issue GitHub #1, lavoro issue #2 e seguenti (`gh issue list`,
+   `gh issue view N`).
    - `ready-for-agent` = implementabile in autonomia; `ready-for-human` = fermati e chiedi.
    - Rispetta "Blocked by" e i criteri di accettazione dell'issue.
+2. `docs/HANDOFF.md` **non** è il punto di partenza: serve solo quando una sessione si interrompe a
+   metà di un lavoro, per riprendere quel lavoro. Si legge se la issue in corso lo nomina o se
+   l'utente lo chiede.
 3. Quando servono: `GLOSSARY.md` (glossario), `docs/DECISIONI.md`, `docs/adr/`, `DESIGN.md`,
-   mock in `design/mocks/` (fonte per l'aspetto delle schermate).
+   mock in `design/mocks/` (fonte per l'aspetto delle schermate). Il diario delle sessioni passate
+   sta in `docs/handoff/<anno>-<mese>.md`, da non leggere per intero: prima di dare qualcosa per
+   non deciso, `grep -rn "<parola>" docs/handoff/`.
 
 ## Regole
 
