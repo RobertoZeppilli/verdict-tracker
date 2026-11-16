@@ -97,3 +97,21 @@ describe("anthropicSummaryWriter", () => {
     expect(await write(answeredWith("end_turn", [{ type: "thinking" }]))).toMatchObject({ type: "errored" });
   });
 });
+
+// Issue #240: the message of a failure is stored and logged, and a log gets pasted into issues.
+describe("a failure that carries the Anthropic key", () => {
+  const key = "sk-ant-api03-SECRETsecret_SECRET-secretAB12";
+
+  it.each([
+    ["a thrown Error", new Error(`request failed with x-api-key: ${key}`)],
+    ["an API error", apiError(401, "authentication_error", `invalid x-api-key ${key}`)],
+  ])("keeps only the last four characters of the key, from %s", async (_, error) => {
+    const result = await write(error);
+
+    expect(result.type).not.toBe("succeeded");
+    const message = "message" in result ? result.message : "";
+    expect(message).not.toContain(key);
+    expect(message).not.toContain("SECRET");
+    expect(message).toContain("sk-ant-…AB12");
+  });
+});

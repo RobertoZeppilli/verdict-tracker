@@ -66,5 +66,7 @@ jobs:
       # The messages handed to the browser are read off the chunks this build emitted, so a
       # client component that starts using a new one fails here until the list is regenerated.
       - run: pnpm i18n:client-keys --check
+      # Issue #240: nothing served under `.next/static` names the Anthropic key or carries one.
+      - run: pnpm secrets:client-check
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
