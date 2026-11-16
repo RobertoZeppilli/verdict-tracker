@@ -41,6 +41,11 @@ const BULLET = /^[ \t]*[-*+][ \t]+/;
 // the href, and the whole `[label](url)` is one raw stretch.
 const LINK = /^\[([^\]]*)\]\(([^()\s]*)\)/;
 
+// Issue #241: the notes are written by whoever publishes the package, so a link becomes a link only
+// to the web or to a mail address. Any other scheme (`javascript:`, `data:`) or a relative address
+// stays as written, in plain text.
+const SAFE_HREF = /^(?:https?:\/\/|mailto:)/i;
+
 export function renderQuote(line: string, start: number, end: number): RenderedQuote {
   const tokens = tokenize(line);
   const pieces: QuotePiece[] = [];
@@ -87,7 +92,7 @@ function tokenize(line: string): Token[] {
     const rest = line.slice(at);
 
     const link = LINK.exec(rest);
-    if (link) {
+    if (link && SAFE_HREF.test(link[2])) {
       flush(at);
       // The label is markdown too: `[`foo`](url)` is one link whose text is a code span.
       const inner = tokenize(link[1]);
