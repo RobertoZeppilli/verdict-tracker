@@ -25,10 +25,6 @@ describe("parseServerEnv", () => {
     expect(parseServerEnv({})).toEqual({});
   });
 
-  it("accepts a missing or empty job secret", () => {
-    expect(parseServerEnv({ CRON_SECRET: "" }).CRON_SECRET).toBeUndefined();
-  });
-
   it("accepts a missing or empty Anthropic key", () => {
     expect(
       parseServerEnv({ ANTHROPIC_API_KEY: "" }).ANTHROPIC_API_KEY,
@@ -39,9 +35,5 @@ describe("parseServerEnv", () => {
     expect(() =>
       parseServerEnv({ ANTHROPIC_API_KEY: "not-a-key" }),
     ).toThrow(/ANTHROPIC_API_KEY/);
-  });
-
-  it("rejects a short job secret", () => {
-    expect(() => parseServerEnv({ CRON_SECRET: "short" })).toThrow(/CRON_SECRET/);
   });
 });

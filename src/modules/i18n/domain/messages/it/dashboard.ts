@@ -40,6 +40,11 @@ export const dashboard = {
   },
   "dashboard.stream.thisWeek": "questa settimana",
   "dashboard.stream.window": "finestra: ultimi {days} giorni, dal {start} al {end} UTC",
+  "dashboard.detection.checked": "release controllate {ago}",
+  "dashboard.detection.never": "release non ancora controllate",
+  "dashboard.detection.running": "controllo le nuove release…",
+  "dashboard.detection.failed": "il controllo non è finito. riprova",
+  "dashboard.detection.refresh": "aggiorna",
   "dashboard.stream.declaration": "sei sulla {version}",
   "dashboard.stream.migrate": "migra a {name} {version}",
   // The day before the month, which is the order Italian writes a date in: `2 dic`, not `dic 2`.

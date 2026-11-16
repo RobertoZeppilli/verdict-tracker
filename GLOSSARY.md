@@ -225,6 +225,8 @@ _Evitare_: status job, flag summarized.
 **Rilevamento**:
 La fase che interroga le **Fonti**, registra le nuove **Release**, ne assegna la **Rilevanza** e ne
 raccoglie le **Note di rilascio**. Non produce **Sintesi**.
+Parte quando apri la **Dashboard** e l'ultimo è finito da sei ore o più, oppure quando lo chiedi con
+`aggiorna`. Deciso il 2026-11-16 con la issue #213.
 _Evitare_: sync, polling, fetch.
 
 **Importazione iniziale**:

@@ -13,8 +13,6 @@ const EnvSchema = z.object({
 
 // Server-only: never read these from a module that can reach the client bundle.
 const ServerEnvSchema = z.object({
-  // Bearer token of the job endpoints. Without it they refuse every request; empty counts as unset.
-  CRON_SECRET: z.preprocess((value) => (value === "" ? undefined : value), z.string().min(32).optional()),
   // Raises GitHub's limit from 60 requests an hour; the Detection reads notes only for new Releases.
   GITHUB_TOKEN: z.preprocess((value) => (value === "" ? undefined : value), z.string().min(1).optional()),
   // Only for the end-to-end tests: it is what /api/test/revalidate and /test/throw ask for before

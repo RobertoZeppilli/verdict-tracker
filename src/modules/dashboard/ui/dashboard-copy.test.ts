@@ -5,6 +5,7 @@ import type { Standing, StandingRow } from "../domain/standing";
 import {
   barShare,
   declarationNote,
+  detectionLine,
   hushClaim,
   hushSpan,
   pageVerdict,
@@ -133,5 +134,19 @@ describe("declarationNote", () => {
     expect(declarationNote(technology("node", "Node.js"), release({ slug: "node", version: "23.4.0" }), t)).toBeNull();
     expect(declarationNote(next, release({ slug: "next", version: "15.0.0" }), t)).toBeNull();
     expect(declarationNote(next, release({ slug: "next", version: "14.2.0" }), t)).toBeNull();
+  });
+});
+
+describe("detectionLine", () => {
+  const now = new Date("2026-11-16T12:00:00Z");
+
+  it("says when the Releases were never checked", () => {
+    expect(detectionLine(null, now, "en", t)).toBe("releases not checked yet");
+  });
+
+  it("counts minutes under an hour and hours under two days", () => {
+    expect(detectionLine(new Date("2026-11-16T11:55:00Z"), now, "en", t)).toBe("releases checked 5 minutes ago");
+    expect(detectionLine(new Date("2026-11-16T05:00:00Z"), now, "en", t)).toBe("releases checked 7 hours ago");
+    expect(detectionLine(new Date("2026-11-13T12:00:00Z"), now, "en", t)).toBe("releases checked 3 days ago");
   });
 });

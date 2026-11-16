@@ -41,6 +41,13 @@ export const dashboard = {
   "dashboard.stream.thisWeek": "this week",
   "dashboard.stream.window":
     "window: last {days} days, {start} to {end} UTC",
+  // The Detection (issue #213): when it last ended, the run in progress, and the button that forces
+  // one. `{ago}` comes from `Intl.RelativeTimeFormat`, so it is already in the page's language.
+  "dashboard.detection.checked": "releases checked {ago}",
+  "dashboard.detection.never": "releases not checked yet",
+  "dashboard.detection.running": "checking for new releases…",
+  "dashboard.detection.failed": "the check did not finish. try again",
+  "dashboard.detection.refresh": "refresh",
   "dashboard.stream.declaration": "you are on {version}",
   "dashboard.stream.migrate": "migrate to {name} {version}",
   // A day of a week's span, which is where the order of the two words is a question of language:
