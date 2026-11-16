@@ -6,7 +6,7 @@ Prodotto e dominio: `PRODUCT.md`, `GLOSSARY.md`; decisioni: `docs/DECISIONI.md`,
 ## Sviluppo locale
 
 Servono Node 24 e pnpm. I dati stanno in un file SQLite, `~/.verdict/verdict.db`
-(`%LOCALAPPDATA%erdict` su Windows, spostabile con `VERDICT_DATA_DIR`), creato al primo avvio.
+(`%LOCALAPPDATA%\verdict` su Windows, spostabile con `VERDICT_DATA_DIR`), creato al primo avvio.
 
 ```sh
 pnpm install
