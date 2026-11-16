@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { publicPagesFor } from "@/modules/releases";
 import { CreditExhaustedError, MAX_NOTES_LENGTH, PROMPT_VERSION, SUMMARY_MODEL } from "@/modules/summaries";
 import { collectSummaryBatches, submitPendingSummaries } from "@/modules/summaries/server";
 import { type FakeSummaryBatches, fakeSummaryBatches, succeeded } from "./fake-summary-batches";
-import { serviceClient } from "./supabase";
+import { sqliteJson } from "@/modules/db";
+import { testDatabase } from "./database";
 
 const content = {
   title: "Node 18 is dropped and the build gets faster.",
@@ -22,13 +23,14 @@ const content = {
 
 const SummaryRowSchema = z.object({
   status: z.string(),
-  content: z.unknown(),
+  content: sqliteJson(z.unknown()).nullable(),
   model: z.string().nullable(),
   prompt_version: z.string().nullable(),
   failure_reason: z.string().nullable(),
   batch_id: z.string().nullable(),
 });
 
+const db = testDatabase();
 let technologyId: string;
 let slug: string;
 
@@ -36,47 +38,24 @@ let slug: string;
 // unfenced, one run of these tests would send every real pending Summary to a fake batch that nobody
 // will ever collect (issue #55). Each call here stays inside the Technology the test seeded.
 function submit(batches: FakeSummaryBatches, options: { maxCount?: number } = {}) {
-  return submitPendingSummaries(serviceClient(), batches, { ...options, technologyIds: [technologyId] });
+  return submitPendingSummaries(db, batches, { ...options, technologyIds: [technologyId] });
 }
 
 function collect(batches: FakeSummaryBatches) {
-  return collectSummaryBatches(serviceClient(), batches, { technologyIds: [technologyId] });
+  return collectSummaryBatches(db, batches, { technologyIds: [technologyId] });
 }
 
-// Every Technology this test created, so the cleanup takes the outsiders of the fence test too.
-let created: string[] = [];
-
-async function seedTechnology(technologySlug: string): Promise<string> {
-  const inserted = await serviceClient()
-    .from("technologies")
-    .insert({ slug: technologySlug, name: "Summary test", category: "library", classification_strategy: "semver" })
-    .select("id")
-    .single();
-  if (inserted.error) throw inserted.error;
-  const id = z.object({ id: z.uuid() }).parse(inserted.data).id;
-  created.push(id);
+function seedTechnology(technologySlug: string): string {
+  const id = randomUUID();
+  db.prepare(
+    "insert into technologies (id, slug, name, category, classification_strategy) values (?, ?, 'Summary test', 'library', 'semver')",
+  ).run(id, technologySlug);
   return id;
 }
 
-beforeEach(async () => {
-  created = [];
+beforeEach(() => {
   slug = `summaries-${randomUUID()}`;
-  technologyId = await seedTechnology(slug);
-});
-
-afterEach(async () => {
-  const db = serviceClient();
-  const releases = await db.from("releases").select("id").in("technology_id", created);
-  if (releases.error) throw releases.error;
-  const ids = z.array(z.object({ id: z.uuid() })).parse(releases.data).map((row) => row.id);
-  for (const table of ["summaries", "release_notes"] as const) {
-    const { error } = await db.from(table).delete().in("release_id", ids);
-    if (error) throw error;
-  }
-  for (const [table, column] of [["releases", "technology_id"], ["technologies", "id"]] as const) {
-    const { error } = await db.from(table).delete().in(column, created);
-    if (error) throw error;
-  }
+  technologyId = seedTechnology(slug);
 });
 
 // A featured Release with notes and a pending Summary.
@@ -85,41 +64,26 @@ async function seedPending(
   notes = "### Breaking Changes\n\n* drop Node 18",
   technology = technologyId,
 ): Promise<string> {
-  const db = serviceClient();
-  const release = await db
-    .from("releases")
-    .insert({ technology_id: technology, version, significance: "featured", origin: "detected", published_at: new Date().toISOString() })
-    .select("id")
-    .single();
-  if (release.error) throw release.error;
-  const releaseId = z.object({ id: z.uuid() }).parse(release.data).id;
-  for (const [table, row] of [
-    ["release_notes", { release_id: releaseId, body: notes }],
-    ["summaries", { release_id: releaseId, status: "pending" }],
-  ] as const) {
-    const { error } = await db.from(table).insert(row);
-    if (error) throw error;
-  }
+  const releaseId = randomUUID();
+  db.prepare(
+    "insert into releases (id, technology_id, version, significance, origin, published_at) values (?, ?, ?, 'featured', 'detected', ?)",
+  ).run(releaseId, technology, version, new Date().toISOString());
+  db.prepare("insert into release_notes (release_id, body) values (?, ?)").run(releaseId, notes);
+  db.prepare("insert into summaries (release_id, status) values (?, 'pending')").run(releaseId);
   return releaseId;
 }
 
 // A Summary left in flight by another run: the batch is not one this test's fake knows.
 async function setProcessing(releaseId: string, batchId: string): Promise<void> {
-  const { error } = await serviceClient()
-    .from("summaries")
-    .update({ status: "processing", batch_id: batchId })
-    .eq("release_id", releaseId);
-  if (error) throw error;
+  db.prepare("update summaries set status = 'processing', batch_id = ? where release_id = ?").run(batchId, releaseId);
 }
 
 async function readSummary(releaseId: string) {
-  const { data, error } = await serviceClient()
-    .from("summaries")
-    .select("status, content, model, prompt_version, failure_reason, batch_id")
-    .eq("release_id", releaseId)
-    .single();
-  if (error) throw error;
-  return SummaryRowSchema.parse(data);
+  return SummaryRowSchema.parse(
+    db
+      .prepare("select status, content, model, prompt_version, failure_reason, batch_id from summaries where release_id = ?")
+      .get(releaseId),
+  );
 }
 
 describe("summaries pipeline", () => {
@@ -307,8 +271,21 @@ describe("summaries pipeline", () => {
 // the only writer that reaches `ready`, so these tests go straight at the table, the way a hand
 // written row would.
 describe("the provenance of a ready Summary", () => {
-  async function setSummary(releaseId: string, row: Record<string, unknown>) {
-    return serviceClient().from("summaries").update(row).eq("release_id", releaseId);
+  // The error, or null: the way a hand written row meets the check constraint.
+  async function setSummary(releaseId: string, row: Record<string, string | null | object>) {
+    const columns = Object.keys(row);
+    try {
+      db.prepare(`update summaries set ${columns.map((column) => `${column} = ?`).join(", ")} where release_id = ?`).run(
+        ...columns.map((column) => {
+          const value = row[column];
+          return typeof value === "object" && value !== null ? JSON.stringify(value) : value;
+        }),
+        releaseId,
+      );
+      return { error: null };
+    } catch (error) {
+      return { error: error instanceof Error ? error : new Error(String(error)) };
+    }
   }
 
   it.each([

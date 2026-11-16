@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { slackApp } from "@/lib/slack-app";
-import { createServiceClient } from "@/lib/supabase-server";
+import { getDatabase } from "@/modules/db/server";
 import { DEFAULT_LOCALE, type Locale, localePath } from "@/modules/i18n";
 import { channelHint, readState } from "@/modules/notifications";
 import { exchangeSlackCode, slackStateSigner, writeSlackWebhook } from "@/modules/notifications/server";
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   // `hooks.slack.com/…4321` about itself, because nobody had told it where it went (#172, #188).
   const hint = channelHint(channel);
   try {
-    await writeSlackWebhook(createServiceClient(), { url, hint });
+    await writeSlackWebhook(getDatabase(), { url, hint });
   } catch (cause) {
     console.error("slack oauth: write failed", writeReason(cause));
     return back(origin, state.locale, "failed");
@@ -61,9 +61,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   return back(origin, state.locale, "connected");
 }
 
-// The code and the sentence of a failed write and nothing else: `details` of a PostgREST error can
-// carry the offending row, and that row holds the webhook. A PostgrestError is a plain object and
-// not an `Error`, so both fields are read by name rather than through `instanceof`.
+// The code and the sentence of a failed write and nothing else: whatever else the error carries
+// could hold the row, and that row holds the webhook. Read by name, so any thrown value will do.
 function writeReason(cause: unknown): string {
   if (typeof cause !== "object" || cause === null) return String(cause);
   const code = "code" in cause ? String(cause.code) : "";

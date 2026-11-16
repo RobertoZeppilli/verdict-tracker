@@ -5,17 +5,18 @@ Prodotto e dominio: `PRODUCT.md`, `GLOSSARY.md`; decisioni: `docs/DECISIONI.md`,
 
 ## Sviluppo locale
 
-Servono Node 24, pnpm e Docker Desktop (su Windows con backend WSL2) avviato.
+Servono Node 24 e pnpm. I dati stanno in un file SQLite, `~/.verdict/verdict.db`
+(`%LOCALAPPDATA%erdict` su Windows, spostabile con `VERDICT_DATA_DIR`), creato al primo avvio.
 
 ```sh
 pnpm install
-pnpm db:start                  # Supabase locale; applica le migrazioni
-cp .env.example .env.local     # completa con i valori di `pnpm exec supabase status`
+cp .env.example .env.local
+pnpm catalog:sync              # il Catalogo e le sue Release nel file dei dati
 pnpm dev
 ```
 
-Controlli: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration` (con Supabase avviato),
-`pnpm test:e2e`. Nuova migrazione: `pnpm exec supabase migration new <nome>`, poi `pnpm db:reset`.
+Controlli: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`, `pnpm test:e2e`.
+Nuova migrazione: un file `.sql` numerato in `src/modules/db/migrations/`, applicato al prossimo avvio.
 
 ## Deploy
 

@@ -1,5 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { getDatabase } from "@/modules/db/server";
 import { locateCitation, parseSummaryOutput, prepareSummaryRequest } from "@/modules/summaries";
 import { createSummaryBatches } from "@/modules/summaries/server";
 
@@ -13,35 +13,27 @@ if (slug === undefined || version === undefined) {
 
 const env = z
   .object({
-    NEXT_PUBLIC_SUPABASE_URL: z.url(),
-    SUPABASE_SECRET_KEY: z.string().startsWith("sb_secret_"),
     ANTHROPIC_API_KEY: z.string().startsWith("sk-ant-"),
   })
   .parse(process.env);
-const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SECRET_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+const data = getDatabase()
+  .prepare(
+    `select n.body, r.id, r.version, t.name from release_notes n
+     join releases r on r.id = n.release_id
+     join technologies t on t.id = r.technology_id
+     where r.version = ? and t.slug = ?`,
+  )
+  .get(version, slug);
+if (data === undefined) throw new Error(`no release notes for ${slug} ${version}`);
 
-const { data, error } = await db
-  .from("release_notes")
-  .select("body, releases!inner(id, version, technologies!inner(slug, name))")
-  .eq("releases.version", version)
-  .eq("releases.technologies.slug", slug)
-  .maybeSingle();
-if (error !== null) throw error;
-if (data === null) throw new Error(`no release notes for ${slug} ${version}`);
-
-const RowSchema = z.object({
-  body: z.string(),
-  releases: z.object({ id: z.uuid(), version: z.string(), technologies: z.object({ name: z.string() }) }),
-});
+const RowSchema = z.object({ body: z.string(), id: z.uuid(), version: z.string(), name: z.string() });
 const row = RowSchema.parse(data);
 const notes = row.body;
 
 const prepared = prepareSummaryRequest({
-  releaseId: row.releases.id,
-  technologyName: row.releases.technologies.name,
-  version: row.releases.version,
+  releaseId: row.id,
+  technologyName: row.name,
+  version: row.version,
   notes,
 });
 if (!prepared.ok) throw new Error(`cannot summarize: ${prepared.reason}`);
@@ -63,7 +55,7 @@ while (results === null) {
 }
 console.log("");
 
-const result = results.get(row.releases.id);
+const result = results.get(row.id);
 if (result === undefined) throw new Error("the batch came back without this Release");
 if (result.type !== "succeeded") throw new Error(`${result.type}: ${result.message}`);
 

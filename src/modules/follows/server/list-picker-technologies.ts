@@ -1,6 +1,7 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { CategorySchema } from "@/modules/catalog";
+import { sqliteBoolean, sqliteJson } from "@/modules/db";
+import type { Database } from "@/modules/db/server";
 import { latestStableRelease } from "@/modules/releases";
 import type { PickerTechnology } from "../domain/picker";
 
@@ -9,25 +10,25 @@ const PickerRowSchema = z.object({
   slug: z.string(),
   name: z.string(),
   description: z.string(),
-  retired: z.boolean(),
+  retired: sqliteBoolean,
   category: CategorySchema,
-  releases: z.array(z.object({ version: z.string(), published_at: z.iso.datetime({ offset: true }) })),
+  releases: sqliteJson(z.array(z.object({ version: z.string(), published_at: z.iso.datetime({ offset: true }) }))),
 });
 
-// One query for the whole picker: Versions are short strings and the page is behind the login, so a
-// per Technology query would cost far more than the rows it saves.
-//
-// Unpaged because the Catalog is curated and sixty rows. ⚠️ The embedded Releases carry the same
-// caveat as `readDashboard`: an embedded list is cut at a thousand per Technology and cannot be
-// paged, and only `latestStableRelease` reads it, so a cut would quietly pick the wrong latest.
-export async function listPickerTechnologies(db: SupabaseClient): Promise<PickerTechnology[]> {
-  const { data, error } = await db
-    .from("technologies")
-    .select("id, slug, name, description, retired, category, releases (version, published_at)");
-  if (error) throw error;
+// One query for the whole picker: Versions are short strings, so a per Technology query would cost
+// far more than the rows it saves. The Releases come back whole, as a JSON list per Technology.
+export async function listPickerTechnologies(db: Database): Promise<PickerTechnology[]> {
+  const rows = db
+    .prepare(
+      `select t.id, t.slug, t.name, t.description, t.retired, t.category,
+         (select json_group_array(json_object('version', r.version, 'published_at', r.published_at))
+          from releases r where r.technology_id = t.id) as releases
+       from technologies t`,
+    )
+    .all();
   return z
     .array(PickerRowSchema)
-    .parse(data)
+    .parse(rows)
     .map(({ releases, ...technology }) => {
       const latest = latestStableRelease(releases);
       return {

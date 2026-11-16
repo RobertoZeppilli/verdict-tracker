@@ -2,6 +2,10 @@ import { defineConfig, devices } from "@playwright/test";
 
 const isCI = Boolean(process.env.CI);
 
+// The app under test and the fixtures open the same data file, in a folder of its own: a run never
+// writes into the install of whoever runs it (issue #211). The workers and the web server inherit it.
+process.env.VERDICT_DATA_DIR ||= ".e2e-data";
+
 // ⚠️ `reuseExistingServer` trusts whatever answers on this port, and it cannot tell this app from
 // another one: a dev server of a different project sitting on 3000 is the server the whole suite
 // then talks to, which reads as dozens of unrelated failures. `E2E_PORT` is how a machine that keeps

@@ -18,6 +18,12 @@ cosa era stata decisa.
 
 ### Novembre 2026 (`docs/handoff/2026-11.md`)
 
+- Il quarantesimo giro: la seconda fetta della #211 a metà, 2026-11-15
+  - ⚠️ Un crash del PC ha azzerato due script (byte nulli): `tr -cd '\000' < file | wc -c` prima del diff
+- Il trentanovesimo giro: la #238 finita e verde, 2026-11-15
+  - ⚠️ `paged-reads.test.ts:113` è flaky anche su `main`: rifarlo girare prima di accusare il diff
+  - ⚠️ L'enum `public.locale` ha ancora cinque lingue: `storedLocaleSchema` legge tollerante
+  - ⚠️ `Intl.PluralRules("it")` ha la forma `many`: un messaggio nuovo con `{count}` ne vuole tre
 - Il trentottesimo giro: la prima fetta della #211 finita e verde, 2026-11-12
   - ⚠️ `MIGRATIONS_DIRECTORY` trova i `.sql` con `import.meta.url` e non è provata dopo il bundle
   - ⚠️ Lo schema SQLite è un file solo e non diciotto migrazioni tradotte, e il file dice perché

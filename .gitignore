@@ -31,3 +31,6 @@ next-env.d.ts
 
 # Screenshot incollati in chat: non appartengono al repository.
 docs/Cattura.JPG
+
+# The data file of the E2E runs (playwright.config.ts)
+/.e2e-data/

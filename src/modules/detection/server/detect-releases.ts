@@ -1,8 +1,7 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { StoredTechnology } from "@/modules/catalog";
 import { listActiveTechnologies } from "@/modules/catalog/server";
-import { selectAllRows } from "@/lib/supabase-rows";
+import type { Database } from "@/modules/db/server";
 import { classify, type KnownReleases, type ReleaseRef, selectDetected } from "@/modules/releases";
 import type { SourceAdapters } from "../domain/source-adapters";
 import { observeVersions } from "./observe-versions";
@@ -24,7 +23,7 @@ export type DetectionReport = {
 // The daily Detection (ADR 0003): Sources in, new Releases out, no AI. One failing Technology does
 // not stop the others; the next run retries it.
 export async function detectReleases(
-  db: SupabaseClient,
+  db: Database,
   adapters: SourceAdapters,
 ): Promise<DetectionReport> {
   const known = await readKnownReleases(db);
@@ -46,7 +45,7 @@ export async function detectReleases(
 }
 
 async function detectTechnology(
-  db: SupabaseClient,
+  db: Database,
   technology: StoredTechnology,
   adapters: SourceAdapters,
   known: KnownReleases,
@@ -70,13 +69,10 @@ async function detectTechnology(
   return { versions, unchanged };
 }
 
-// One reading of the whole Catalog, by page: a Technology absent from the result has no Releases at
-// all and belongs to the Initial Import, not to the Detection. Truncating here would be silent and
-// far worse than an error, because a Technology left out of the page stops being detected at all.
-async function readKnownReleases(db: SupabaseClient): Promise<Map<string, KnownReleases>> {
-  const data = await selectAllRows((from, to) =>
-    db.from("releases").select("technology_id, version, published_at").order("id").range(from, to),
-  );
+// One reading of the whole Catalog: a Technology absent from the result has no Releases at all and
+// belongs to the Initial Import, not to the Detection.
+async function readKnownReleases(db: Database): Promise<Map<string, KnownReleases>> {
+  const data = db.prepare("select technology_id, version, published_at from releases").all();
 
   const known = new Map<string, { versions: string[]; latestPublishedAt: Date }>();
   for (const row of KnownRowSchema.parse(data)) {

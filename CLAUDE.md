@@ -5,7 +5,8 @@ Sintesi con l'AI. Gira sul computer di chi la usa (`npx verdict-tracker`), con l
 Anthropic. Non si vende, non ha account: deciso il 2026-11-10, **ADR 0011**.
 Parla con l'utente **in italiano**.
 
-⚠️ **La conversione e' in corso**: Supabase e' ancora nel repository, e nove issue lo smontano in
+⚠️ **La conversione e' in corso**: dalla #211 i dati sono un file SQLite e il codice non usa piu'
+Supabase (resta solo il progetto in produzione, da spegnere nella #222). Le issue, in
 quest'ordine: #211 → #212 → #213 → #217 → #214 → #218 → #221 → #222 → #216.
 Finche' una issue non e' chiusa, i comandi e lo schema qui sotto valgono come sono scritti.
 Il Piano non c'e' piu': la #209 e' chiusa il 2026-11-12, e `public.plans` e' cancellata anche in
@@ -17,14 +18,17 @@ finche' la #211 e la #213 non lo portano in locale.
 
 ## Leggi prima
 
-1. `docs/HANDOFF.md`: stato attuale e da dove ripartire. Il diario delle sessioni passate sta in
-   `docs/handoff/<anno>-<mese>.md`, **da non leggere per intero**: l'indice è dentro `HANDOFF.md`.
-   ⚠️ Prima di dare qualcosa per non deciso, cerca lì: `grep -rn "<parola>" docs/handoff/`.
-2. PRD: issue GitHub #1. Lavoro: issue #2 e seguenti (`gh issue list`, `gh issue view N`).
+1. **Si parte dalla issue**: PRD issue GitHub #1, lavoro issue #2 e seguenti (`gh issue list`,
+   `gh issue view N`).
    - `ready-for-agent` = implementabile in autonomia; `ready-for-human` = fermati e chiedi.
    - Rispetta "Blocked by" e i criteri di accettazione dell'issue.
+2. `docs/HANDOFF.md` **non** è il punto di partenza: serve solo quando una sessione si interrompe a
+   metà di un lavoro, per riprendere quel lavoro. Si legge se la issue in corso lo nomina o se
+   l'utente lo chiede.
 3. Quando servono: `GLOSSARY.md` (glossario), `docs/DECISIONI.md`, `docs/adr/`, `DESIGN.md`,
-   mock in `design/mocks/` (fonte per l'aspetto delle schermate).
+   mock in `design/mocks/` (fonte per l'aspetto delle schermate). Il diario delle sessioni passate
+   sta in `docs/handoff/<anno>-<mese>.md`, da non leggere per intero: prima di dare qualcosa per
+   non deciso, `grep -rn "<parola>" docs/handoff/`.
 
 ## Regole
 
@@ -59,8 +63,11 @@ finche' la #211 e la #213 non lo portano in locale.
 
 - `pnpm dev` · `pnpm build` · `pnpm lint` · `pnpm typecheck` · `pnpm test` (Vitest, unitari).
 - `pnpm build:static`: la vetrina pubblica in `out/` (copia potata in `.static-build/`, ~10 min).
-- Database (serve Docker Desktop attivo): `pnpm db:start` · `pnpm db:reset` · `pnpm db:stop`;
-  nuova migrazione con `pnpm exec supabase migration new <nome>`.
-- `pnpm test:integration` (Vitest su Supabase locale) · `pnpm test:e2e` (Playwright).
+- Database: un file SQLite (`node:sqlite`) in `~/.verdict/` (`%LOCALAPPDATA%erdict` su Windows),
+  spostabile con `VERDICT_DATA_DIR`; le migrazioni sono i `.sql` numerati in
+  `src/modules/db/migrations/`, applicati all'apertura. Docker non serve.
+- `pnpm db:export <file nuovo>`: copia Catalogo, Release, Note e Sintesi dalla produzione Supabase
+  in un file dei dati (sola lettura, con `EXPORT_SUPABASE_URL` e `EXPORT_SUPABASE_SECRET_KEY`).
+- `pnpm test:integration` (Vitest su SQLite in memoria) · `pnpm test:e2e` (Playwright).
 - Variabili d'ambiente: copia `.env.example` in `.env.local`; lo schema Zod è in `src/env/`.
 - Next.js 16: leggi `AGENTS.md` e le guide in `node_modules/next/dist/docs/` prima di usare API di Next.

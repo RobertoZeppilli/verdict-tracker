@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
 import { slackApp } from "@/lib/slack-app";
-import { createRequestClient } from "@/lib/supabase-request";
+import { getDatabase } from "@/modules/db/server";
 import { currentLocale, getTranslator } from "@/modules/i18n/server";
 import { LocalePicker } from "@/modules/i18n/ui";
 import { slackOutcomeKey } from "@/modules/notifications";
@@ -33,7 +33,7 @@ export default async function SettingsPage({
   const t = await getTranslator();
   const slack = (await searchParams).slack;
   // Read here and handed down, so the section stays a component that is given what it draws.
-  const settings = await readNotificationSettings(await createRequestClient());
+  const settings = await readNotificationSettings(getDatabase());
 
   return (
     <>

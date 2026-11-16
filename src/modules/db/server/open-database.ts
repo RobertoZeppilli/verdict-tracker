@@ -1,23 +1,19 @@
-import "server-only";
 
 import { mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { fileURLToPath } from "node:url";
 
 import { databaseFile } from "../domain/database-file";
 import { MigrationOrderError, planMigrations } from "../domain/plan-migrations";
 
 export type Database = DatabaseSync;
 
-// ⚠️ Resolved from this file, so it holds while the module is read as source: the tests, a script
-// run with `tsx`, `next dev`. **It is not yet proved against a bundled build**, where this file
-// becomes a chunk under `.next/` and `import.meta.url` points there instead of at `src/`. Nothing in
-// the app opens the database yet, so there is nothing to prove it on; the first route that does must
-// check it, and `outputFileTracingIncludes` in `next.config.ts` is only half the answer -- it ships
-// the files, it does not say where this module will look for them.
-export const MIGRATIONS_DIRECTORY = fileURLToPath(new URL("../migrations/", import.meta.url));
+// From the working directory and not from this file: Turbopack reads `new URL(…, import.meta.url)`
+// as an asset and fails on a directory, and in a bundle this file is a chunk under `.next/` anyway.
+// shortcut: assumes the process starts at the project root (tests, `tsx`, `next dev`, `next start`);
+// the launcher of #214 must start `next` there, or pass `migrations` itself.
+export const MIGRATIONS_DIRECTORY = join(process.cwd(), "src", "modules", "db", "migrations");
 
 export type OpenOptions = {
   /** The file to open. Defaults to the place the installing system keeps application data. */

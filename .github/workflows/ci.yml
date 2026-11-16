@@ -27,15 +27,10 @@ jobs:
       # `typecheck` lancia `next typegen` prima di `tsc`, perche' da quando il layout sta sotto
       # `app/[locale]` il codice usa `LayoutProps<"/[locale]">` e `next/root-params`, i cui tipi li
       # genera Next in `.next/types` (ADR 0008). `next typegen` carica `next.config.ts`, che valida
-      # l'ambiente, quello pubblico e quello server. Questi quattro valori non vengono letti da
-      # niente: sono le sole obbligatorie dei due schemi, e servono a far passare Zod in un job che
-      # non ha ne' un database ne' un sito. Le due chiavi portano il prefisso che lo schema pretende.
+      # l'ambiente: l'URL del sito e' l'unica variabile obbligatoria, e qui non viene letta da niente.
       - run: pnpm typecheck
         env:
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
-          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_typecheck_only
-          SUPABASE_SECRET_KEY: sb_secret_typecheck_only
       - run: pnpm test
 
   integration:
@@ -51,26 +46,20 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Applies every migration from scratch; services the tests do not use are skipped.
-      - run: pnpm exec supabase start -x studio,postgres-meta,imgproxy,inbucket
+      # Each test file opens its own SQLite file in memory, with the real migrations (issue #211).
       - run: pnpm test:integration
-      # The app is built and tested end to end against the local stack, with the real Catalog synced.
-      - name: Point the app at local Supabase
+      # The app is built and tested end to end against a data file of its own, with the real Catalog
+      # synced into it: the build reads it too, since the sitemap is prerendered from it.
+      - name: Point the app at the E2E data file
         run: |
-          pnpm exec supabase status -o env | grep -E "^[A-Z_]+=" > supabase.env
-          . ./supabase.env
           {
+            echo "VERDICT_DATA_DIR=.e2e-data"
             echo "NEXT_PUBLIC_SITE_URL=http://localhost:3000"
-            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
-            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
-            echo "SUPABASE_SECRET_KEY=$SECRET_KEY"
-            # Lets the end-to-end tests sign a test Developer in without GitHub OAuth.
+            # Opens the test-only revalidation route the end-to-end tests call.
             echo "E2E_AUTH_SECRET=$(openssl rand -hex 32)"
           } >> "$GITHUB_ENV"
-          rm supabase.env
-      # Same variables as the Deploy database workflow, so a dependency on the app env fails here.
       # The Initial Import reads the real npm and GitHub Sources.
-      - run: env -u NEXT_PUBLIC_SITE_URL -u NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY pnpm catalog:sync
+      - run: pnpm catalog:sync
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: pnpm build

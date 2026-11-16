@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
-import { createRequestClient } from "@/lib/supabase-request";
+import { type Database, getDatabase } from "@/modules/db/server";
 import { buildDashboard, type Dashboard } from "@/modules/dashboard";
 import { readDashboard } from "@/modules/dashboard/server";
 import {
@@ -43,7 +43,7 @@ const ONE_COLUMN = "max-w-content [&>*]:max-w-column";
 export default async function DashboardPage({ searchParams }: Props) {
   const t = await getTranslator();
   const openWeeks = readOpenWeeks((await searchParams)[WEEK_PARAM]);
-  const db = await createRequestClient();
+  const db = getDatabase();
   const [{ followed, releases }, follows] = await Promise.all([readDashboard(db), readFollows(db)]);
   const dashboard = buildDashboard(followed, releases, new Date());
   const empty = followed.length === 0;
@@ -88,7 +88,7 @@ async function FollowedStack({ dashboard, openWeeks }: { dashboard: Dashboard; o
 const SHORTLIST = 8;
 
 // Only the empty state needs the Catalog, so nothing else pays for the query.
-async function EmptyState({ db }: { db: Awaited<ReturnType<typeof createRequestClient>> }) {
+async function EmptyState({ db }: { db: Database }) {
   const technologies = (await listPickerTechnologies(db))
     .filter((technology) => !technology.retired)
     .sort((a, b) => a.name.localeCompare(b.name));

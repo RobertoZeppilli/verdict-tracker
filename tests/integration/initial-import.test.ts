@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { StoredTechnology } from "@/modules/catalog";
 import { getTechnology } from "@/modules/catalog/server";
 import type { SourceAdapters } from "@/modules/detection";
 import { importTechnology, technologiesAwaitingImport } from "@/modules/detection/server";
-import { serviceClient } from "./supabase";
+import { seedTechnology, testDatabase } from "./database";
 
 const now = new Date("2026-09-22T12:00:00Z");
 
@@ -49,75 +49,66 @@ const ImportedSchema = z.array(
     significance: z.string(),
     origin: z.string(),
     published_at: z.string(),
-    release_notes: z.object({ body: z.string(), url: z.string().nullable(), source_id: z.uuid().nullable() }).nullable(),
-    summaries: z.object({ status: z.string() }).nullable(),
+    body: z.string().nullable(),
+    url: z.string().nullable(),
+    source_id: z.uuid().nullable(),
+    status: z.string().nullable(),
   }),
 );
 
+const db = testDatabase();
 let technology: StoredTechnology;
 
-async function readImported() {
-  const { data, error } = await serviceClient()
-    .from("releases")
-    .select("version, significance, origin, published_at, release_notes (body, url, source_id), summaries (status)")
-    .eq("technology_id", technology.id)
-    .order("version");
-  if (error) throw error;
-  return ImportedSchema.parse(data);
+function readImported() {
+  const rows = db
+    .prepare(
+      `select r.version, r.significance, r.origin, r.published_at, n.body, n.url, n.source_id, s.status
+       from releases r
+       left join release_notes n on n.release_id = r.id
+       left join summaries s on s.release_id = r.id
+       where r.technology_id = ? order by r.version`,
+    )
+    .all(technology.id);
+  return ImportedSchema.parse(rows).map(({ body, url, source_id, status, published_at, ...release }) => ({
+    ...release,
+    // Compared as instants, whatever precision the writer kept.
+    published_at: new Date(published_at).toISOString(),
+    release_notes: body === null ? null : { body, url, source_id },
+    summaries: status === null ? null : { status },
+  }));
 }
 
 beforeAll(async () => {
-  const db = serviceClient();
   const slug = `import-${randomUUID()}`;
-  const inserted = await db
-    .from("technologies")
-    .insert({ slug, name: "Import test", category: "library", classification_strategy: "semver" })
-    .select("id")
-    .single();
-  if (inserted.error) throw inserted.error;
-  const technologyId = z.object({ id: z.uuid() }).parse(inserted.data).id;
-  const sources = await db.from("sources").insert([
-    { technology_id: technologyId, role: "detection", kind: "npm", config: { package: slug } },
-    {
-      technology_id: technologyId,
-      role: "notes",
-      kind: "github-releases",
-      config: { repo: `test/${slug}`, tagFormat: "v{version}" },
-    },
-  ]);
-  if (sources.error) throw sources.error;
+  seedTechnology(db, {
+    slug,
+    name: "Import test",
+    sources: [
+      { role: "detection", kind: "npm", config: { package: slug } },
+      { role: "notes", kind: "github-releases", config: { repo: `test/${slug}`, tagFormat: "v{version}" } },
+    ],
+  });
   const stored = await getTechnology(db, slug);
   if (!stored) throw new Error("seeded Technology not found");
   technology = stored;
 });
 
-afterAll(async () => {
-  const db = serviceClient();
-  const releases = await db.from("releases").select("id").eq("technology_id", technology.id);
-  const ids = z.array(z.object({ id: z.uuid() })).parse(releases.data).map((row) => row.id);
-  await db.from("summaries").delete().in("release_id", ids);
-  await db.from("release_notes").delete().in("release_id", ids);
-  await db.from("releases").delete().eq("technology_id", technology.id);
-  await db.from("sources").delete().eq("technology_id", technology.id);
-  await db.from("technologies").delete().eq("id", technology.id);
-});
-
 describe("Initial Import", () => {
   it("waits for a Technology that has no Releases yet", async () => {
-    const awaiting = await technologiesAwaitingImport(serviceClient());
+    const awaiting = await technologiesAwaitingImport(db);
     expect(awaiting.map((entry) => entry.id)).toContain(technology.id);
   });
 
   it("imports the last 12 months plus the latest featured Release, with notes as they are", async () => {
-    await importTechnology(serviceClient(), technology, adapters, now);
+    await importTechnology(db, technology, adapters, now);
 
     const notesSource = technology.sources.find((source) => source.role === "notes");
-    expect(await readImported()).toEqual([
+    expect(readImported()).toEqual([
       {
         version: "7.3.0",
         significance: "notable",
         origin: "imported",
-        published_at: "2025-12-01T09:00:00+00:00",
+        published_at: "2025-12-01T09:00:00.000Z",
         release_notes: {
           body: "### Features\n\n* older minor",
           url: `https://github.com/test/${technology.slug}/releases/tag/v7.3.0`,
@@ -135,18 +126,18 @@ describe("Initial Import", () => {
         summaries: { status: "unavailable" },
       }),
     ]);
-    const featured = (await readImported()).find((release) => release.version === "8.0.0");
+    const featured = (readImported()).find((release) => release.version === "8.0.0");
     expect(featured?.release_notes?.body).toBe("### Breaking Changes\n\n* **deps:** drop Node 18\r\n");
   });
 
   it("no longer waits for the Technology once it has Releases", async () => {
-    const awaiting = await technologiesAwaitingImport(serviceClient());
+    const awaiting = await technologiesAwaitingImport(db);
     expect(awaiting.map((entry) => entry.id)).not.toContain(technology.id);
   });
 
   it("creates no duplicates when run again", async () => {
-    const before = await readImported();
-    await importTechnology(serviceClient(), technology, adapters, now);
-    expect(await readImported()).toEqual(before);
+    const before = readImported();
+    await importTechnology(db, technology, adapters, now);
+    expect(readImported()).toEqual(before);
   });
 });
