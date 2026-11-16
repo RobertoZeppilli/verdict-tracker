@@ -119,3 +119,25 @@ describe("the cited stretch, carried across the cleaning", () => {
     expect(renderQuote(WEBPACK, 0, 0)).toMatchObject({ start: 0, end: 0 });
   });
 });
+
+// Issue #241: whoever publishes a package writes its notes. What a quote renders is text and, at
+// most, a link to the web: the pieces reach React as children and as an href, never as HTML.
+describe("a hostile line of notes", () => {
+  const line =
+    '- <script>alert(1)</script> <img src=x onerror="alert(2)"> [click](javascript:alert`3`) [mail](mailto:a@b.c) [site](https://example.com)';
+  const { pieces } = renderQuote(line, 0, line.length);
+  const text = pieces.map((piece) => piece.text).join("");
+
+  it("keeps script and img tags as literal text", () => {
+    expect(text).toContain("<script>alert(1)</script>");
+    expect(text).toContain('<img src=x onerror="alert(2)">');
+  });
+
+  it("links only http, https and mailto addresses", () => {
+    expect(pieces.flatMap((piece) => (piece.href === undefined ? [] : [piece.href]))).toEqual([
+      "mailto:a@b.c",
+      "https://example.com",
+    ]);
+    expect(text).toContain("click");
+  });
+});
