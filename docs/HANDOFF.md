@@ -67,10 +67,9 @@ di novembre.
 - **#212 in PR** dal branch `212-messages-api`: Messages API, Sintesi nel giro del Rilevamento,
   stato "manca la chiave", migrazione `0002` che toglie `batch_id` (dal file esportato in poi lo
   schema non si modifica più al suo posto, si aggiunge un file).
-- ⚠️ **La prova vera della Messages API non è riuscita**: la `ANTHROPIC_API_KEY` di `.env.local`
-  risponde `401 invalid x-api-key`. Rifarla con una chiave valida:
-  `VERDICT_DATA_DIR=<cartella con una copia del file esportato> pnpm summary:try nodejs 26.13.0`.
-  Ha scoperto un bug, corretto: 401/403 rimettono in attesa invece di far fallire la coda.
+- **Prova vera riuscita** (`pnpm summary:try nodejs 26.13.0`, su una copia del file esportato). Una
+  prima prova con la chiave scaduta ha scoperto un bug, corretto: 401/403 rimettono in attesa invece
+  di far fallire la coda.
 - Il branch locale `212-sintesi-su-richiesta` è vuoto, da cancellare.
 
 Dopo la #212: #213 → #217 → #214 → #218 → #221 → #222 → #216, con la **#222**
