@@ -47,8 +47,17 @@ function toParams(request: SummaryRequest): MessageParams {
   };
 }
 
+// Anything shaped like an Anthropic key, reduced to a hint (issue #240): the message of a failure is
+// stored and logged, and a log gets pasted into issues. The last four characters say **which** key,
+// as the Slack webhook's hint does.
+const ANTHROPIC_KEY = /sk-ant-[\w-]+/g;
+
+function withoutKey(text: string): string {
+  return text.replace(ANTHROPIC_KEY, (key) => `sk-ant-…${key.slice(-4)}`);
+}
+
 function failure(error: unknown): SummaryResult {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = withoutKey(error instanceof Error ? error.message : String(error));
   // 402 is the credit balance; the API also refuses with a 400 whose message names it.
   if (error instanceof APIError && (error.status === 402 || /credit balance/i.test(error.message))) {
     return { type: "credit_exhausted", message };
