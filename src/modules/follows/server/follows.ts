@@ -32,7 +32,11 @@ function declarationOf(row: Omit<z.infer<typeof FollowRowSchema>, "technology_id
 // Following what is already followed is not a refusal: the group may hold rows the page had.
 export function writeFollows(db: Database, technologyIds: readonly string[], follow: boolean): FollowRejection | null {
   const statement = follow
-    ? db.prepare("insert into follows (technology_id) values (?) on conflict (technology_id) do nothing")
+    ? // Not `on conflict do nothing`: the retired trigger fires before it, and would refuse a retired
+      // Technology still followed. A row already there inserts nothing, so the trigger never runs.
+      db.prepare(
+        "insert into follows (technology_id) select ?1 where not exists (select 1 from follows where technology_id = ?1)",
+      )
     : db.prepare("delete from follows where technology_id = ?");
   db.exec("begin");
   try {

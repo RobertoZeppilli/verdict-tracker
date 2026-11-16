@@ -92,6 +92,18 @@ describe("the follow rules the database imposes", () => {
     expect(writeFollows(db, [retired], true)).toBe("retired");
   });
 
+  // GLOSSARY.md: a retired Technology already followed stays followed, and following what is
+  // already followed is not a refusal. The trigger fires before `on conflict`, so it must not be hit.
+  it("let a group through when it holds a retired Technology that is still followed", async () => {
+    // Its own two: the tests above retire the shared ones, and retiring is not undone between tests.
+    const [retired, other] = seedCatalog(db, 2);
+    expect(writeFollows(db, [retired], true)).toBeNull();
+    retire(db, retired);
+
+    expect(writeFollows(db, [retired, other], true)).toBeNull();
+    expect(await followed()).toEqual(expect.arrayContaining([retired, other]));
+  });
+
   it("refuse a retired Technology that was never followed", () => {
     const [, second] = catalog;
     retire(db, second);
