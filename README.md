@@ -18,6 +18,30 @@ pnpm dev
 Controlli: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`, `pnpm test:e2e`.
 Nuova migrazione: un file `.sql` numerato in `src/modules/db/migrations/`, applicato al prossimo avvio.
 
+### Le Tecnologie che segui: `verdict.json`
+
+Accanto a `verdict.db` c'è `verdict.json`, con le Tecnologie che segui e la Versione in uso di
+ognuna. Il database si può cancellare: `pnpm catalog:sync` lo ricrea e le Tecnologie seguite tornano
+da questo file. Il file si può tenere nei dotfiles, in un repository o in una cartella sincronizzata.
+
+```json
+{
+  "follows": {
+    "next": { "currentVersion": "16.0.0", "declaredAt": "2026-11-01T10:00:00.000Z" },
+    "vite": {}
+  }
+}
+```
+
+- Le chiavi sono gli slug del Catalogo, i nomi dei file in `catalog/`.
+- `currentVersion` è facoltativa. `declaredAt` dice da quando la dichiari; se la scrivi a mano senza
+  data, vale il giorno in cui l'app la legge.
+- Il file comanda: all'avvio l'app segue quello che c'è scritto e smette di seguire il resto. Seguire
+  o smettere dall'interfaccia riscrive il file.
+- Uno slug che non è nel Catalogo, una Tecnologia ritirata o una Versione in uso non valida vengono
+  segnalati nel terminale e saltati, senza fermare l'avvio. Uno slug sconosciuto resta nel file.
+- Se il file non è JSON valido l'app non lo tocca, lo segnala e usa quello che ha nel database.
+
 ## Deploy
 
 L'app gira su **Vercel** (Hobby, regione `fra1`) e usa un progetto **Supabase** separato (Free,
