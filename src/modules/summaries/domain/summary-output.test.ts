@@ -56,10 +56,10 @@ describe("parseSummaryOutput", () => {
     expect(reason(output({ notesJudgeable: "no" }))).toContain("notesJudgeable");
   });
 
-  // Issue #56: the longest of the 4 titles the first real batch produced over the old limit of 120.
+  // Issue #56: the longest of the 4 titles the first real run produced over the old limit of 120.
   // They were sound in everything else, and the prompt still asks for 120: the margin is there so
   // that the few characters the model goes over do not throw away a Summary that has been paid for.
-  it("accepts the longest title of the first real batch, 126 characters", () => {
+  it("accepts the longest title of the first real run, 126 characters", () => {
     const title =
       "pnpm 11.27.0 isolates registry metadata caches per URL path, adds global `nodeDownloadMirrors`, and fixes a store symlink flaw";
 

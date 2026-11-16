@@ -11,10 +11,11 @@ function utc(date: Date, t: Translator): string {
 
 // Dates are absolute: the page is cached, so "today" would go stale. No text promises a Summary
 // that will not come: `skipped` and `unavailable` say plainly that there is none.
-function block(release: ReleaseDetail, hasGitHub: boolean, t: Translator): Block | null {
+function block(release: ReleaseDetail, hasGitHub: boolean, hasKey: boolean, t: Translator): Block | null {
   const when = utc(release.recordedAt, t);
   const recorded = t(release.origin === "detected" ? "release.status.detected" : "release.status.imported", { when });
-  const queued = t("release.status.queuedBody", { recorded });
+  // Without a key nothing will write the Summary, so the page says what is missing instead (#212).
+  const queued = t(hasKey ? "release.status.queuedBody" : "release.status.noKeyBody", { recorded });
   // A ready row whose content does not validate reads as failed: there is no Summary to show.
   const status = release.summaryStatus === "ready" && release.summary === null ? "failed" : release.summaryStatus;
   switch (status) {
@@ -67,13 +68,16 @@ function block(release: ReleaseDetail, hasGitHub: boolean, t: Translator): Block
 export function SummaryStatusBlock({
   release,
   hasGitHub,
+  hasKey,
   t,
 }: {
   release: ReleaseDetail;
   hasGitHub: boolean;
+  /** Whether this copy has an Anthropic key to write Summaries with. */
+  hasKey: boolean;
   t: Translator;
 }) {
-  const content = block(release, hasGitHub, t);
+  const content = block(release, hasGitHub, hasKey, t);
   if (!content) return null;
   const { Icon, label, title, body, tone } = content;
   return (

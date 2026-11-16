@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { getDatabase } from "@/modules/db/server";
 import { locateCitation, parseSummaryOutput, prepareSummaryRequest } from "@/modules/summaries";
-import { createSummaryBatches } from "@/modules/summaries/server";
+import { createSummaryWriter } from "@/modules/summaries/server";
 
-// A single real Release through the real Message Batches API, to read a Summary with your own eyes
+// A single real Release through the real Messages API, to read a Summary with your own eyes
 // before the evaluation set exists. Costs a few cents: `pnpm summary:try <slug> <version>`.
 const [slug, version] = process.argv.slice(2);
 if (slug === undefined || version === undefined) {
@@ -38,25 +38,11 @@ const prepared = prepareSummaryRequest({
 });
 if (!prepared.ok) throw new Error(`cannot summarize: ${prepared.reason}`);
 
-const batches = createSummaryBatches(env.ANTHROPIC_API_KEY);
-if (batches === null) throw new Error("no ANTHROPIC_API_KEY in the environment");
+const write = createSummaryWriter(env.ANTHROPIC_API_KEY);
+if (write === null) throw new Error("no ANTHROPIC_API_KEY in the environment");
 
-console.log(`${slug} ${version}: ${notes.length} characters of notes. Submitting...`);
-const batchId = await batches.submit([prepared.request]);
-console.log(`batch ${batchId}, waiting (batches usually take minutes)`);
-
-const deadline = Date.now() + 30 * 60 * 1000;
-let results = await batches.collect(batchId);
-while (results === null) {
-  if (Date.now() > deadline) throw new Error(`batch ${batchId} is still running after 30 minutes`);
-  await new Promise((resolve) => setTimeout(resolve, 20_000));
-  process.stdout.write(".");
-  results = await batches.collect(batchId);
-}
-console.log("");
-
-const result = results.get(row.id);
-if (result === undefined) throw new Error("the batch came back without this Release");
+console.log(`${slug} ${version}: ${notes.length} characters of notes. Writing...`);
+const result = await write(prepared.request);
 if (result.type !== "succeeded") throw new Error(`${result.type}: ${result.message}`);
 
 const parsed = parseSummaryOutput(result.text);

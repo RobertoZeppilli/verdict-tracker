@@ -40,7 +40,7 @@ export async function persistReleases(
     "insert into summaries (release_id, status) values (?, ?) on conflict (release_id) do nothing",
   );
 
-  // One transaction for the batch: a run that stops halfway leaves no Release without its Summary row.
+  // One transaction for the run: a run that stops halfway leaves no Release without its Summary row.
   db.exec("begin");
   try {
     for (const release of releases) {

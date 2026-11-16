@@ -1,10 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-// The three job endpoints. Vercel sends `Authorization: Bearer <CRON_SECRET>`, so the address alone
-// must never be enough: these endpoints write and they spend. Only the Detection is scheduled in
-// `vercel.json` today — the Summary jobs stay reachable, and refusing without the secret is exactly
-// what keeps them from spending while nobody calls them.
-const endpoints = ["/api/jobs/detection", "/api/jobs/summaries/submit", "/api/jobs/summaries/collect"];
+// The job endpoints. They write, and the Detection spends on the Summaries it writes (issue #212),
+// so the address alone must never be enough: the secret is asked for first.
+const endpoints = ["/api/jobs/detection"];
 
 test.describe("job endpoints", () => {
   for (const endpoint of endpoints) {

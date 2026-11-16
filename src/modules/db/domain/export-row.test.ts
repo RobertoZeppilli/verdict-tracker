@@ -20,12 +20,9 @@ describe("exportRow", () => {
     });
   });
 
-  it("sends a Summary in a production batch back to waiting", () => {
-    expect(exportRow("summaries", { status: "processing", batch_id: "msgbatch_1" })).toEqual({
-      status: "pending",
-      batch_id: null,
-    });
-    expect(exportRow("summaries", { status: "ready", batch_id: null })).toEqual({ status: "ready", batch_id: null });
+  it("sends a Summary production was still writing back to waiting", () => {
+    expect(exportRow("summaries", { status: "processing" })).toEqual({ status: "pending" });
+    expect(exportRow("summaries", { status: "ready" })).toEqual({ status: "ready" });
   });
 
   it("refuses a timestamp it cannot read", () => {

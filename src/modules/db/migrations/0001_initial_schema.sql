@@ -7,9 +7,9 @@
 -- column nothing ever created, through a dialect that cannot drop a column with a constraint on it.
 -- The mechanism stays -- numbered files, applied in order, recorded in `schema_migrations` -- and it
 -- is what carries the files that come after this one, where there will be rows to carry.
--- ⚠️ For the same reason this file is still **edited in place** while that stays true: a `0002` that
--- rebuilt a table to narrow a `check` would be carrying a database nobody has. The day one exists,
--- this paragraph is where the rule changes.
+-- ⚠️ **This file is no longer edited in place** (issue #212): the file exported from production on
+-- 2026-11-16 is a database built from it, and the file every install starts from. Every change to the
+-- schema is a new numbered file from here on.
 --
 -- What Postgres held that is not here, and where it went:
 --
