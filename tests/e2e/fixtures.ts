@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { expect, type Locator, type Page } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import { z } from "zod";
 import type { Category } from "@/modules/catalog";
 // The file and not the module's index: the index is `server-only`, which Playwright cannot load.
@@ -215,8 +215,11 @@ export async function arrived(page: Page): Promise<void> {
 // alone nothing warms it, which is why the test passed 44 runs by itself. `route` is the pattern and
 // not one path, so one call reaches every slug in every language.
 export async function forgetRender(page: Page, route: string): Promise<void> {
+  // A write without the app's Origin is refused by the proxy (#239); a browser sends it, Playwright not.
+  const origin = String(test.info().project.use.baseURL);
   const response = await page.request.post("/api/test/revalidate", {
     data: { secret: e2eAuthSecret(), route },
+    headers: { origin },
   });
   expect(response.status(), "the test-only revalidation route answered").toBe(204);
 }

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isTrustedRequest } from "@/lib/trusted-request";
 import { DEFAULT_LOCALE, isLocale } from "@/modules/i18n";
 
 // Next 16 renamed Middleware to Proxy. It does one thing now: it puts the language in the path the
@@ -16,8 +17,34 @@ function rewriteUrl(request: NextRequest, pathname: string): URL {
   return url;
 }
 
+// The paths that have no language of their own and must not be rewritten: the internals of Next,
+// the route handlers (`next/root-params` does not even reach them), Slack's own round of #188, and
+// the files served from the app root.
+// ⚠️ **No clause against paths with a dot**: a Release page is `/technologies/vite/7.1.0`, and a
+// rule that skipped dotted paths would be a rule that skipped the Releases. The files are named
+// one by one instead.
+const NO_LANGUAGE = /^\/(?:_next|api|slack|icon\.svg|sitemap\.xml|robots\.txt)(?:\/|$)/;
+
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
+
+  // Verdict answers only to itself (issue #239). `PORT` is Next's own: `next dev`, `next start` and
+  // the standalone server all write the port they listen on there before the first request.
+  const trusted = isTrustedRequest({
+    method: request.method,
+    host: request.headers.get("host"),
+    origin: request.headers.get("origin"),
+    referer: request.headers.get("referer"),
+    port: process.env.PORT ?? "3000",
+  });
+  if (!trusted) {
+    return new NextResponse("Forbidden: Verdict only answers requests from its own pages on localhost.\n", {
+      status: 403,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
+  }
+  if (NO_LANGUAGE.test(pathname)) return NextResponse.next();
+
   const [, first = ""] = pathname.split("/");
 
   // `/en/faq` would be a second address for `/faq`, which is the one in the canonical, in the
@@ -37,13 +64,4 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   return NextResponse.rewrite(rewriteUrl(request, pathname));
 }
 
-// Everything but the paths that have no language of their own and must not be rewritten: the
-// internals of Next, the route handlers (`next/root-params` does not even reach them), Slack's own
-// round of #188, and the files served from the app root. `auth` left the list with the routes it
-// named (issue #210).
-// ⚠️ **No clause against paths with a dot**: a Release page is `/technologies/vite/7.1.0`, and a
-// rule that skipped dotted paths would be a rule that skipped the Releases. The files are named
-// one by one instead.
-export const config = {
-  matcher: ["/((?!_next|api|slack|icon.svg|sitemap.xml|robots.txt).*)"],
-};
+// No matcher: the trust check runs on **every** request, `/api`, Slack and `_next` included (#239).
