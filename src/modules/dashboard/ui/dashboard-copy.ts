@@ -99,6 +99,20 @@ export function streamCount(total: number, t: Translator): string {
   return t("dashboard.stream.count", { count: total });
 }
 
+// When the last Detection ended, in the reader's words: minutes under an hour, hours under two days.
+export function detectionLine(lastFinishedAt: Date | null, now: Date, locale: Locale, t: Translator): string {
+  if (lastFinishedAt === null) return t("dashboard.detection.never");
+  const minutes = Math.max(0, Math.round((now.getTime() - lastFinishedAt.getTime()) / 60_000));
+  const format = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  const ago =
+    minutes < 60
+      ? format.format(-minutes, "minute")
+      : minutes < 48 * 60
+        ? format.format(-Math.round(minutes / 60), "hour")
+        : format.format(-Math.round(minutes / 1440), "day");
+  return t("dashboard.detection.checked", { ago });
+}
+
 export function windowLine(start: Date, end: Date, t: Translator): string {
   return t("dashboard.stream.window", {
     days: WINDOW_DAYS,

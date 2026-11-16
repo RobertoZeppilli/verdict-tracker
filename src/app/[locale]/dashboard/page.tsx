@@ -3,7 +3,12 @@ import { SiteHeader } from "@/components/site-header";
 import { type Database, getDatabase } from "@/modules/db/server";
 import { buildDashboard, type Dashboard } from "@/modules/dashboard";
 import { readDashboard } from "@/modules/dashboard/server";
+import { isDetectionRunning } from "@/lib/run-detection";
+import { isDetectionStale } from "@/modules/detection";
+import { readLastDetection } from "@/modules/detection/server";
 import {
+  detectionLine,
+  DetectionStatus,
   EmptyDashboard,
   readOpenWeeks,
   StandingColumn,
@@ -45,8 +50,11 @@ export default async function DashboardPage({ searchParams }: Props) {
   const openWeeks = readOpenWeeks((await searchParams)[WEEK_PARAM]);
   const db = getDatabase();
   const [{ followed, releases }, follows] = await Promise.all([readDashboard(db), readFollows(db)]);
-  const dashboard = buildDashboard(followed, releases, new Date());
+  const now = new Date();
+  const dashboard = buildDashboard(followed, releases, now);
+  const locale = await currentLocale();
   const empty = followed.length === 0;
+  const lastDetection = readLastDetection(db);
 
   return (
     <FollowsProvider follows={follows}>
@@ -56,6 +64,10 @@ export default async function DashboardPage({ searchParams }: Props) {
         className={`mx-auto px-4 pt-5 pb-8 sm:px-5 sm:pt-6 ${empty ? ONE_COLUMN : SPLIT}`}
       >
         <h1 className="sr-only">{t("page.dashboard.title")}</h1>
+        <DetectionStatus
+          stale={isDetectionRunning() || isDetectionStale(lastDetection, now)}
+          checked={detectionLine(lastDetection, now, locale, t)}
+        />
         {empty ? (
           <EmptyState db={db} />
         ) : (

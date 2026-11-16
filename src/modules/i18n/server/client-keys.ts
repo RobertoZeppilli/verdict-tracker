@@ -4,6 +4,9 @@ import type { MessageKey } from "../domain/messages";
 
 // The messages the browser can ask for, and the only ones `clientDictionary` hands it.
 export const CLIENT_KEYS = [
+  "dashboard.detection.failed",
+  "dashboard.detection.refresh",
+  "dashboard.detection.running",
   "dashboard.empty.browse",
   "dashboard.empty.catalog",
   "dashboard.empty.none",
