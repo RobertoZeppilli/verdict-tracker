@@ -2,72 +2,58 @@
 
 App **open source** che traccia le Release delle Tecnologie di un Catalogo curato e ne genera
 Sintesi con l'AI. Gira sul computer di chi la usa (`npx verdict-tracker`), con la sua chiave
-Anthropic. Non si vende, non ha account: deciso il 2026-11-10, **ADR 0011**.
-Parla con l'utente **in italiano**.
+Anthropic e i dati in un file SQLite. Non si vende, non ha account, lo Sviluppatore è uno solo
+(**ADR 0011**). Parla con l'utente **in italiano**.
 
-⚠️ **La conversione e' in corso**: dalla #211 i dati sono un file SQLite e il codice non usa piu'
-Supabase (resta solo il progetto in produzione, da spegnere nella #222). Le issue, in
-quest'ordine: #211 → #212 → #213 → #217 → #214 → #218 → #221 → #222 → #216.
-Finche' una issue non e' chiusa, i comandi e lo schema qui sotto valgono come sono scritti.
-Il Piano non c'e' piu': la #209 e' chiusa il 2026-11-12, e `public.plans` e' cancellata anche in
-produzione. Il login non c'e' piu': la #210 e' chiusa il 2026-11-12, non ci sono account e lo
-Sviluppatore e' uno solo.
-⚠️ **La produzione e' una vetrina statica** dalla #215: `pnpm build` resta l'app che si installa,
-`pnpm build:static` costruisce il sito che Vercel serve, e in produzione il Rilevamento e' fermo
-finche' la #211 e la #213 non lo portano in locale.
+⚠️ **Conversione in corso**, issue in quest'ordine: #212 → #213 → #217 → #214 → #218 → #221 → #222 → #216.
+La produzione è una **vetrina statica** (#215): `pnpm build` è l'app che si installa,
+`pnpm build:static` il sito che Vercel serve. Vercel non fa deploy (`deploymentEnabled: false`)
+fino alla fine della conversione; il progetto Supabase di produzione si spegne nella #222.
 
-## Leggi prima
+## Da dove partire
 
-1. **Si parte dalla issue**: PRD issue GitHub #1, lavoro issue #2 e seguenti (`gh issue list`,
-   `gh issue view N`).
-   - `ready-for-agent` = implementabile in autonomia; `ready-for-human` = fermati e chiedi.
-   - Rispetta "Blocked by" e i criteri di accettazione dell'issue.
-2. `docs/HANDOFF.md` **non** è il punto di partenza: serve solo quando una sessione si interrompe a
-   metà di un lavoro, per riprendere quel lavoro. Si legge se la issue in corso lo nomina o se
-   l'utente lo chiede.
-3. Quando servono: `GLOSSARY.md` (glossario), `docs/DECISIONI.md`, `docs/adr/`, `DESIGN.md`,
-   mock in `design/mocks/` (fonte per l'aspetto delle schermate). Il diario delle sessioni passate
-   sta in `docs/handoff/<anno>-<mese>.md`, da non leggere per intero: prima di dare qualcosa per
-   non deciso, `grep -rn "<parola>" docs/handoff/`.
+- **Dalla issue** (`gh issue view N`; PRD nella #1). `ready-for-agent` = in autonomia,
+  `ready-for-human` = fermati e chiedi. Rispetta "Blocked by" e i criteri di accettazione.
+- `docs/HANDOFF.md` serve solo a riprendere un lavoro interrotto: leggilo se la issue lo nomina o
+  se l'utente lo chiede.
+- Quando servono: `GLOSSARY.md`, `docs/DECISIONI.md`, `docs/adr/`, `DESIGN.md` e i mock in
+  `design/mocks/`. Prima di dare qualcosa per non deciso: `grep -rn "<parola>" docs/handoff/`
+  (il diario, da non leggere per intero).
 
 ## Regole
 
-- **Lingua**: documenti e dominio in italiano; codice e database in inglese, usando solo i nomi
-  della tabella in `GLOSSARY.md` (es. Rilevanza = `Significance`, mai `priority`). L'**interfaccia
-  è tradotta in inglese e italiano** (ADR 0012): le stringhe nascono in inglese in
-  `src/modules/i18n`, la grammatica del prodotto (`featured`, `notable`, `digest`, `preview`,
-  `note:` e gli altri prefissi) resta in inglese in ogni lingua, i **nomi** del glossario si
-  traducono dentro le frasi con la parola di quella lingua (in italiano Tecnologia, non
-  `Technology`) e restano inglesi solo come identificatori, Note di rilascio e Sintesi non si
-  traducono.
-- **Moduli** (ADR 0006): `src/modules/<modulo>/{domain,server,ui}`, import tra moduli solo dall'indice;
-  `domain` è TypeScript puro e testato.
-- **Tipi** dagli schemi Zod; niente `any` né cast non validati; file sotto ~200 righe; commenti solo per
-  decisioni non ovvie.
-- **shadcn/ui**: solo primitivi, sempre ristilizzati sui token di `DESIGN.md`; mai card, badge, ombre o
+- **Lingua**: documenti e dominio in italiano; codice e database in inglese, con i soli nomi della
+  tabella in `GLOSSARY.md` (Rilevanza = `Significance`, mai `priority`).
+- **Interfaccia in inglese e italiano** (ADR 0012): le stringhe nascono in inglese in
+  `src/modules/i18n`; la grammatica del prodotto (`featured`, `notable`, `digest`, `preview`,
+  `note:` e gli altri prefissi) resta inglese in ogni lingua; i nomi del glossario nelle frasi si
+  traducono (Tecnologia, non `Technology`); Note di rilascio e Sintesi non si traducono.
+- **Moduli** (ADR 0006): `src/modules/<modulo>/{domain,server,ui}`, import tra moduli solo
+  dall'indice; `domain` è TypeScript puro e testato.
+- **Tipi** dagli schemi Zod; niente `any` né cast non validati; file sotto ~200 righe.
+- **shadcn/ui**: solo primitivi, ristilizzati sui token di `DESIGN.md`; mai card, badge, ombre o
   raggi di default.
-- **Nessuna chiamata esterna dal client** (GitHub, npm, Anthropic solo dai job server).
+- **Nessuna chiamata esterna dal client**: GitHub, npm e Anthropic solo dal server.
 - **Accessibilità** WCAG 2.2 AA; dark mode di default.
 - Rispetta "Fuori dall'MVP" in `docs/DECISIONI.md`. Una regola di dominio nuova va fissata in
   `GLOSSARY.md` o in un ADR prima di codificarla.
+- **Schema**: le migrazioni sono `.sql` numerati in `src/modules/db/migrations/`, applicati
+  all'apertura. Esiste un file dati vero, quindi una modifica è sempre un file nuovo, mai un edit
+  di uno vecchio.
 
 ## Flusso
 
-- Un branch per issue, PR che chiude l'issue: nel corpo della PR scrivi `Closes #N` **in inglese**
-  (GitHub ignora "Chiude #N" e l'issue resta aperta); il resto della descrizione in italiano.
+- Un branch per issue; nella PR `Closes #N` **in inglese**, il resto in italiano.
 - Commit, push, PR e creazione di issue **solo dopo conferma dell'utente**.
 - Dai consigli con una raccomandazione motivata.
-- Se il contesto supera ~30%, proponi di aggiornare `docs/HANDOFF.md` e aprire una nuova sessione.
 
 ## Comandi
 
-- `pnpm dev` · `pnpm build` · `pnpm lint` · `pnpm typecheck` · `pnpm test` (Vitest, unitari).
-- `pnpm build:static`: la vetrina pubblica in `out/` (copia potata in `.static-build/`, ~10 min).
-- Database: un file SQLite (`node:sqlite`) in `~/.verdict/` (`%LOCALAPPDATA%erdict` su Windows),
-  spostabile con `VERDICT_DATA_DIR`; le migrazioni sono i `.sql` numerati in
-  `src/modules/db/migrations/`, applicati all'apertura. Docker non serve.
-- `pnpm db:export <file nuovo>`: copia Catalogo, Release, Note e Sintesi dalla produzione Supabase
-  in un file dei dati (sola lettura, con `EXPORT_SUPABASE_URL` e `EXPORT_SUPABASE_SECRET_KEY`).
-- `pnpm test:integration` (Vitest su SQLite in memoria) · `pnpm test:e2e` (Playwright).
-- Variabili d'ambiente: copia `.env.example` in `.env.local`; lo schema Zod è in `src/env/`.
-- Next.js 16: leggi `AGENTS.md` e le guide in `node_modules/next/dist/docs/` prima di usare API di Next.
+- `pnpm dev` · `pnpm build` · `pnpm lint` · `pnpm typecheck` · `pnpm test` (unitari) ·
+  `pnpm test:integration` (SQLite in memoria) · `pnpm test:e2e` (Playwright). Docker non serve.
+- `pnpm build:static`: la vetrina in `out/` (~10 min).
+- Dati: `~/.verdict/verdict.db` (`%LOCALAPPDATA%\verdict` su Windows), spostabile con
+  `VERDICT_DATA_DIR`. `pnpm catalog:sync` lo riempie con Catalogo e Release.
+- `pnpm summary:try <slug> <version>`: una Sintesi vera, costa qualche centesimo. Chiedi prima.
+- Ambiente: `.env.example` → `.env.local`, schema Zod in `src/env/`.
+- Next.js 16: leggi `AGENTS.md` e `node_modules/next/dist/docs/` prima di usare API di Next.
