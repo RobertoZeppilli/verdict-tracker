@@ -1,6 +1,7 @@
 import "server-only";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { sqliteBoolean } from "@/modules/db";
+import type { Database } from "@/modules/db/server";
 import {
   createTranslator,
   DEFAULT_LOCALE,
@@ -14,6 +15,7 @@ import { NotificationChannelSchema, NotificationEventSchema } from "../domain/ev
 import { slackMessage } from "../domain/slack";
 import { type PendingSlack, planSlackSend, type SlackRecipient } from "../domain/slack-plan";
 import { sendToSlack, type SendToSlack } from "./send-slack";
+import { readSlackWebhook } from "./write-notification-settings";
 
 // ⚠️ A Notification older than this is not news any more, so it is never sent: without a window, a
 // Developer who pastes a webhook today would be handed a month of Releases they already read on the
@@ -27,15 +29,12 @@ const CandidateSchema = z.array(
     // The job asks for the two Release events only, so the Digest cannot reach a line that has a
     // Release in it: the schema says the same thing the query says.
     event: NotificationEventSchema.extract(["featured_release", "notable_release"]),
-    releases: z.object({
-      version: z.string(),
-      technologies: z.object({ name: z.string(), slug: z.string() }),
-    }),
-    notification_deliveries: z.array(z.object({ channel: NotificationChannelSchema })),
+    version: z.string(),
+    name: z.string(),
+    slug: z.string(),
   }),
 );
 
-const SecretSchema = z.object({ slack_webhook_url: z.string() });
 
 // `storedLocaleSchema` and not `localeSchema`: a row saved when the product published five
 // languages can name one it does not any more (ADR 0012), and the Digest going out in English is a
@@ -43,7 +42,7 @@ const SecretSchema = z.object({ slack_webhook_url: z.string() });
 const SettingsSchema = z.object({ preferred_locale: storedLocaleSchema });
 
 const PreferenceSchema = z.array(
-  z.object({ event: NotificationEventSchema, channel: NotificationChannelSchema, enabled: z.boolean() }),
+  z.object({ event: NotificationEventSchema, channel: NotificationChannelSchema, enabled: sqliteBoolean }),
 );
 
 export type DeliverReport = { pending: number; sent: number; failed: number };
@@ -53,39 +52,41 @@ export type DeliverReport = { pending: number; sent: number; failed: number };
 // the Detection). A webhook has no page it was opened from, so the link has to be absolute.
 export type DeliverOptions = { siteUrl: string; now?: Date; send?: SendToSlack };
 
-// Sends the Slack message this run earned, one per run (`docs/DECISIONI.md`). Service role, because
-// it reads `slack_webhook_url`, which no other client may read.
+// Sends the Slack message this run earned, one per run (`docs/DECISIONI.md`).
 //
 // ⚠️ A webhook that answers badly is written down as `failed` and the run ends without an error: a
 // revoked webhook is not a broken job, which is a criterion of #172. There is no automatic retry
 // either: a `failed` row means this Notification will not be sent again, and what the reader sees
 // in `/settings` is the reason, so they fix the webhook rather than wait.
 export async function deliverSlack(
-  db: SupabaseClient,
+  db: Database,
   { siteUrl, now = new Date(), send = sendToSlack }: DeliverOptions,
 ): Promise<DeliverReport> {
   const since = new Date(now.getTime() - WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  // Unpaged on purpose and not by oversight: `MAX_PER_RUN` is a ceiling under the page, so the run
-  // takes the oldest five hundred and leaves the rest to the next one (issue #190).
-  const candidates = await db
-    .from("notifications")
-    .select("id, event, releases!inner (version, technologies!inner (name, slug)), notification_deliveries (channel)")
-    .in("event", ["featured_release", "notable_release"])
-    .gte("created_at", since)
-    .order("created_at", { ascending: true })
-    .limit(MAX_PER_RUN);
-  if (candidates.error) throw candidates.error;
+  // `MAX_PER_RUN` is a ceiling, so the run takes the oldest five hundred not yet sent and leaves the
+  // rest to the next one (issue #190).
+  const candidates = db
+    .prepare(
+      `select n.id, n.event, r.version, t.name, t.slug from notifications n
+       join releases r on r.id = n.release_id
+       join technologies t on t.id = r.technology_id
+       where n.event in ('featured_release', 'notable_release') and n.created_at >= ?
+         and not exists (
+           select 1 from notification_deliveries d where d.notification_id = n.id and d.channel = 'slack'
+         )
+       order by n.created_at
+       limit ?`,
+    )
+    .all(since, MAX_PER_RUN);
 
-  const pending: PendingSlack[] = CandidateSchema.parse(candidates.data)
-    .filter((row) => !row.notification_deliveries.some((delivery) => delivery.channel === "slack"))
-    .map((row) => ({
-      notificationId: row.id,
-      event: row.event,
-      technologyName: row.releases.technologies.name,
-      slug: row.releases.technologies.slug,
-      version: row.releases.version,
-      url: "",
-    }));
+  const pending: PendingSlack[] = CandidateSchema.parse(candidates).map((row) => ({
+    notificationId: row.id,
+    event: row.event,
+    technologyName: row.name,
+    slug: row.slug,
+    version: row.version,
+    url: "",
+  }));
   if (pending.length === 0) return { pending: 0, sent: 0, failed: 0 };
 
   const recipient = await readRecipient(db);
@@ -94,17 +95,15 @@ export async function deliverSlack(
 
   const t = createTranslator(one.locale, dictionaryFor(one.locale));
   const result = await send(one.webhookUrl, slackMessage(t, one.lines));
-  const { error } = await db.from("notification_deliveries").upsert(
-    one.notificationIds.map((notificationId) => ({
-      notification_id: notificationId,
-      channel: "slack" as const,
-      status: result.ok ? ("sent" as const) : ("failed" as const),
-      error: result.ok ? null : result.error,
-      attempted_at: now.toISOString(),
-    })),
-    { onConflict: "notification_id,channel" },
+  const record = db.prepare(
+    `insert into notification_deliveries (notification_id, channel, status, error, attempted_at)
+     values (?, 'slack', ?, ?, ?)
+     on conflict (notification_id, channel) do update
+       set status = excluded.status, error = excluded.error, attempted_at = excluded.attempted_at`,
   );
-  if (error) throw error;
+  for (const notificationId of one.notificationIds) {
+    record.run(notificationId, result.ok ? "sent" : "failed", result.ok ? null : result.error, now.toISOString());
+  }
   const counted = one.notificationIds.length;
   return { pending: pending.length, sent: result.ok ? counted : 0, failed: result.ok ? 0 : counted };
 }
@@ -120,31 +119,23 @@ function withUrls(pending: readonly PendingSlack[], locale: Locale, siteUrl: str
 
 // The one channel this copy can send to, or null when there is none. Three single-row reads: the
 // tables hold one row each now (issue #210), so none of them can outgrow a page.
-async function readRecipient(db: SupabaseClient): Promise<SlackRecipient | null> {
-  // The webhook first, from the table a client cannot read: with none there is nothing to send to,
-  // and reading the settings and the preferences would be two queries for nothing.
-  const secret = await db
-    .from("notification_secrets")
-    .select("slack_webhook_url")
-    .not("slack_webhook_url", "is", null)
-    .maybeSingle();
-  if (secret.error) throw secret.error;
-  if (secret.data === null) return null;
-  const webhookUrl = SecretSchema.parse(secret.data).slack_webhook_url;
+async function readRecipient(db: Database): Promise<SlackRecipient | null> {
+  // The webhook first: with none there is nothing to send to, and reading the settings and the
+  // preferences would be two queries for nothing.
+  const webhookUrl = readSlackWebhook(db);
+  if (webhookUrl === null) return null;
 
   // ⚠️ A missing row is the normal state of a webhook saved before `/settings` was ever opened, so
   // the absence is the declared starting point and not an error.
-  const settings = await db.from("notification_settings").select("preferred_locale").maybeSingle();
-  if (settings.error) throw settings.error;
+  const settings = db.prepare("select preferred_locale from notification_settings").get();
 
   // The Plan was read beside this until issue #209, to tell a paid Developer from one inside the
   // trial. Slack is part of the one level of service now, so a webhook is the whole question.
-  const saved = await db.from("notification_preferences").select("event, channel, enabled");
-  if (saved.error) throw saved.error;
+  const saved = db.prepare("select event, channel, enabled from notification_preferences").all();
 
   return {
     webhookUrl,
-    locale: settings.data === null ? DEFAULT_LOCALE : SettingsSchema.parse(settings.data).preferred_locale,
-    preferences: PreferenceSchema.parse(saved.data),
+    locale: settings === undefined ? DEFAULT_LOCALE : SettingsSchema.parse(settings).preferred_locale,
+    preferences: PreferenceSchema.parse(saved),
   };
 }

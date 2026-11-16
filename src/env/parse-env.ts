@@ -2,8 +2,6 @@ import { z } from "zod";
 
 const EnvSchema = z.object({
   NEXT_PUBLIC_SITE_URL: z.url(),
-  NEXT_PUBLIC_SUPABASE_URL: z.url(),
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().startsWith("sb_publishable_"),
   // `1` while the public showcase is being built (issue #215), unset for the app with the server.
   // Declared here because every variable is declared here; it is read from `src/lib/static-site.ts`
   // instead of from `env`, and that file says why.
@@ -15,7 +13,6 @@ const EnvSchema = z.object({
 
 // Server-only: never read these from a module that can reach the client bundle.
 const ServerEnvSchema = z.object({
-  SUPABASE_SECRET_KEY: z.string().startsWith("sb_secret_"),
   // Bearer token of the job endpoints. Without it they refuse every request; empty counts as unset.
   CRON_SECRET: z.preprocess((value) => (value === "" ? undefined : value), z.string().min(32).optional()),
   // Raises GitHub's limit from 60 requests an hour; the Detection reads notes only for new Releases.

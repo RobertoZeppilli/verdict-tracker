@@ -150,10 +150,10 @@ test("the Follow says nothing while the follows are still on the way", async ({ 
   const held = new Promise<void>((done) => {
     release = done;
   });
-  // The browser reads the follows straight from the database, so holding that one request is what
+  // The browser reads the follows from `/api/follows`, so holding that one request is what
   // keeps the page in the state this test is about.
   let asked = false;
-  await page.route(/\/rest\/v1\/follows\?select/, async (route) => {
+  await page.route(/\/api\/follows$/, async (route) => {
     asked = true;
     await held;
     await route.continue();

@@ -97,7 +97,7 @@ test.describe("following several Technologies at once", () => {
     // the database has replied and there is no control left to read `aria-busy` from. The write
     // itself is what the reload below has to come after, so the write is what is waited for.
     const written = page.waitForResponse(
-      (response) => response.url().includes("/rest/v1/follows") && response.request().method() === "POST",
+      (response) => response.url().endsWith("/api/follows") && response.request().method() === "POST",
     );
     await follow.click();
     await written;

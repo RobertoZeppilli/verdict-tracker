@@ -1,10 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { deliverSlack, generateNotifications, writeSlackWebhook } from "@/modules/notifications/server";
+import {
+  deliverSlack,
+  generateNotifications,
+  readNotificationSettings,
+  writeSlackWebhook,
+} from "@/modules/notifications/server";
 import type { SendResult } from "@/modules/notifications/server";
-import { anonClient, clearFollows, type Content, deleteContent, seedContent, serviceClient } from "./supabase";
-
-const PERMISSION_DENIED = "42501";
+import { type Content, seedContent, testDatabase } from "./database";
 
 const SITE = "https://example.test";
 const GOOD = "https://hooks.slack.com/services/T0/B0/good";
@@ -14,6 +17,7 @@ const DeliveryRowsSchema = z.array(
   z.object({ notification_id: z.uuid(), channel: z.string(), status: z.string(), error: z.string().nullable() }),
 );
 
+const db = testDatabase();
 let content: Content;
 
 // A Slack that answers: it takes everything but the one webhook that is meant to be broken, which is
@@ -30,95 +34,46 @@ function fakeSlack() {
   };
 }
 
-async function switchSlackOn(): Promise<void> {
-  const { error } = await serviceClient()
-    .from("notification_preferences")
-    .upsert(
-      { event: "featured_release", channel: "slack", enabled: true },
-      { onConflict: "event,channel" },
-    );
-  if (error) throw error;
+function switchSlackOn(): void {
+  db.prepare(
+    `insert into notification_preferences (event, channel, enabled) values ('featured_release', 'slack', 1)
+     on conflict (event, channel) do update set enabled = 1`,
+  ).run();
 }
 
-async function deliveries() {
-  const { data, error } = await serviceClient()
-    .from("notifications")
-    .select("id, notification_deliveries (notification_id, channel, status, error)");
-  if (error) throw error;
-  return DeliveryRowsSchema.parse((data ?? []).flatMap((row) => row.notification_deliveries));
+function deliveries() {
+  return DeliveryRowsSchema.parse(db.prepare("select notification_id, channel, status, error from notification_deliveries").all());
 }
 
-beforeAll(async () => {
-  content = await seedContent();
-  const db = serviceClient();
-  const follows = await db.from("follows").insert({ technology_id: content.technologyId });
-  if (follows.error) throw follows.error;
-  const summary = await db
-    .from("summaries")
-    .update({
-      status: "ready",
-      content: { title: "Nothing here is read.", keyPoints: [] },
-      model: "claude-opus-5",
-      prompt_version: "v1",
-    })
-    .eq("release_id", content.releaseId);
-  if (summary.error) throw summary.error;
-});
-
-afterAll(async () => {
-  await clearFollows();
-  await writeSlackWebhook(serviceClient(), null);
-  await deleteContent(content);
+beforeAll(() => {
+  content = seedContent(db);
+  db.prepare("insert into follows (technology_id) values (?)").run(content.technologyId);
+  db.prepare(
+    "update summaries set status = 'ready', content = ?, model = 'claude-opus-5', prompt_version = 'v1' where release_id = ?",
+  ).run(JSON.stringify({ title: "Nothing here is read.", keyPoints: [] }), content.releaseId);
 });
 
 beforeEach(async () => {
-  const db = serviceClient();
-  const cleared = await db.from("notifications").delete().not("id", "is", null);
-  if (cleared.error) throw cleared.error;
-  const preferences = await db.from("notification_preferences").delete().not("event", "is", null);
-  if (preferences.error) throw preferences.error;
+  db.exec("delete from notification_deliveries; delete from notifications; delete from notification_preferences");
   await writeSlackWebhook(db, { url: GOOD, hint: "hooks.slack.com/…good" });
-  await switchSlackOn();
+  switchSlackOn();
   await generateNotifications(db);
 });
 
+// The URL has a table of its own, so an export of the settings leaves it out (#172): what is read
+// back is the hint, and the URL only by the job that posts to it.
 describe("the webhook as a secret", () => {
-  it("is not readable by the browser: the secrets table grants a client nothing", async () => {
-    const { error } = await anonClient().from("notification_secrets").select("slack_webhook_url");
-    expect(error?.code).toBe(PERMISSION_DENIED);
-  });
-
-  it("is not writable by a client either, so a webhook can only be saved through the action", async () => {
-    const { error } = await anonClient()
-      .from("notification_secrets")
-      .insert({ singleton: true, slack_webhook_url: GOOD });
-    expect(error?.code).toBe(PERMISSION_DENIED);
-  });
-
-  // ⚠️ The regression this table exists for: `insert ... on conflict do update` needs `select` on
-  // the whole table, so keeping the secret in `notification_settings` behind a narrower grant broke
-  // every upsert the browser's own client makes there, the preferred language among them.
-  it("leaves the browser's own upserts on the settings working", async () => {
-    const { error } = await anonClient()
-      .from("notification_settings")
-      .upsert({ singleton: true, preferred_locale: "it" }, { onConflict: "singleton" });
-    expect(error).toBeNull();
-  });
-
-  it("leaves the hint readable, which is what `/settings` prints", async () => {
-    const { data, error } = await anonClient()
-      .from("notification_settings")
-      .select("slack_webhook_hint")
-      .maybeSingle();
-    expect(error).toBeNull();
-    expect(data?.slack_webhook_hint).toBe("hooks.slack.com/…good");
+  it("keeps the URL out of the settings, which hold the hint", async () => {
+    expect(db.prepare("select slack_webhook_url from notification_secrets").get()).toEqual({ slack_webhook_url: GOOD });
+    expect((await readNotificationSettings(db)).slackHint).toBe("hooks.slack.com/…good");
+    expect(JSON.stringify(db.prepare("select * from notification_settings").all())).not.toContain(GOOD);
   });
 });
 
 describe("deliverSlack", () => {
   it("gathers the run into one message, to the saved webhook", async () => {
     const slack = fakeSlack();
-    const report = await deliverSlack(serviceClient(), { siteUrl: SITE, send: slack.send });
+    const report = await deliverSlack(db, { siteUrl: SITE, send: slack.send });
 
     expect(report.sent).toBe(1);
     expect(report.failed).toBe(0);
@@ -129,9 +84,9 @@ describe("deliverSlack", () => {
   // ⚠️ A revoked webhook is written down and the run ends without an error: a `failed` row is what
   // `/settings` then prints, so the reason is read there rather than waited for (#172).
   it("writes down what a broken webhook answered, without failing the run", async () => {
-    await writeSlackWebhook(serviceClient(), { url: BROKEN, hint: "hooks.slack.com/…brok" });
+    await writeSlackWebhook(db, { url: BROKEN, hint: "hooks.slack.com/…brok" });
     const slack = fakeSlack();
-    const report = await deliverSlack(serviceClient(), { siteUrl: SITE, send: slack.send });
+    const report = await deliverSlack(db, { siteUrl: SITE, send: slack.send });
 
     expect(report.failed).toBe(1);
     expect(await deliveries()).toMatchObject([
@@ -141,32 +96,28 @@ describe("deliverSlack", () => {
 
   it("sends nothing a second time: the delivery is what makes the run idempotent", async () => {
     const first = fakeSlack();
-    await deliverSlack(serviceClient(), { siteUrl: SITE, send: first.send });
+    await deliverSlack(db, { siteUrl: SITE, send: first.send });
     const second = fakeSlack();
-    const report = await deliverSlack(serviceClient(), { siteUrl: SITE, send: second.send });
+    const report = await deliverSlack(db, { siteUrl: SITE, send: second.send });
 
     expect(second.sent).toEqual([]);
     expect(report.pending).toBe(0);
   });
 
   it("sends nothing once the webhook is removed", async () => {
-    await writeSlackWebhook(serviceClient(), null);
+    await writeSlackWebhook(db, null);
     const slack = fakeSlack();
-    await deliverSlack(serviceClient(), { siteUrl: SITE, send: slack.send });
+    await deliverSlack(db, { siteUrl: SITE, send: slack.send });
 
     expect(slack.sent).toEqual([]);
     expect(await deliveries()).toEqual([]);
   });
 
   it("writes the message in the preferred language, with the grammar in English", async () => {
-    const { error } = await serviceClient()
-      .from("notification_settings")
-      .update({ preferred_locale: "it" })
-      .eq("singleton", true);
-    if (error) throw error;
+    db.exec("update notification_settings set preferred_locale = 'it'");
 
     const slack = fakeSlack();
-    await deliverSlack(serviceClient(), { siteUrl: SITE, send: slack.send });
+    await deliverSlack(db, { siteUrl: SITE, send: slack.send });
     const message = slack.sent.find((one) => one.url === GOOD)?.text ?? "";
 
     expect(message).toContain("Release");

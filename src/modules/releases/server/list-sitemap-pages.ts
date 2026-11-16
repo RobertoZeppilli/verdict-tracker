@@ -1,6 +1,5 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { selectAllRows } from "@/lib/supabase-rows";
+import type { Database } from "@/modules/db/server";
 import { type SitemapPage, sitemapPages } from "../domain/sitemap";
 
 const TechnologyRowSchema = z.object({
@@ -13,25 +12,19 @@ const ReleaseRowSchema = z.object({
   technology_id: z.uuid(),
   version: z.string(),
   created_at: z.iso.datetime({ offset: true }),
-  summaries: z.object({ updated_at: z.iso.datetime({ offset: true }) }).nullable(),
+  summary_updated_at: z.iso.datetime({ offset: true }).nullable(),
 });
 
-// Two queries instead of one with the Releases embedded: PostgREST pages the rows it returns, and
-// only the outer ones, so a Technology with many Releases would come back quietly truncated.
-// Retired Technologies are not filtered out: their pages stay reachable.
-export async function listSitemapPages(db: SupabaseClient): Promise<SitemapPage[]> {
-  const [technologies, releases] = await Promise.all([
-    selectAllRows((from, to) => db.from("technologies").select("id, slug, updated_at").order("slug").range(from, to)),
-    selectAllRows((from, to) =>
-      db
-        .from("releases")
-        .select("technology_id, version, created_at, summaries (updated_at)")
-        // By `id` and not by date: paging over a column with ties can repeat or skip a row, and a
-        // whole import batch shares one `created_at`. The order of the pages is the domain's job.
-        .order("id")
-        .range(from, to),
-    ),
-  ]);
+// Retired Technologies are not filtered out: their pages stay reachable. The order of the pages is
+// the domain's job.
+export async function listSitemapPages(db: Database): Promise<SitemapPage[]> {
+  const technologies = db.prepare("select id, slug, updated_at from technologies order by slug").all();
+  const releases = db
+    .prepare(
+      `select r.technology_id, r.version, r.created_at, s.updated_at as summary_updated_at
+       from releases r left join summaries s on s.release_id = r.id`,
+    )
+    .all();
   return sitemapPages(
     z.array(TechnologyRowSchema).parse(technologies).map((row) => ({
       id: row.id,
@@ -43,12 +36,12 @@ export async function listSitemapPages(db: SupabaseClient): Promise<SitemapPage[
     z.array(ReleaseRowSchema).parse(releases).map((row) => ({
       technologyId: row.technology_id,
       version: row.version,
-      lastModified: latest(row.created_at, row.summaries?.updated_at),
+      lastModified: latest(row.created_at, row.summary_updated_at),
     })),
   );
 }
 
-function latest(recorded: string, settled: string | undefined): Date {
+function latest(recorded: string, settled: string | null): Date {
   const dates = [new Date(recorded), ...(settled ? [new Date(settled)] : [])];
   return dates.reduce((a, b) => (a > b ? a : b));
 }

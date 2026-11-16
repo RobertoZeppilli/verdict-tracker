@@ -30,7 +30,6 @@ const SKIPPED = new Set([
   ".static-build",
   "test-results",
   "playwright-report",
-  "supabase",
 ]);
 
 // The routes that need a server, named one by one rather than matched by a pattern: a pattern is a

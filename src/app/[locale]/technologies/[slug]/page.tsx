@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/site-header";
 import { pageMetadata } from "@/lib/metadata";
 import { STATIC_SITE } from "@/lib/static-site";
 import { currentLocale, getTranslator } from "@/modules/i18n/server";
-import { createPublicClient } from "@/lib/supabase";
+import { getDatabase } from "@/modules/db/server";
 import { technologyMeta } from "@/modules/catalog";
 import { getTechnology } from "@/modules/catalog/server";
 import { TechnologyHeader } from "@/modules/catalog/ui";
@@ -35,13 +35,13 @@ const SPLIT =
 // every Technology and writes the page out (issue #215).
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
   if (!STATIC_SITE) return [];
-  return (await listStaticPages(createPublicClient())).technologies;
+  return (await listStaticPages(getDatabase())).technologies;
 }
 
 type Props = { params: Promise<{ slug: string }> };
 
 // Cached per request, so the page and its metadata share one query.
-const loadTechnology = cache((slug: string) => getTechnology(createPublicClient(), slug));
+const loadTechnology = cache((slug: string) => getTechnology(getDatabase(), slug));
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const technology = await loadTechnology((await params).slug);
@@ -60,7 +60,7 @@ export default async function TechnologyPage({ params }: Props) {
   const t = await getTranslator();
   const technology = await loadTechnology(slug);
   if (!technology) notFound();
-  const releases = await listReleases(createPublicClient(), technology.id);
+  const releases = await listReleases(getDatabase(), technology.id);
   const grouped = groupByMajor(releases);
   // The majors of the whole history, already counted: every group title is a stat row now, so the
   // plain list needs the counts the Upgrade Path has always produced (DESIGN.md, Stat Row).

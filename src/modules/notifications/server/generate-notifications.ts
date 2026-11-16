@@ -1,6 +1,6 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { selectAllRows } from "@/lib/supabase-rows";
+import { sqliteBoolean } from "@/modules/db";
+import type { Database } from "@/modules/db/server";
 import { SignificanceSchema, SummaryStatusSchema } from "@/modules/releases";
 import { NotificationChannelSchema, NotificationEventSchema } from "../domain/events";
 import { planReleaseNotifications, type ReleaseCandidate } from "../domain/plan";
@@ -21,15 +21,15 @@ const CandidateSchema = z.array(
     technology_id: z.uuid(),
     significance: SignificanceSchema,
     significance_override: SignificanceSchema.nullable(),
-    // Shares the Release's primary key, so it embeds as one object or null.
-    summaries: z.object({ status: SummaryStatusSchema }).nullable(),
+    // From a left join on the Release's own key: null when the Release has no Summary row.
+    summary_status: SummaryStatusSchema.nullable(),
   }),
 );
 
 const FollowSchema = z.array(z.object({ technology_id: z.uuid() }));
 
 const PreferenceSchema = z.array(
-  z.object({ event: NotificationEventSchema, channel: NotificationChannelSchema, enabled: z.boolean() }),
+  z.object({ event: NotificationEventSchema, channel: NotificationChannelSchema, enabled: sqliteBoolean }),
 );
 
 export type GenerateReport = { considered: number; planned: number };
@@ -41,63 +41,52 @@ export type GenerateReport = { considered: number; planned: number };
 // and the two unique indexes on `notifications` are what makes a second run write nothing. That is
 // also why this is a step of its own rather than a hook where a Summary settles, since `unavailable`
 // and `skipped` are set when a Release is born, far from where `ready` and `failed` are decided.
-export async function generateNotifications(db: SupabaseClient, now: Date = new Date()): Promise<GenerateReport> {
+export async function generateNotifications(db: Database, now: Date = new Date()): Promise<GenerateReport> {
   const since = new Date(now.getTime() - WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  // Paged, and not because the window is usually small: after a `catalog:sync` every Release carries
-  // the same `created_at`, so for thirty days the window holds the whole Catalog. Unpaged, the job
-  // considered a thousand of them and ignored the rest without a word (issue #190).
-  const releases = await selectAllRows((from, to) =>
-    db
-      .from("releases")
-      .select("id, technology_id, significance, significance_override, summaries (status)")
-      .gte("created_at", since)
-      // By `id` and not by date: an import batch shares one `created_at`, and paging over a column
-      // with ties can repeat or skip a row.
-      .order("id")
-      .range(from, to),
-  );
+  // After a `catalog:sync` every Release carries the same `created_at`, so for thirty days the window
+  // holds the whole Catalog: one read, which SQLite does not cap the way PostgREST did (issue #190).
+  const releases = db
+    .prepare(
+      `select r.id, r.technology_id, r.significance, r.significance_override, s.status as summary_status
+       from releases r left join summaries s on s.release_id = r.id
+       where r.created_at >= ?`,
+    )
+    .all(since);
 
   const candidates: ReleaseCandidate[] = CandidateSchema.parse(releases).flatMap((row) =>
-    row.summaries === null
+    row.summary_status === null
       ? []
       : [
           {
             releaseId: row.id,
             technologyId: row.technology_id,
             significance: row.significance_override ?? row.significance,
-            summaryStatus: row.summaries.status,
+            summaryStatus: row.summary_status,
           },
         ],
   );
   if (candidates.length === 0) return { considered: 0, planned: 0 };
 
-  const technologyIds = [...new Set(candidates.map((candidate) => candidate.technologyId))];
-  // One row per Technology followed, bounded by the Catalog, which is sixty (issue #190): the whole
-  // table belongs to the one person this copy is installed for (issue #210, ADR 0011).
-  const follows = await db.from("follows").select("technology_id").in("technology_id", technologyIds);
-  if (follows.error) throw follows.error;
-  const followed = FollowSchema.parse(follows.data).map((row) => row.technology_id);
+  // One row per Technology followed, bounded by the Catalog: the whole table belongs to the one
+  // person this copy is installed for (issue #210, ADR 0011), and the plan ignores the rest.
+  const followed = FollowSchema.parse(db.prepare("select technology_id from follows").all()).map(
+    (row) => row.technology_id,
+  );
   if (followed.length === 0) return { considered: candidates.length, planned: 0 };
 
   // Three events by three channels is nine rows at the very most, so this is unpaged too.
-  const saved = await db.from("notification_preferences").select("event, channel, enabled");
-  if (saved.error) throw saved.error;
-  const preferences: Preference[] = PreferenceSchema.parse(saved.data);
+  const preferences: Preference[] = PreferenceSchema.parse(
+    db.prepare("select event, channel, enabled from notification_preferences").all(),
+  );
 
   const planned = planReleaseNotifications({ candidates, followed, preferences });
   if (planned.length === 0) return { considered: candidates.length, planned: 0 };
 
-  // The two columns of `notifications_once_per_subject`, named so the insert becomes an
-  // `on conflict (event, subject) do nothing`: without them PostgREST infers the primary key, which
-  // is a fresh uuid and never conflicts, and the second run raises a duplicate key.
-  // `subject` is generated by the database, so it is inferred here and never written.
-  const { error } = await db.from("notifications").upsert(
-    planned.map((notification) => ({
-      event: notification.event,
-      release_id: notification.releaseId,
-    })),
-    { onConflict: "event,subject", ignoreDuplicates: true },
+  // `notifications_once_per_subject` is what makes the second run write nothing; `subject` is
+  // generated by the database, so it is never written here.
+  const insert = db.prepare(
+    "insert into notifications (event, release_id) values (?, ?) on conflict (event, subject) do nothing",
   );
-  if (error) throw error;
+  for (const notification of planned) insert.run(notification.event, notification.releaseId);
   return { considered: candidates.length, planned: planned.length };
 }

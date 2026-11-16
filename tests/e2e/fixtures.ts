@@ -1,42 +1,22 @@
-import { execSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, type Locator, type Page } from "@playwright/test";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Category } from "@/modules/catalog";
+// The file and not the module's index: the index is `server-only`, which Playwright cannot load.
+// eslint-disable-next-line no-restricted-imports -- see the line above
+import { type Database, defaultDatabaseFile, openDatabase } from "@/modules/db/server/open-database";
 import type { SummaryContent } from "@/modules/summaries";
 
-const LocalSupabaseSchema = z.object({ API_URL: z.url(), SECRET_KEY: z.string().min(1) });
-const IdRowSchema = z.object({ id: z.uuid() });
+// The data file the app under test reads: `playwright.config.ts` points both at `.e2e-data/`, so
+// the fixtures never write into a real install. Opened once per worker; WAL and `busy_timeout` let
+// it share the file with the app's own connection.
+let connection: Database | null = null;
 
-// The app reads the same local stack; the fixtures are written with the service role. The client is
-// kept for the whole worker: `supabase status` is a process, and several at once have been seen to
-// trip over the CLI's own telemetry file.
-let client: SupabaseClient | null = null;
-
-// A worker starts over whenever Playwright changes its options, so the CLI is asked again and again
-// across one run. On Windows it answers EPERM under that pressure, which has nothing to do with the
-// test that happened to ask: waiting a moment and asking again is the whole remedy. The wait is
-// synchronous because every caller of `serviceClient` expects an answer, not a promise.
-function supabaseStatus(attempts = 3): string {
-  for (let attempt = 1; ; attempt += 1) {
-    try {
-      return execSync("pnpm exec supabase status -o json", { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-    } catch (error) {
-      if (attempt >= attempts) throw error;
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, attempt * 500);
-    }
-  }
-}
-
-function serviceClient(): SupabaseClient {
-  if (client) return client;
-  const output = supabaseStatus();
-  const { API_URL, SECRET_KEY } = LocalSupabaseSchema.parse(JSON.parse(output.slice(output.indexOf("{"))));
-  client = createClient(API_URL, SECRET_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-  return client;
+function db(): Database {
+  connection ??= openDatabase({ file: defaultDatabaseFile() });
+  return connection;
 }
 
 export type FixtureRelease = {
@@ -79,74 +59,61 @@ export async function seedTechnology(
   // own so a test can say which group its row belongs to.
   { retired = false, category = "library" }: { retired?: boolean; category?: Category } = {},
 ): Promise<FixtureTechnology> {
-  const db = serviceClient();
   const slug = `e2e-${randomUUID().slice(0, 8)}`;
   const name = `Fixture ${slug.slice(4)}`;
   const repo = `fixture/${slug}`;
+  const technologyId = randomUUID();
 
-  const technology = await db
-    .from("technologies")
-    .insert({ slug, name, category, classification_strategy: "semver", retired })
-    .select("id")
-    .single();
-  if (technology.error) throw technology.error;
-  const technologyId = IdRowSchema.parse(technology.data).id;
-
-  const sources = await db.from("sources").insert([
-    { technology_id: technologyId, role: "detection", kind: "npm", config: { package: slug } },
-    { technology_id: technologyId, role: "notes", kind: "github-releases", config: { repo, tagFormat: "v{version}" } },
-  ]);
-  if (sources.error) throw sources.error;
+  db()
+    .prepare(
+      "insert into technologies (id, slug, name, category, classification_strategy, retired) values (?, ?, ?, ?, 'semver', ?)",
+    )
+    .run(technologyId, slug, name, category, retired ? 1 : 0);
+  const source = db().prepare("insert into sources (technology_id, role, kind, config) values (?, ?, ?, ?)");
+  source.run(technologyId, "detection", "npm", JSON.stringify({ package: slug }));
+  source.run(technologyId, "notes", "github-releases", JSON.stringify({ repo, tagFormat: "v{version}" }));
 
   for (const [index, release] of releases.entries()) {
-    const inserted = await db
-      .from("releases")
-      .insert({
-        technology_id: technologyId,
-        version: release.version,
-        significance: release.significance,
-        origin: release.origin,
-        published_at: (release.publishedAt ?? new Date(Date.UTC(2026, 0, 10 + index))).toISOString(),
-      })
-      .select("id")
-      .single();
-    if (inserted.error) throw inserted.error;
-    const releaseId = IdRowSchema.parse(inserted.data).id;
+    const releaseId = randomUUID();
+    const publishedAt = release.publishedAt ?? new Date(Date.UTC(2026, 0, 10 + index));
+    db()
+      .prepare(
+        "insert into releases (id, technology_id, version, significance, origin, published_at) values (?, ?, ?, ?, ?, ?)",
+      )
+      .run(releaseId, technologyId, release.version, release.significance, release.origin, publishedAt.toISOString());
     if (release.notes !== null) {
       const url = `https://github.com/${repo}/releases/tag/v${release.version}`;
-      const notes = await db.from("release_notes").insert({ release_id: releaseId, body: release.notes, url });
-      if (notes.error) throw notes.error;
+      db().prepare("insert into release_notes (release_id, body, url) values (?, ?, ?)").run(releaseId, release.notes, url);
     }
-    const summary = await db.from("summaries").insert({
-      release_id: releaseId,
-      status: release.status,
-      content: contentFor(release),
-      model: release.status === "ready" ? "claude-opus-5" : null,
-      prompt_version: release.status === "ready" ? "v1" : null,
-    });
-    if (summary.error) throw summary.error;
+    const content = contentFor(release);
+    const ready = release.status === "ready";
+    db()
+      .prepare("insert into summaries (release_id, status, content, model, prompt_version) values (?, ?, ?, ?, ?)")
+      .run(
+        releaseId,
+        release.status,
+        content === null ? null : JSON.stringify(content),
+        ready ? "claude-opus-5" : null,
+        ready ? "v1" : null,
+      );
   }
 
+  // Children before parents: a Notification points at a Release, and a test that pressed the Toggle
+  // can have left a follow on the Technology.
   async function remove() {
-    const ids = await db.from("releases").select("id").eq("technology_id", technologyId);
-    if (ids.error) throw ids.error;
-    const releaseIds = z.array(IdRowSchema).parse(ids.data).map((row) => row.id);
-    for (const table of ["summaries", "release_notes"] as const) {
-      const { error } = await db.from(table).delete().in("release_id", releaseIds);
-      if (error) throw error;
+    const releasesOf = "select id from releases where technology_id = ?";
+    for (const table of ["notification_deliveries", "notifications", "summaries", "release_notes"]) {
+      const column = table === "notification_deliveries" ? "notification_id" : "release_id";
+      const scope =
+        table === "notification_deliveries"
+          ? `select id from notifications where release_id in (${releasesOf})`
+          : releasesOf;
+      db().prepare(`delete from ${table} where ${column} in (${scope})`).run(technologyId);
     }
-    for (const [table, column] of [
-      // A follow holds the Technology by a foreign key, so it goes first: a test that pressed the
-      // Toggle can have left one behind, and the delete below would be refused with
-      // `follows_technology_id_fkey`.
-      ["follows", "technology_id"],
-      ["releases", "technology_id"],
-      ["sources", "technology_id"],
-      ["technologies", "id"],
-    ] as const) {
-      const { error } = await db.from(table).delete().eq(column, technologyId);
-      if (error) throw error;
+    for (const table of ["follows", "releases", "sources"]) {
+      db().prepare(`delete from ${table} where technology_id = ?`).run(technologyId);
     }
+    db().prepare("delete from technologies where id = ?").run(technologyId);
   }
 
   return { id: technologyId, slug, name, repo, remove };
@@ -156,28 +123,24 @@ export type FixtureFillers = { ids: string[]; remove: () => Promise<void> };
 
 // Technologies with nothing in them, only there to give the Catalog rows to press: the picker shows
 // a row for each, and a name of their own keeps them out of the way of a filter looking for another
-// fixture.
+// fixture. A Category of their own, so the fillers never crowd the group a test is looking at.
 export async function seedFillers(count: number): Promise<FixtureFillers> {
-  const db = serviceClient();
-  const rows = Array.from({ length: count }, () => {
-    const slug = `filler-${randomUUID().slice(0, 8)}`;
-    // A Category of their own, so the fillers never crowd the group a test is looking at.
-    return { slug, name: `Filler ${slug.slice(7)}`, category: "platform" as const, classification_strategy: "semver" as const };
+  const insert = db().prepare(
+    "insert into technologies (id, slug, name, category, classification_strategy) values (?, ?, ?, 'platform', 'semver')",
+  );
+  const ids = Array.from({ length: count }, () => {
+    const id = randomUUID();
+    const slug = `filler-${id.slice(0, 8)}`;
+    insert.run(id, slug, `Filler ${slug.slice(7)}`);
+    return id;
   });
-
-  const inserted = await db.from("technologies").insert(rows).select("id");
-  if (inserted.error) throw inserted.error;
-  const ids = z.array(IdRowSchema).parse(inserted.data).map((row) => row.id);
 
   return {
     ids,
     remove: async () => {
-      for (const [table, column] of [
-        ["follows", "technology_id"],
-        ["technologies", "id"],
-      ] as const) {
-        const { error } = await db.from(table).delete().in(column, ids);
-        if (error) throw error;
+      for (const id of ids) {
+        db().prepare("delete from follows where technology_id = ?").run(id);
+        db().prepare("delete from technologies where id = ?").run(id);
       }
     },
   };
@@ -194,36 +157,29 @@ export async function followWritten(toggle: Locator): Promise<void> {
 
 // A follow written from outside the browser: what a second tab would leave behind.
 export async function addFollows(technologyIds: readonly string[]): Promise<void> {
-  const rows = technologyIds.map((technology_id) => ({ technology_id }));
-  const { error } = await serviceClient().from("follows").insert(rows);
-  if (error) throw error;
+  const insert = db().prepare("insert into follows (technology_id) values (?)");
+  for (const technologyId of technologyIds) insert.run(technologyId);
 }
 
 // ⚠️ **One table for the whole suite.** Since issue #210 a follow belongs to the installed copy and
 // not to an account, so there is no Developer of its own to isolate a test any more: a test that
 // writes follows clears them, or it hands the next one its leftovers.
 export async function clearFollows(): Promise<void> {
-  const { error } = await serviceClient().from("follows").delete().not("technology_id", "is", null);
-  if (error) throw error;
+  db().exec("delete from follows");
 }
 
-// A Version in use declared from outside the browser. The trigger still runs under the service role,
-// so the day of the declaration is written the same way a Developer's own press would write it.
+// A Version in use declared from outside the browser, with the day the app would write.
 export async function declareCurrentVersion(technologyId: string, version: string): Promise<void> {
-  const { error } = await serviceClient()
-    .from("follows")
-    .update({ current_version: version })
-    .eq("technology_id", technologyId);
-  if (error) throw error;
+  db()
+    .prepare(
+      "update follows set current_version = ?, current_version_declared_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') where technology_id = ?",
+    )
+    .run(version, technologyId);
 }
 
 // A Technology leaves the Catalog while it is followed: the only way a retired follow can exist.
 export async function retireTechnology(technologyId: string): Promise<void> {
-  const { error } = await serviceClient()
-    .from("technologies")
-    .update({ retired: true })
-    .eq("id", technologyId);
-  if (error) throw error;
+  db().prepare("update technologies set retired = 1 where id = ?").run(technologyId);
 }
 
 // The app reads the secret from .env.local, which the Playwright process does not load.
@@ -314,13 +270,9 @@ export async function boxOf(locator: Locator): Promise<{ width: number; height: 
   return box;
 }
 
-// Read with the service role: what the database holds, as opposed to what the page says about it.
+// What the database holds, as opposed to what the page says about it.
 export async function countFollows(): Promise<number> {
-  const { count, error } = await serviceClient()
-    .from("follows")
-    .select("technology_id", { count: "exact", head: true });
-  if (error) throw error;
-  return count ?? 0;
+  return z.object({ count: z.number() }).parse(db().prepare("select count(*) as count from follows").get()).count;
 }
 
 // A Notification written from outside the browser, which is what the job does (issue #169). The
@@ -330,74 +282,43 @@ export async function addNotification(
   releaseId: string,
   event: "featured_release" | "notable_release" = "featured_release",
 ): Promise<void> {
-  const { error } = await serviceClient().from("notifications").insert({ event, release_id: releaseId });
-  if (error) throw error;
+  db().prepare("insert into notifications (event, release_id) values (?, ?)").run(event, releaseId);
 }
 
 // Notifications outlive a test, like follows: a suite starts each test from none.
 export async function clearNotifications(): Promise<void> {
-  const { error } = await serviceClient().from("notifications").delete().not("id", "is", null);
-  if (error) throw error;
+  db().exec("delete from notification_deliveries; delete from notifications");
 }
 
 // What the database holds, as opposed to what the bell says: the counter answers before the write
-// lands, so the proof that a press was written is a read with the service role.
+// lands, so the proof that a press was written is a read of the file.
 export async function countUnseen(): Promise<number> {
-  const { count, error } = await serviceClient()
-    .from("notifications")
-    .select("id", { count: "exact", head: true })
-    .is("seen_at", null);
-  if (error) throw error;
-  return count ?? 0;
+  const row = db().prepare("select count(*) as count from notifications where seen_at is null").get();
+  return z.object({ count: z.number() }).parse(row).count;
 }
 
-// The Release a fixture's Version was given, which a Notification has to point at.
-// The Notification settings, written and read with the service role: what `/settings` saved is
-// proved against the database and not against the page that saved it (issue #171).
+// The Notification settings: what `/settings` saved is proved against the database and not against
+// the page that saved it (issue #171). The Slack webhook lives in a table of its own (#172): without
+// it a webhook saved by one test would still be there for the next one.
 export async function clearNotificationSettings(): Promise<void> {
-  const db = serviceClient();
-  const settings = await db.from("notification_settings").delete().not("singleton", "is", null);
-  if (settings.error) throw settings.error;
-  const preferences = await db.from("notification_preferences").delete().not("event", "is", null);
-  if (preferences.error) throw preferences.error;
-  // The Slack webhook lives in a table of its own, which no client may touch (#172): without this
-  // line a webhook saved by one test would still be there for the next one.
-  const secrets = await db.from("notification_secrets").delete().not("singleton", "is", null);
-  if (secrets.error) throw secrets.error;
+  db().exec("delete from notification_settings; delete from notification_preferences; delete from notification_secrets");
 }
-
-const PreferenceRowSchema = z.object({ enabled: z.boolean() });
 
 // Null when that pair was never saved, which is the declared starting point and not "off".
 export async function savedPreference(event: string, channel: string): Promise<boolean | null> {
-  const { data, error } = await serviceClient()
-    .from("notification_preferences")
-    .select("enabled")
-    .eq("event", event)
-    .eq("channel", channel)
-    .maybeSingle();
-  if (error) throw error;
-  return data === null ? null : PreferenceRowSchema.parse(data).enabled;
+  const row = db()
+    .prepare("select enabled from notification_preferences where event = ? and channel = ?")
+    .get(event, channel);
+  return row === undefined ? null : z.object({ enabled: z.number() }).parse(row).enabled === 1;
 }
-
-const LocaleRowSchema = z.object({ preferred_locale: z.string() });
 
 export async function savedLocale(): Promise<string | null> {
-  const { data, error } = await serviceClient()
-    .from("notification_settings")
-    .select("preferred_locale")
-    .maybeSingle();
-  if (error) throw error;
-  return data === null ? null : LocaleRowSchema.parse(data).preferred_locale;
+  const row = db().prepare("select preferred_locale from notification_settings").get();
+  return row === undefined ? null : z.object({ preferred_locale: z.string() }).parse(row).preferred_locale;
 }
 
+// The Release a fixture's Version was given, which a Notification has to point at.
 export async function releaseIdFor(technologyId: string, version: string): Promise<string> {
-  const { data, error } = await serviceClient()
-    .from("releases")
-    .select("id")
-    .eq("technology_id", technologyId)
-    .eq("version", version)
-    .single();
-  if (error) throw error;
-  return IdRowSchema.parse(data).id;
+  const row = db().prepare("select id from releases where technology_id = ? and version = ?").get(technologyId, version);
+  return z.object({ id: z.uuid() }).parse(row).id;
 }

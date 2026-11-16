@@ -1,79 +1,72 @@
 "use client";
 
 import { z } from "zod";
-import { createSessionClient } from "@/lib/supabase-browser";
 import {
   type CurrentVersion,
   CurrentVersionRejectedError,
-  declineFor,
   type Follow,
 } from "../domain/current-version";
-import { FollowRejectedError, followRejectionFor } from "../domain/follow-rejection";
+import { FollowRejectedError } from "../domain/follow-rejection";
 
-// Follows are the one thing a Developer writes, and the browser talks to the database directly, so
-// a rejection (issue #18) arrives as it is. No row carries whose it is any more: an installed copy
-// belongs to one person, so every follow in the table is theirs (issue #210, ADR 0011).
+// Follows are the one thing a Developer writes. The browser asks `/api/follows`, which holds the
+// rules the database used to hold, and a refusal (issue #18) comes back as the reason itself. No row
+// carries whose it is: an installed copy belongs to one person (issue #210, ADR 0011).
 export const FOLLOWS_KEY = ["follows"] as const;
 
-const DeclarationSchema = z.object({
-  current_version: z.string().nullable(),
-  current_version_declared_at: z.iso.datetime({ offset: true }).nullable(),
-});
+const ENDPOINT = "/api/follows";
 
-const FollowRowSchema = DeclarationSchema.extend({ technology_id: z.uuid() });
+const CurrentVersionSchema = z
+  .object({ version: z.string(), declaredAt: z.iso.datetime({ offset: true }) })
+  .transform(({ version, declaredAt }) => ({ version, declaredAt: new Date(declaredAt) }));
 
-const COLUMNS = "technology_id, current_version, current_version_declared_at";
+const FollowsSchema = z.array(z.object({ technologyId: z.uuid(), currentVersion: CurrentVersionSchema.nullable() }));
 
-// The database keeps the two columns together (a check constraint says so), so one being set is
-// enough to read the pair.
-function declarationOf(row: z.infer<typeof DeclarationSchema>): CurrentVersion | null {
-  return row.current_version && row.current_version_declared_at
-    ? { version: row.current_version, declaredAt: new Date(row.current_version_declared_at) }
-    : null;
-}
+const RejectedSchema = z.object({ rejection: z.enum(["retired", "unknown"]) });
 
-// Unpaged, as `readFollows` is: the table holds one person's follows, bounded by the Catalog, which
-// is sixty Technologies (issue #190).
+const DeclaredSchema = z.discriminatedUnion("ok", [
+  z.object({ ok: z.literal(true), currentVersion: CurrentVersionSchema.nullable() }),
+  z.object({ ok: z.literal(false), decline: z.enum(["malformed", "notOlder", "noStable", "denied"]) }),
+]);
+
 export async function fetchFollows(): Promise<Follow[]> {
-  const { data, error } = await createSessionClient().from("follows").select(COLUMNS);
-  if (error) throw new Error(error.message);
-  return z
-    .array(FollowRowSchema)
-    .parse(data)
-    .map((row) => ({ technologyId: row.technology_id, currentVersion: declarationOf(row) }));
+  const response = await fetch(ENDPOINT);
+  if (!response.ok) throw new Error(`follows: ${response.status}`);
+  return FollowsSchema.parse(await response.json());
 }
 
-export async function writeFollow(technologyId: string, follow: boolean): Promise<void> {
-  const follows = createSessionClient().from("follows");
-  const { error } = follow
-    ? await follows.insert({ technology_id: technologyId })
-    : await follows.delete().eq("technology_id", technologyId);
-  // The code carries which rule the database refused; the message is for the console, not the page.
-  if (error) throw new FollowRejectedError(followRejectionFor(error.code), error.message);
+export function writeFollow(technologyId: string, follow: boolean): Promise<void> {
+  return send([technologyId], follow);
 }
 
-// Several follows in one statement, which is what makes a refusal a fact about the group: the
-// trigger runs for each row, so one retired Technology raises inside the statement and Postgres
-// takes the whole insert back. Nothing is followed halfway, and the browser gets the one SQLSTATE.
-export async function writeFollows(technologyIds: string[]): Promise<void> {
-  const { error } = await createSessionClient()
-    .from("follows")
-    .insert(technologyIds.map((technologyId) => ({ technology_id: technologyId })));
-  if (error) throw new FollowRejectedError(followRejectionFor(error.code), error.message);
+// Several follows in one request and one transaction, which is what makes a refusal a fact about
+// the group: nothing is followed halfway.
+export function writeFollows(technologyIds: string[]): Promise<void> {
+  return send(technologyIds, true);
+}
+
+async function send(technologyIds: string[], follow: boolean): Promise<void> {
+  const response = await call("POST", { technologyIds, follow });
+  if (response?.ok) return;
+  // A lost connection or an answer that is not a refusal is `unknown`: the remedy is to try again.
+  const refused = RejectedSchema.safeParse(await response?.json().catch(() => null));
+  const rejection = refused.success ? refused.data.rejection : "unknown";
+  throw new FollowRejectedError(rejection, `follow refused: ${rejection}`);
 }
 
 // `null` takes the declaration away. The row comes back because the day it was declared is written
-// by the database, not by the browser: only an answer can say when the declaration now stands from.
-export async function writeCurrentVersion(
-  technologyId: string,
-  version: string | null,
-): Promise<CurrentVersion | null> {
-  const { data, error } = await createSessionClient()
-    .from("follows")
-    .update({ current_version: version })
-    .eq("technology_id", technologyId)
-    .select("current_version, current_version_declared_at")
-    .single();
-  if (error) throw new CurrentVersionRejectedError(declineFor(error.code), error.message);
-  return declarationOf(DeclarationSchema.parse(data));
+// by the server, not by the browser: only an answer can say when the declaration now stands from.
+export async function writeCurrentVersion(technologyId: string, version: string | null): Promise<CurrentVersion | null> {
+  const response = await call("PATCH", { technologyId, version });
+  const declared = DeclaredSchema.safeParse(await response?.json().catch(() => null));
+  if (!declared.success) throw new CurrentVersionRejectedError("denied", "declaration failed");
+  if (!declared.data.ok) throw new CurrentVersionRejectedError(declared.data.decline, `declaration refused: ${declared.data.decline}`);
+  return declared.data.currentVersion;
+}
+
+async function call(method: "POST" | "PATCH", body: object): Promise<Response | null> {
+  return fetch(ENDPOINT, {
+    method,
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  }).catch(() => null);
 }

@@ -1,11 +1,11 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { StoredTechnology } from "@/modules/catalog";
+import type { Database } from "@/modules/db/server";
 import { initialSummaryStatus, type Significance } from "@/modules/releases";
 import type { SourceAdapters } from "../domain/source-adapters";
 import { findNotes } from "./find-notes";
 
-const ReleaseIdSchema = z.array(z.object({ id: z.uuid(), version: z.string() }));
+const ReleaseIdSchema = z.object({ id: z.uuid() });
 
 export type ReleaseOrigin = "imported" | "detected";
 
@@ -14,11 +14,11 @@ export type ReleaseToStore = { version: string; significance: Significance; publ
 
 // Writes the Releases, their Release Notes and the initial state of their Summaries.
 //
-// Idempotent on Technology + Version: `ignoreDuplicates` leaves an existing Release, its notes and
-// its Summary alone, so a Correzione di rilevanza set by hand survives every later run — the
+// Idempotent on Technology + Version: `on conflict do nothing` leaves an existing Release, its
+// notes and its Summary alone, so a Correzione di rilevanza set by hand survives every later run — the
 // Detection never updates `significance`, let alone `significance_override`.
 export async function persistReleases(
-  db: SupabaseClient,
+  db: Database,
   technology: StoredTechnology,
   adapters: SourceAdapters,
   origin: ReleaseOrigin,
@@ -28,42 +28,35 @@ export async function persistReleases(
   const versions = releases.map((release) => release.version);
   const notes = await findNotes(technology, adapters, versions);
 
-  const inserted = await db.from("releases").upsert(
-    releases.map((release) => ({
-      technology_id: technology.id,
-      version: release.version,
-      significance: release.significance,
-      origin,
-      published_at: release.publishedAt.toISOString(),
-    })),
-    { onConflict: "technology_id,version", ignoreDuplicates: true },
+  const insertRelease = db.prepare(
+    `insert into releases (technology_id, version, significance, origin, published_at) values (?, ?, ?, ?, ?)
+     on conflict (technology_id, version) do nothing`,
   );
-  if (inserted.error) throw inserted.error;
-
-  // Unpaged: restricted to the Versions this one run is writing for one Technology, and the initial
-  // import keeps a twelve month window, so the list never approaches a thousand (issue #190).
-  const stored = await db.from("releases").select("id, version").eq("technology_id", technology.id).in("version", versions);
-  if (stored.error) throw stored.error;
-  const idByVersion = new Map(ReleaseIdSchema.parse(stored.data).map((row) => [row.version, row.id]));
-
-  const rows = releases.flatMap((release) => {
-    const releaseId = idByVersion.get(release.version);
-    return releaseId === undefined ? [] : [{ releaseId, release, notes: notes.get(release.version) }];
-  });
-
-  const notesRows = rows.flatMap(({ releaseId, notes: found }) =>
-    found ? [{ release_id: releaseId, source_id: found.sourceId, body: found.body, url: found.url }] : [],
+  const releaseId = db.prepare("select id from releases where technology_id = ? and version = ?");
+  const insertNotes = db.prepare(
+    "insert into release_notes (release_id, source_id, body, url) values (?, ?, ?, ?) on conflict (release_id) do nothing",
   );
-  if (notesRows.length > 0) {
-    const { error } = await db.from("release_notes").upsert(notesRows, { onConflict: "release_id", ignoreDuplicates: true });
-    if (error) throw error;
+  const insertSummary = db.prepare(
+    "insert into summaries (release_id, status) values (?, ?) on conflict (release_id) do nothing",
+  );
+
+  // One transaction for the batch: a run that stops halfway leaves no Release without its Summary row.
+  db.exec("begin");
+  try {
+    for (const release of releases) {
+      insertRelease.run(technology.id, release.version, release.significance, origin, release.publishedAt.toISOString());
+      const { id } = ReleaseIdSchema.parse(releaseId.get(technology.id, release.version));
+      const found = notes.get(release.version);
+      if (found) insertNotes.run(id, found.sourceId, found.body, found.url);
+      insertSummary.run(
+        id,
+        initialSummaryStatus({ significance: release.significance, hasNotes: found !== undefined, skip: release.skip }),
+      );
+    }
+    db.exec("commit");
+  } catch (error) {
+    db.exec("rollback");
+    throw error;
   }
-
-  const summaryRows = rows.map(({ releaseId, release, notes: found }) => ({
-    release_id: releaseId,
-    status: initialSummaryStatus({ significance: release.significance, hasNotes: found !== undefined, skip: release.skip }),
-  }));
-  const { error } = await db.from("summaries").upsert(summaryRows, { onConflict: "release_id", ignoreDuplicates: true });
-  if (error) throw error;
-  return rows.map(({ release }) => release.version);
+  return releases.map((release) => release.version);
 }

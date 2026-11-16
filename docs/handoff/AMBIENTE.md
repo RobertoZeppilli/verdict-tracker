@@ -5,6 +5,8 @@ non stato: si aprono quando servono.
 
 ## Ambiente
 
+- ⚠️ **Dalla #211 Docker e il Supabase locale non servono più**: i dati sono un file SQLite. Le voci
+  qui sotto su Docker e Supabase restano come storia.
 - Docker Desktop (WSL2) installato per utente in `%LOCALAPPDATA%\Programs\DockerDesktop`, RAM di WSL
   limitata a 6 GB in `~/.wslconfig`. **`docker` non è nel PATH della shell di Claude**: prima di E2E, integrazione
   o `supabase status` eseguire `export PATH="$PATH:$LOCALAPPDATA/Programs/DockerDesktop/resources/bin"`

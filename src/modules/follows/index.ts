@@ -1,7 +1,6 @@
 export {
   type CurrentVersion,
   type Decline,
-  declineFor,
   type Follow,
 } from "./domain/current-version";
 export {

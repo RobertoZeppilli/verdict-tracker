@@ -1,21 +1,17 @@
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { readCatalogDirectory, syncCatalog } from "@/modules/catalog/server";
+import { getDatabase } from "@/modules/db/server";
 import { createSourceAdapters, importTechnology, technologiesAwaitingImport } from "@/modules/detection/server";
 
-// Run by the Deploy workflow after the migrations (ADR 0005), never by a Vercel build:
-// previews share the production database and would write their branch's Catalog.
+// Writes the Catalog into the data file of this install (issue #211), which `getDatabase` opens and
+// migrates first.
 const SyncEnvSchema = z.object({
-  NEXT_PUBLIC_SUPABASE_URL: z.url(),
-  SUPABASE_SECRET_KEY: z.string().startsWith("sb_secret_"),
   // Optional: without it GitHub allows 60 requests an hour.
   GITHUB_TOKEN: z.string().min(1).optional(),
 });
 
 const env = SyncEnvSchema.parse(process.env);
-const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SECRET_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+const db = getDatabase();
 
 const operations = await syncCatalog(db, await readCatalogDirectory());
 for (const operation of operations) {

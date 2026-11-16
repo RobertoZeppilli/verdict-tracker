@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/modules/db/server";
 import type { StoredTechnology } from "@/modules/catalog";
 import type { ObservedVersion, SourceAdapters } from "../domain/source-adapters";
 
@@ -10,7 +10,7 @@ export type Observation = { versions: ObservedVersion[]; unchanged: boolean };
 // With `conditional`, each Source is asked with the validator stored beside it and the answer's new
 // validator is written back, so a quiet day costs a request with no body instead of a packument.
 export async function observeVersions(
-  db: SupabaseClient,
+  db: Database,
   technology: StoredTechnology,
   adapters: SourceAdapters,
   conditional: boolean,
@@ -27,7 +27,7 @@ export async function observeVersions(
       unchanged++;
       continue;
     }
-    if (conditional && listing.etag !== source.etag) await storeEtag(db, source.id, listing.etag);
+    if (conditional && listing.etag !== source.etag) storeEtag(db, source.id, listing.etag);
     for (const { version, publishedAt } of listing.versions) {
       const known = earliest.get(version);
       if (!known || publishedAt < known) earliest.set(version, publishedAt);
@@ -42,7 +42,6 @@ export async function observeVersions(
 
 // Written only after the listing has been read: a validator stored for a body we failed to parse
 // would make the next run skip the Versions it never saw.
-async function storeEtag(db: SupabaseClient, sourceId: string, etag: string | null): Promise<void> {
-  const { error } = await db.from("sources").update({ etag }).eq("id", sourceId);
-  if (error) throw error;
+function storeEtag(db: Database, sourceId: string, etag: string | null): void {
+  db.prepare("update sources set etag = ? where id = ?").run(etag, sourceId);
 }

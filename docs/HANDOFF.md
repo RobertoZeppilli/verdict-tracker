@@ -31,69 +31,63 @@ stata decisa. Se questo file supera le 100 righe, **si sposta, non si taglia**.
 
 ## Stato
 
-**Da dove ripartire (trentanovesimo giro, 2026-11-15): la #238 è finita e verde, e la PR è pronta da
-guardare.** Branch `238-inglese-e-italiano`. L'interfaccia parla **inglese e italiano**: francese,
-spagnolo e tedesco sono fuori dal selettore, dai dizionari e dalla vetrina, con l'**ADR 0012** che
-supera la 0008 nella sola parte che conta le lingue e sei **308** in `vercel.json` che tengono in
-piedi `/fr`, `/es` e `/de`. Il modulo `i18n` scende a due, `GLOSSARY.md` perde la tabella fr/es/de,
-e con loro il `check` su `preferred_locale` dello schema SQLite.
+**Da dove ripartire (quarantunesimo giro, 2026-11-16): la seconda fetta della #211 è finita nel
+codice, in commit `WIP` sul branch `211-strato-sqlite` (solo locali, quattro).** Niente più
+`@supabase/*` in `src/`, `tests/` e `scripts/`; lint, typecheck, `pnpm build`, Vitest (855) ed e2e
+contro la build (268 verdi, 1 saltato) passano **senza Docker**. Il quarantesimo giro è nel diario
+di novembre.
 
-Suite girate **sul runner**, con Supabase locale: `lint` e `typecheck` puliti, `test` 776/776,
-`test:integration` 93/93, `build` e `i18n:client-keys --check` verdi, `build:static` verde (2.078
-indirizzi nel sitemap, 4.048 documenti), `test:e2e` 266 al primo colpo, **2 flaky** (i due del menu,
-che vengono dalla #210) e 1 saltato (`slack-dialog`, che si salta da sé senza le credenziali Slack).
+### Tre cose cambiate fuori dal codice, il 2026-11-15 (valgono ancora)
 
-### Le quattro cose che il giro ha scoperto, e che nel codice non si vedono
+1. ⚠️ **Vercel non costruisce niente** (`"git": { "deploymentEnabled": false }` in `vercel.json`,
+   PR #245). Il deploy unico, a conversione finita, è il commit che toglie quella riga. Un branch
+   tagliato da un `main` più vecchio della #245 farebbe una preview: ribasarlo prima del push.
+2. ⚠️ **`deploy-database.yml` è disattivato** a mano; si riattiva con `gh workflow enable`, la #211
+   lo cancella.
+3. **Cletus è fuori dal repository**; resta sul remote `cletus/scarica-le-istruzioni`, da cancellare.
 
-1. ⚠️ **Due prove dell'`integration` sono flaky anche su `main`**, e non solo "nell'ordine
-   sbagliato" come diceva `AMBIENTE.md`: cinque corse `db:reset` + `test:integration` su `main`,
-   ciascuna da sola, hanno dato due verdi, due rossi da uno e un rosso da due. Sempre
-   `paged-reads.test.ts:113`, `expected 1201 to be 1200`, perché quella prova conta **tutto** il
-   database e l'ordine dei file che Vitest sceglie cambia fra una corsa e l'altra. La seconda corsa
-   di seguito passa sempre. Misurato e scritto in `AMBIENTE.md`: **chi lo vede lo rifaccia girare
-   prima di dare la colpa al proprio diff.**
-2. ⚠️ **L'enum Postgres `public.locale` nomina ancora cinque lingue, e nessuno ha riscritto le
-   righe.** `readNotificationSettings` e il job di Slack facevano `.parse` su quella colonna, quindi
-   una riga con `es` — e la suite di integrazione ne lasciava una — chiudeva `/settings`. Adesso le
-   due letture passano da `storedLocaleSchema`, che legge una lingua uscita come il default. **Lo
-   scrittore della #211 tenga la stessa distinzione**: severo in scrittura, tollerante in lettura.
-3. ⚠️ **Il risparmio di una lingua in meno sta nell'export, non nel sitemap.** Per i **documenti**
-   la motivazione della #238 è vera: ogni pagina esce una volta per lingua. Per gli **indirizzi
-   dichiarati** quasi no, 2.078 contro i ~2.100 di prima, perché la pagina Release era già
-   dichiarata solo in inglese (emendamento del 2026-10-28). Chi misura il peso guardi l'export.
-4. ⚠️ **`Intl.PluralRules("it")` ha una forma `many` e l'inglese no**, e `select(1_000_000)` ci cade
-   dentro: è l'unica differenza di plurale fra le due lingue, e il test di `translate` ci sta sopra
-   adesso (prima col francese, che conta lo zero come uno). Quindi **i dizionari italiani portano già
-   le forme `many`**: un messaggio nuovo con `{count}` va scritto con tutte e tre.
+### Cosa ha fatto il quarantunesimo giro
 
-### La prossima mossa
+- Dashboard e campanella su SQLite; la campanella passa da `/api/notifications` (come `/api/follows`,
+  solo JSON). Via `src/lib/supabase*.ts` e `supabase-rows.ts`.
+- Test d'integrazione: un SQLite in memoria per file (`tests/integration/database.ts`). Cancellati
+  `public-content` e `paged-reads`: provavano i grant RLS e il tetto di PostgREST.
+- E2e: fixture su SQLite, app e test su `VERDICT_DATA_DIR=.e2e-data` (in `.gitignore`).
+- CI: il job `integration` non avvia più Supabase. ⚠️ **Non ancora girato**: si vede al primo push.
+- ⚠️ **Due trappole pagate**: Turbopack rifiuta `new URL("../migrations/", import.meta.url)`, quindi
+  `MIGRATIONS_DIRECTORY` viene da `process.cwd()` (il launcher della #214 deve partire dalla radice);
+  e una pagina che legge solo `getDatabase()` **diventa statica** alla build: `/technologies` vuole
+  `await connection()`, che c'è. Una pagina nuova sul database deve fare lo stesso.
 
-**La seconda fetta della #211**: lo strato di lettura e scrittura che sostituisce `supabase-js`,
-tabella per tabella, con dentro la regola della Versione in uso che `enforce_current_version` ha
-lasciato senza casa. È il pezzo grosso, e sblocca i tre criteri di accettazione ancora aperti —
-niente import di `@supabase/*`, `test:integration` senza servizi esterni, i comandi verdi senza
-Docker. Poi lo script che esporta la produzione nel file iniziale (**le Sintesi sono già pagate e
-non si ricomprano**), e infine via la cartella `supabase/` e `deploy-database.yml`. Dopo la #211:
-#212 → #213 → #217 → #214 → #218 → #221 → #222 → #216, con la **#222** `ready-for-human` e una
-porta a senso unico. ⚠️ La #238 era "Blocked by #211" e l'ha scavalcata su indicazione dell'utente:
-non toccava il database, e nessuna PR era in volo.
+### La prossima mossa: chiudere la #211 (2026-11-16, giro quarantadue)
+
+Fatti, non ancora committati: variabili Supabase fuori da `src/env`, CI e `.env.example`; via
+`supabase/`, `deploy-database.yml`, `db:*` e le dipendenze `@supabase/*`/`supabase`; `CLAUDE.md`,
+`README.md` (sviluppo locale) e `AMBIENTE.md` aggiornati. Script `pnpm db:export <file nuovo>`
+(`scripts/export-production.mts`): legge la produzione via REST con `EXPORT_SUPABASE_URL` e
+`EXPORT_SUPABASE_SECRET_KEY`, scrive **solo** Catalogo, Release, Note e Sintesi (il file iniziale
+va a tutti: niente follows, notifiche, impostazioni, quindi niente `preferred_locale`); provato
+contro un finto PostgREST. Verdi: lint, typecheck, Vitest (772 + 83), build, e2e (268, 1 saltato).
+
+1. ⚠️ **L'utente lancia l'export dalla produzione** (le chiavi stanno solo su Supabase/Vercel) e si
+   verifica che l'app lo apra con le Sintesi: è l'ultimo criterio della issue.
+2. Squash dei `WIP`, push, PR con `Closes #211`.
+
+Dopo la #211: #212 → #213 → #217 → #214 → #218 → #221 → #222 → #216, con la **#222**
+`ready-for-human` e una porta a senso unico.
+
+### Gli e2e in locale, adesso
+
+`VERDICT_DATA_DIR=.e2e-data` su **tutti e tre**: `pnpm catalog:sync` (con `set -a; . ./.env.local`
+per il `GITHUB_TOKEN`, o GitHub risponde 403), `rm -rf .next && pnpm build` (la sitemap si prerenderizza
+dal file), `pnpm start --port 3100`; poi `E2E_PORT=3100 pnpm test:e2e`. Il Supabase locale non serve più.
 
 ### Cosa resta a te
 
-1. ⚠️ **La decisione sui cinque documenti, ancora da prendere**, e adesso costa meno: `terms` nomina
-   l'accesso con GitHub, `privacy` e `faq` spiegano come si cancella l'account, `contact` dice che è
-   un bottone. Prosa legale due volte su cinque, ma in **due lingue**, e **nessuna issue aperta la
-   copre** (#221 è la landing, #216 i contributi): serve una issue sua.
-2. ⚠️ **Quello che la migrazione della #210 ha aperto in produzione fino alla #222**: il dettaglio è
-   nel diario di novembre, sotto il trentaseiesimo giro, e vale parola per parola.
-3. ⚠️ **Le suite in locale vogliono un ordine preciso** — `integration` prima del `catalog:sync`,
-   `rm -rf .next` dopo — e i rossi che dà l'ordine sbagliato sono elencati in `AMBIENTE.md`.
-4. **Due cose per la #214**, che è quella che pubblica: ⚠️ `package.json` dice ancora
-   `"name": "release-tracker"`, e ⚠️ **non ha nessun `engines`**. La CI si salva da sé perché
-   `ci.yml` fissa `node-version: 24`, ma `node:sqlite` su Node 22 gira stampando
-   `ExperimentalWarning`, e chi installa l'app non legge `ci.yml`. **La #185** resta valida, col suo
-   testo ancora da correggere.
-5. ⚠️ **`MIGRATIONS_DIRECTORY` non è ancora provata dopo il bundle** (trentottesimo giro): nessuna
-   rotta apre ancora il database, e la prima che lo farà deve verificarlo per prima cosa.
-6. **Gli accertamenti di sempre**, in `APERTE.md` e `AMBIENTE.md`. ⚠️ In produzione il Rilevamento è
+1. ⚠️ **La decisione sui cinque documenti**: la issue è la **#236**, il testo lo decidi tu.
+2. ⚠️ **Quello che la migrazione della #210 ha aperto in produzione fino alla #222**: nel diario di
+   novembre, sotto il trentaseiesimo giro.
+3. **Due cose per la #214**: `package.json` dice ancora `"name": "release-tracker"` e non ha
+   `engines` (Node 22 stampa `ExperimentalWarning` su `node:sqlite`). **La #185** resta valida.
+4. **Gli accertamenti di sempre**, in `APERTE.md` e `AMBIENTE.md`. ⚠️ In produzione il Rilevamento è
    fermo dalla #215. ⚠️ **Credito basso: non spendere senza chiedere.**

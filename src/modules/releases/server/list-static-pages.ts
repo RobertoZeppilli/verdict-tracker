@@ -1,6 +1,5 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { selectAllRows } from "@/lib/supabase-rows";
+import type { Database } from "@/modules/db/server";
 
 const TechnologyRowSchema = z.object({ id: z.uuid(), slug: z.string() });
 const ReleaseRowSchema = z.object({ technology_id: z.uuid(), version: z.string() });
@@ -14,15 +13,9 @@ export type StaticPages = {
 };
 
 // Retired Technologies are in, as they are in the sitemap: their pages stay reachable.
-async function load(db: SupabaseClient): Promise<StaticPages> {
-  const [technologies, releases] = await Promise.all([
-    selectAllRows((from, to) => db.from("technologies").select("id, slug").order("slug").range(from, to)),
-    // Paged by `id` for the reason `listSitemapPages` gives: a whole import batch shares one
-    // `created_at`, and paging over a column with ties can repeat or skip a row.
-    selectAllRows((from, to) =>
-      db.from("releases").select("technology_id, version").order("id").range(from, to),
-    ),
-  ]);
+async function load(db: Database): Promise<StaticPages> {
+  const technologies = db.prepare("select id, slug from technologies order by slug").all();
+  const releases = db.prepare("select technology_id, version from releases").all();
   const slugs = new Map(
     z.array(TechnologyRowSchema).parse(technologies).map((row) => [row.id, row.slug]),
   );
@@ -43,9 +36,9 @@ let pending: Promise<StaticPages> | null = null;
 
 // ⚠️ Memoised for the life of the process, which is a build and only a build: `generateStaticParams`
 // runs once per route **per language**, so the two public routes would otherwise read the whole
-// `releases` table ten times to learn the same two thousand addresses. Nothing here is ever reached
+// `releases` table four times to learn the same two thousand addresses. Nothing here is ever reached
 // by a request: in the app with the server both routes return no parameters at all.
-export function listStaticPages(db: SupabaseClient): Promise<StaticPages> {
+export function listStaticPages(db: Database): Promise<StaticPages> {
   pending ??= load(db);
   return pending;
 }

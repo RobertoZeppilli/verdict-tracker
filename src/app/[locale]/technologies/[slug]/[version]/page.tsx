@@ -8,7 +8,7 @@ import { SiteHeader } from "@/components/site-header";
 import { pageMetadata } from "@/lib/metadata";
 import { STATIC_SITE } from "@/lib/static-site";
 import { currentLocale, getTranslator } from "@/modules/i18n/server";
-import { createPublicClient } from "@/lib/supabase";
+import { getDatabase } from "@/modules/db/server";
 import type { Translator } from "@/modules/i18n";
 import { githubRepo, type StoredTechnology } from "@/modules/catalog";
 import { getTechnology } from "@/modules/catalog/server";
@@ -29,7 +29,7 @@ export const revalidate = false;
 // a Version is the Version itself, and `versionFromPath` decodes the segment the router hands back.
 export async function generateStaticParams(): Promise<{ slug: string; version: string }[]> {
   if (!STATIC_SITE) return [];
-  return (await listStaticPages(createPublicClient())).releases;
+  return (await listStaticPages(getDatabase())).releases;
 }
 
 type Props = { params: Promise<{ slug: string; version: string }> };
@@ -38,7 +38,7 @@ type Props = { params: Promise<{ slug: string; version: string }> };
 const loadPage = cache(async (slug: string, segment: string) => {
   const version = versionFromPath(segment);
   if (version === null) return null;
-  const db = createPublicClient();
+  const db = getDatabase();
   const technology = await getTechnology(db, slug);
   if (!technology) return null;
   const release = await getRelease(db, technology.id, version);

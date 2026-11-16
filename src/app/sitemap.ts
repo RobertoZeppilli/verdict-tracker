@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { env } from "@/env";
-import { createPublicClient } from "@/lib/supabase";
+import { getDatabase } from "@/modules/db/server";
 import { DEFAULT_LOCALE, LOCALES, localeAlternates, localePath } from "@/modules/i18n";
 import { listSitemapPages } from "@/modules/releases/server";
 
@@ -58,7 +58,7 @@ function defaultLocaleEntry(path: string, lastModified: Date): MetadataRoute.Sit
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const pages = await listSitemapPages(createPublicClient());
+  const pages = await listSitemapPages(getDatabase());
   return [
     // The landing opens the sitemap, and it is the one entry with no `lastModified`: the page is
     // prerendered per deploy and the date it would carry would be the date of the build, which

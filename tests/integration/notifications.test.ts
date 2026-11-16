@@ -1,185 +1,157 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { DEFAULT_LOCALE } from "@/modules/i18n";
 import {
   generateNotifications,
   pruneNotifications,
+  readFeed,
   readNotificationSettings,
+  readUnseen,
   RETENTION_DAYS,
   writePreference,
   writePreferredLocale,
+  writeSeen,
 } from "@/modules/notifications/server";
-import { anonClient, clearFollows, type Content, deleteContent, seedContent, serviceClient } from "./supabase";
-
-const PERMISSION_DENIED = "42501";
-
-const SeenRowSchema = z.object({ seen_at: z.string() });
+import { clearFollows, type Content, seedContent, testDatabase } from "./database";
 
 const NotificationRowsSchema = z.array(
-  z.object({ id: z.uuid(), event: z.string(), release_id: z.uuid().nullable() }),
+  z.object({ id: z.uuid(), event: z.string(), release_id: z.uuid().nullable(), seen_at: z.string().nullable() }),
 );
 
-// ⚠️ **One reader, and the tables to match.** Since issue #210 a Notification, a preference and the
-// preferred language belong to the installed copy and not to an account, so these tests have no
-// second Developer to be invisible to: what they prove is the rule and the grant, which is what is
-// left when the policy goes (ADR 0011).
+// A Notification, a preference and the preferred language belong to the installed copy and not to
+// an account (issue #210, ADR 0011): one reader, and the tables to match.
+const db = testDatabase();
 let content: Content;
 
 // The Release seeded for these tests is `featured`; its Summary starts `pending`, which is the state
 // in which no Notification is due yet. The provenance travels with the status because
 // `summaries_ready_provenance` refuses a `ready` row that does not say where it came from.
-async function setSummaryStatus(status: string): Promise<void> {
-  const provenance =
-    status === "ready"
-      ? { content: { title: "Nothing here is read.", keyPoints: [] }, model: "claude-opus-5", prompt_version: "v1" }
-      : { content: null, model: null, prompt_version: null };
-  const { error } = await serviceClient()
-    .from("summaries")
-    .update({ status, ...provenance })
-    .eq("release_id", content.releaseId);
-  if (error) throw error;
+function setSummaryStatus(status: string): void {
+  const ready = status === "ready";
+  db.prepare("update summaries set status = ?, content = ?, model = ?, prompt_version = ? where release_id = ?").run(
+    status,
+    ready ? JSON.stringify({ title: "Nothing here is read.", keyPoints: [] }) : null,
+    ready ? "claude-opus-5" : null,
+    ready ? "v1" : null,
+    content.releaseId,
+  );
 }
 
-async function notifications() {
-  const { data, error } = await serviceClient().from("notifications").select("id, event, release_id");
-  if (error) throw error;
-  return NotificationRowsSchema.parse(data);
+function follow(): void {
+  db.prepare("insert into follows (technology_id) values (?)").run(content.technologyId);
 }
 
-beforeAll(async () => {
-  content = await seedContent();
-  const { error } = await serviceClient().from("follows").insert({ technology_id: content.technologyId });
-  if (error) throw error;
+function notifications() {
+  return NotificationRowsSchema.parse(db.prepare("select id, event, release_id, seen_at from notifications").all());
+}
+
+beforeAll(() => {
+  content = seedContent(db);
+  follow();
 });
 
-afterAll(async () => {
-  await clearFollows();
-  await deleteContent(content);
-});
-
-beforeEach(async () => {
-  const db = serviceClient();
-  const cleared = await db.from("notifications").delete().not("id", "is", null);
-  if (cleared.error) throw cleared.error;
-  const preferences = await db.from("notification_preferences").delete().not("event", "is", null);
-  if (preferences.error) throw preferences.error;
-  await setSummaryStatus("pending");
+beforeEach(() => {
+  db.exec("delete from notifications; delete from notification_preferences");
+  setSummaryStatus("pending");
 });
 
 describe("generateNotifications", () => {
   it("writes nothing while the Summary is still coming", async () => {
-    const report = await generateNotifications(serviceClient());
+    const report = await generateNotifications(db);
     expect(report.planned).toBe(0);
-    expect(await notifications()).toEqual([]);
+    expect(notifications()).toEqual([]);
   });
 
   it("writes one for a Release of a followed Technology", async () => {
-    await setSummaryStatus("ready");
-    await generateNotifications(serviceClient());
+    setSummaryStatus("ready");
+    await generateNotifications(db);
 
-    const written = await notifications();
+    const written = notifications();
     expect(written).toHaveLength(1);
     expect(written[0]).toMatchObject({ event: "featured_release", release_id: content.releaseId });
   });
 
   it("writes none when the Technology is not followed", async () => {
-    await clearFollows();
-    await setSummaryStatus("ready");
-    await generateNotifications(serviceClient());
-    expect(await notifications()).toEqual([]);
-
-    const { error } = await serviceClient().from("follows").insert({ technology_id: content.technologyId });
-    if (error) throw error;
+    clearFollows(db);
+    setSummaryStatus("ready");
+    await generateNotifications(db);
+    expect(notifications()).toEqual([]);
+    follow();
   });
 
   it("writes one even when the Summary will never arrive", async () => {
-    await setSummaryStatus("unavailable");
-    await generateNotifications(serviceClient());
-    expect(await notifications()).toHaveLength(1);
+    setSummaryStatus("unavailable");
+    await generateNotifications(db);
+    expect(notifications()).toHaveLength(1);
   });
 
   it("does not duplicate when the job runs twice", async () => {
-    await setSummaryStatus("ready");
-    await generateNotifications(serviceClient());
-    await generateNotifications(serviceClient());
-    expect(await notifications()).toHaveLength(1);
+    setSummaryStatus("ready");
+    await generateNotifications(db);
+    await generateNotifications(db);
+    expect(notifications()).toHaveLength(1);
   });
 
   it("respects the event switched off on every channel", async () => {
-    await setSummaryStatus("ready");
-    const { error } = await serviceClient()
-      .from("notification_preferences")
-      .insert(
-        ["in_app", "slack", "email"].map((channel) => ({
-          event: "featured_release",
-          channel,
-          enabled: false,
-        })),
+    setSummaryStatus("ready");
+    for (const channel of ["in_app", "slack", "email"]) {
+      db.prepare("insert into notification_preferences (event, channel, enabled) values ('featured_release', ?, 0)").run(
+        channel,
       );
-    if (error) throw error;
-
-    await generateNotifications(serviceClient());
-    expect(await notifications()).toEqual([]);
+    }
+    await generateNotifications(db);
+    expect(notifications()).toEqual([]);
   });
 });
 
-describe("what the browser may do with a Notification", () => {
+// What `/api/notifications` answers the bell with (issue #211).
+describe("the bell", () => {
   beforeEach(async () => {
-    await setSummaryStatus("ready");
-    await generateNotifications(serviceClient());
+    setSummaryStatus("ready");
+    await generateNotifications(db);
   });
 
-  it("reads them with the publishable key", async () => {
-    const { data, error } = await anonClient().from("notifications").select("id, event, release_id");
-    expect(error).toBeNull();
-    expect(NotificationRowsSchema.parse(data)).toHaveLength(1);
+  it("counts and lists the unseen Release events", () => {
+    expect(readUnseen(db)).toBe(1);
+    const [item] = readFeed(db);
+    expect(item).toMatchObject({ event: "featured_release", version: "1.0.0", seen: false });
   });
 
-  it("marks one Seen, which is what the bell's counter reads", async () => {
-    const seen = new Date().toISOString();
-    const [one] = await notifications();
-    const { error } = await anonClient().from("notifications").update({ seen_at: seen }).eq("id", one.id);
-    expect(error).toBeNull();
-
-    const row = await serviceClient().from("notifications").select("seen_at").eq("id", one.id).single();
-    // Compared as instants: Postgres hands back `+00:00` and its own precision, not the `Z` sent.
-    expect(new Date(SeenRowSchema.parse(row.data).seen_at).getTime()).toBe(new Date(seen).getTime());
+  // The weekly Digest has no line in the panel yet (#173), so it is neither counted nor listed.
+  it("leaves the weekly Digest out of both", () => {
+    db.prepare("insert into notifications (event, digest_week) values ('weekly_digest', '2026-W43')").run();
+    expect(readUnseen(db)).toBe(1);
+    expect(readFeed(db)).toHaveLength(1);
   });
 
-  // `seen_at` is the one column of the grant, so the event, the Release and the day a Notification
-  // was born stay the job's. This is what is left of the lock once the policy goes (issue #210).
-  it("cannot rewrite the event, the Release or the day it was born", async () => {
-    const [one] = await notifications();
-    const { error } = await anonClient()
-      .from("notifications")
-      .update({ event: "weekly_digest" })
-      .eq("id", one.id);
-    expect(error?.code).toBe(PERMISSION_DENIED);
+  it("marks one Seen, and keeps the day it was first Seen", async () => {
+    const [one] = notifications();
+    writeSeen(db, one.id);
+    const first = notifications()[0].seen_at;
+    expect(first).not.toBeNull();
+    expect(readUnseen(db)).toBe(0);
+
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    writeSeen(db, one.id);
+    expect(notifications()[0].seen_at).toBe(first);
   });
 
-  it("cannot write one for itself: only the jobs do", async () => {
-    const { error } = await anonClient()
-      .from("notifications")
-      .insert({ event: "featured_release", release_id: content.releaseId });
-    expect(error?.code).toBe(PERMISSION_DENIED);
+  it("marks every unseen one Seen when no id is given", () => {
+    writeSeen(db, null);
+    expect(readUnseen(db)).toBe(0);
+    expect(readFeed(db).every((item) => item.seen)).toBe(true);
   });
 });
 
-// What `/settings` writes and reads back (issue #171). The two statements are the ones the Server
-// Actions run, taken as functions so the write can be proved against the real database: what the
-// action adds around them is the validation of the form, which does not exist without a request.
+// What `/settings` writes and reads back (issue #171). The statements are the ones the Server Actions
+// run: what the action adds around them is the validation of the form.
 describe("the Notification settings saved on this copy", () => {
-  beforeEach(async () => {
-    const cleared = await serviceClient()
-      .from("notification_settings")
-      .delete()
-      .not("singleton", "is", null);
-    if (cleared.error) throw cleared.error;
+  beforeEach(() => {
+    db.exec("delete from notification_settings");
   });
 
   it("reads the declared starting point while nothing was ever saved", async () => {
-    const settings = await readNotificationSettings(anonClient());
-    expect(settings).toEqual({
+    expect(await readNotificationSettings(db)).toEqual({
       preferredLocale: DEFAULT_LOCALE,
       // No webhook saved, which is what keeps the Slack switches of #172 sending nothing.
       slackHint: null,
@@ -188,99 +160,51 @@ describe("the Notification settings saved on this copy", () => {
   });
 
   it("holds a switch across a reload, and the job obeys it", async () => {
-    await writePreference(anonClient(), {
-      event: "featured_release",
-      channel: "in_app",
-      enabled: false,
-    });
+    await writePreference(db, { event: "featured_release", channel: "in_app", enabled: false });
 
     // The reload: a second read, with nothing kept in between.
-    const settings = await readNotificationSettings(anonClient());
-    expect(settings.preferences).toEqual([
-      { event: "featured_release", channel: "in_app", enabled: false },
-    ]);
+    const settings = await readNotificationSettings(db);
+    expect(settings.preferences).toEqual([{ event: "featured_release", channel: "in_app", enabled: false }]);
 
-    await setSummaryStatus("ready");
-    await generateNotifications(serviceClient());
-    expect(await notifications()).toEqual([]);
+    setSummaryStatus("ready");
+    await generateNotifications(db);
+    expect(notifications()).toEqual([]);
   });
 
   it("writes one row however many times the switch is pressed", async () => {
     for (const enabled of [false, true, false]) {
-      await writePreference(anonClient(), { event: "notable_release", channel: "in_app", enabled });
+      await writePreference(db, { event: "notable_release", channel: "in_app", enabled });
     }
-    const settings = await readNotificationSettings(anonClient());
-    expect(settings.preferences).toEqual([
+    expect((await readNotificationSettings(db)).preferences).toEqual([
       { event: "notable_release", channel: "in_app", enabled: false },
     ]);
   });
 
   it("saves the preferred language, creating the row, and reads it back", async () => {
-    await writePreferredLocale(anonClient(), "it");
-    expect((await readNotificationSettings(anonClient())).preferredLocale).toBe("it");
-    await writePreferredLocale(anonClient(), "en");
-    expect((await readNotificationSettings(anonClient())).preferredLocale).toBe("en");
+    await writePreferredLocale(db, "it");
+    expect((await readNotificationSettings(db)).preferredLocale).toBe("it");
+    await writePreferredLocale(db, "en");
+    expect((await readNotificationSettings(db)).preferredLocale).toBe("en");
   });
 
-  // ⚠️ The row this writes is one a database that is already out there can hold: the Postgres enum
-  // `public.locale` still names all five languages, nothing rewrote the rows that were saved before
-  // ADR 0012, and the integration suite itself used to leave `es` in this very row. A read that
-  // threw on it would be `/settings` refusing to open and the Slack job dying, so the preference
-  // that cannot be honoured reads as the default instead (`storedLocaleSchema`). It is written with
-  // the service client because the typed writer cannot express it any more, which is the point.
-  it("reads a language that left the product as the default, instead of failing the read", async () => {
-    const seeded = await serviceClient()
-      .from("notification_settings")
-      .upsert({ singleton: true, preferred_locale: "de" }, { onConflict: "singleton" });
-    expect(seeded.error).toBeNull();
-    expect((await readNotificationSettings(anonClient())).preferredLocale).toBe(DEFAULT_LOCALE);
-  });
-
-  // The settings are one row, so a second save finds the first instead of making a second: the
-  // `singleton` primary key is what says so, and nothing else could (issue #210).
+  // The `singleton` primary key is what says the settings are one row (issue #210).
   it("keeps the settings to one row however often they are saved", async () => {
-    await writePreferredLocale(anonClient(), "en");
-    await writePreferredLocale(anonClient(), "it");
-    const { data, error } = await serviceClient().from("notification_settings").select("preferred_locale");
-    expect(error).toBeNull();
-    expect(z.array(z.object({ preferred_locale: z.string() })).parse(data)).toEqual([
+    await writePreferredLocale(db, "en");
+    await writePreferredLocale(db, "it");
+    expect(db.prepare("select preferred_locale from notification_settings").all()).toEqual([
       { preferred_locale: "it" },
     ]);
-  });
-
-  // ⚠️ The audit of 2026-11-02, and the column grant that came out of it: what the reader may change
-  // is the language, and the hint is the proof. It is what `/settings` prints about the Slack
-  // channel, and only the application that saved the webhook may establish it.
-  it("does not let the browser write the Slack hint", async () => {
-    const seeded = await serviceClient()
-      .from("notification_settings")
-      .upsert({ singleton: true, preferred_locale: "en" }, { onConflict: "singleton" });
-    if (seeded.error) throw seeded.error;
-
-    const faked = await anonClient()
-      .from("notification_settings")
-      .update({ slack_webhook_hint: "hooks.slack.com/…9999" })
-      .eq("singleton", true);
-    expect(faked.error?.code).toBe(PERMISSION_DENIED);
-
-    expect((await readNotificationSettings(anonClient())).slackHint).toBeNull();
   });
 });
 
 describe("pruneNotifications", () => {
   it("deletes what is older than the retention and keeps the rest", async () => {
-    const db = serviceClient();
     const old = new Date(Date.now() - (RETENTION_DAYS + 1) * 24 * 60 * 60 * 1000).toISOString();
-    const inserted = await db.from("notifications").insert([
-      { event: "weekly_digest", digest_week: "2020-W01", created_at: old },
-      // Both rows carry `created_at`: in a bulk insert PostgREST fills a key missing from one row
-      // with null instead of the column default, and the column is not nullable.
-      { event: "weekly_digest", digest_week: "2026-W43", created_at: new Date().toISOString() },
-    ]);
-    if (inserted.error) throw inserted.error;
+    db.prepare(
+      "insert into notifications (event, digest_week, created_at) values ('weekly_digest', '2020-W01', ?), ('weekly_digest', '2026-W43', ?)",
+    ).run(old, new Date().toISOString());
 
     expect(await pruneNotifications(db)).toBe(1);
-    const left = await notifications();
-    expect(left.map((row) => row.event)).toEqual(["weekly_digest"]);
+    expect(notifications().map((row) => row.event)).toEqual(["weekly_digest"]);
   });
 });

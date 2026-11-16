@@ -1,275 +1,164 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { z } from "zod";
-import {
-  anonClient,
-  type Catalog,
-  clearFollows,
-  type Content,
-  deleteContent,
-  retire,
-  seedCatalog,
-  seedContent,
-  serviceClient,
-} from "./supabase";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { readFollows, writeCurrentVersion, writeFollows } from "@/modules/follows/server";
+import { clearFollows, type Content, retire, seedCatalog, seedContent, testDatabase } from "./database";
 
-const PERMISSION_DENIED = "42501";
-// The only rule the trigger imposes, as PostgREST forwards it: the ten of the Free Plan left with
-// the Plan and with its own `FLIMT` (issue #209, ADR 0011).
-const RETIRED = "FRTRD";
-// The three rules the trigger of `current_version` imposes.
-const MALFORMED = "FVMAL";
-const NOT_OLDER = "FVNEW";
-const NO_STABLE = "FVNST";
-
-const FollowRowsSchema = z.array(z.object({ technology_id: z.uuid() }));
-
-// ⚠️ **The client of these tests is `anon` and nothing else.** Since issue #210 there is no account
-// to sign into, so what the browser holds is the publishable key, and what bounds it is the grant
-// the migration leaves behind. The isolation these tests used to prove -- one Developer's rows
-// invisible to another's -- is not a weaker rule now, it is a rule about something that no longer
-// exists: one installed copy, one person, one table (ADR 0011).
+// What `/api/follows` calls (issue #211): the rules the database held in Postgres now live in these
+// functions and in the triggers of the SQLite schema. One installed copy, one person, one table
+// (ADR 0011), so there is no client to bound and no grant to prove.
+const db = testDatabase();
 let content: Content;
 
-beforeAll(async () => {
-  content = await seedContent();
-});
-
-afterAll(async () => {
-  await clearFollows();
-  await deleteContent(content);
+beforeAll(() => {
+  content = seedContent(db);
 });
 
 async function followed() {
-  const { data, error } = await serviceClient().from("follows").select("technology_id");
-  if (error) throw error;
-  return FollowRowsSchema.parse(data).map((row) => row.technology_id);
+  return (await readFollows(db)).map((follow) => follow.technologyId);
 }
 
 describe("follows", () => {
-  afterEach(clearFollows);
+  afterEach(() => clearFollows(db));
 
-  it("are read, added and let go with the publishable key", async () => {
-    const db = anonClient();
-    const added = await db.from("follows").insert({ technology_id: content.technologyId });
-    expect(added.error).toBeNull();
+  it("are read, added and let go", async () => {
+    expect(writeFollows(db, [content.technologyId], true)).toBeNull();
     expect(await followed()).toEqual([content.technologyId]);
 
-    const read = await db.from("follows").select("technology_id");
-    expect(read.error).toBeNull();
-    expect(FollowRowsSchema.parse(read.data)).toEqual([{ technology_id: content.technologyId }]);
-
-    const removed = await db.from("follows").delete().eq("technology_id", content.technologyId);
-    expect(removed.error).toBeNull();
+    expect(writeFollows(db, [content.technologyId], false)).toBeNull();
     expect(await followed()).toEqual([]);
   });
 
-  // The primary key is the Technology now that nobody holds the other half of it: following the
-  // same one twice is a duplicate key and not a second row.
+  // The primary key is the Technology: following the same one twice is not a second row, and not a
+  // refusal either, since a group may hold rows the page already had.
   it("hold one row per Technology", async () => {
-    const db = anonClient();
-    expect((await db.from("follows").insert({ technology_id: content.technologyId })).error).toBeNull();
-    const again = await db.from("follows").insert({ technology_id: content.technologyId });
-    expect(again.error?.code).toBe("23505");
+    expect(writeFollows(db, [content.technologyId], true)).toBeNull();
+    expect(writeFollows(db, [content.technologyId], true)).toBeNull();
     expect(await followed()).toEqual([content.technologyId]);
   });
 });
 
-// Following several Technologies at once is one statement, not N (issue #126): what the page can
-// promise about the group is whatever Postgres does with a trigger that raises halfway through it.
-describe("a group of follows in one statement", () => {
-  let catalog: Catalog;
+// Following several Technologies at once is one transaction (issue #126): what the page can
+// promise about the group is what SQLite does with a trigger that raises halfway through it.
+describe("a group of follows in one transaction", () => {
+  const catalog = seedCatalog(db, 5);
 
-  beforeAll(async () => {
-    catalog = await seedCatalog(5);
-  });
+  afterEach(() => clearFollows(db));
 
-  afterAll(async () => {
-    await clearFollows();
-    await catalog.remove();
-  });
-
-  async function followAll(technologyIds: string[]) {
-    return anonClient()
-      .from("follows")
-      .insert(technologyIds.map((technology_id) => ({ technology_id })));
-  }
-
-  it("writes the whole group in one insert", async () => {
-    const { error } = await followAll(catalog.technologyIds.slice(0, 3));
-    expect(error).toBeNull();
+  it("writes the whole group", async () => {
+    expect(writeFollows(db, catalog.slice(0, 3), true)).toBeNull();
     expect(await followed()).toHaveLength(3);
   });
 
-  // The statement is what Postgres takes back when the trigger raises halfway through it, which is
-  // the whole reason the page can say `none followed` instead of counting which ones made it
+  // The whole reason the page can say `none followed` instead of counting which ones made it
   // (DESIGN.md, Selection Bar).
   it("refuses a group holding a retired Technology, and follows none of it", async () => {
-    const [, , , fourth, fifth] = catalog.technologyIds;
-    await retire(fifth);
-    const { error } = await followAll([fourth, fifth]);
-    expect(error?.code).toBe(RETIRED);
-    expect(await followed()).toHaveLength(3);
+    const [, , , fourth, fifth] = catalog;
+    retire(db, fifth);
+    expect(writeFollows(db, [fourth, fifth], true)).toBe("retired");
+    expect(await followed()).toEqual([]);
   });
 });
 
 // One level of service, so nothing counts how many Technologies are followed (issue #209, ADR
-// 0011). Eleven is the proof, because ten was the wall: the Free Plan refused the eleventh with
-// 'FLIMT' until the trigger lost that half of its body.
+// 0011). Eleven is the proof, because ten was the wall of the Free Plan.
 describe("more than ten follows", () => {
-  let catalog: Catalog;
+  const catalog = seedCatalog(db, 11);
 
-  beforeAll(async () => {
-    catalog = await seedCatalog(11);
-  });
-
-  afterEach(clearFollows);
-
-  afterAll(async () => {
-    await clearFollows();
-    await catalog.remove();
-  });
+  afterEach(() => clearFollows(db));
 
   it("are written one at a time, with the eleventh like the first", async () => {
-    for (const technology_id of catalog.technologyIds) {
-      const { error } = await anonClient().from("follows").insert({ technology_id });
-      expect(error).toBeNull();
-    }
+    for (const technologyId of catalog) expect(writeFollows(db, [technologyId], true)).toBeNull();
     expect(await followed()).toHaveLength(11);
   });
 
-  // The group is one statement (issue #126), which is where the limit used to take the whole group
-  // down: the eleventh row raised, so the ten before it were taken back too.
-  it("are written as one group, in one statement", async () => {
-    const { error } = await anonClient()
-      .from("follows")
-      .insert(catalog.technologyIds.map((technology_id) => ({ technology_id })));
-    expect(error).toBeNull();
+  it("are written as one group", async () => {
+    expect(writeFollows(db, catalog, true)).toBeNull();
     expect(await followed()).toHaveLength(11);
   });
 });
 
 describe("the follow rules the database imposes", () => {
-  let catalog: Catalog;
+  const catalog = seedCatalog(db, 2);
 
-  beforeAll(async () => {
-    catalog = await seedCatalog(3);
-  });
+  afterEach(() => clearFollows(db));
 
-  afterAll(async () => {
-    await clearFollows();
-    await catalog.remove();
-  });
-
-  async function follow(technologyId: string) {
-    return anonClient().from("follows").insert({ technology_id: technologyId });
-  }
-
-  it("refuse a Technology let go after it was retired, which is all a retired follow can do", async () => {
-    const [retired] = catalog.technologyIds;
-    expect((await follow(retired)).error).toBeNull();
+  it("refuse a Technology let go after it was retired, which is all a retired follow can do", () => {
+    const [retired] = catalog;
+    expect(writeFollows(db, [retired], true)).toBeNull();
 
     // It leaves the Catalog while it is followed: the only way a retired follow can exist.
-    await retire(retired);
-    const { error: removed } = await anonClient().from("follows").delete().eq("technology_id", retired);
-    expect(removed).toBeNull();
+    retire(db, retired);
+    expect(writeFollows(db, [retired], false)).toBeNull();
 
-    expect((await follow(retired)).error?.code).toBe(RETIRED);
+    expect(writeFollows(db, [retired], true)).toBe("retired");
   });
 
-  it("refuse a retired Technology that was never followed", async () => {
-    const [, second] = catalog.technologyIds;
-    await retire(second);
-    expect((await follow(second)).error?.code).toBe(RETIRED);
+  it("refuse a retired Technology that was never followed", () => {
+    const [, second] = catalog;
+    retire(db, second);
+    expect(writeFollows(db, [second], true)).toBe("retired");
   });
 });
 
-// The Version in use is validated by the database, like every other rule about a follow (issue #68):
-// well formed, and not newer than the latest stable Release. The day of the declaration is written
-// there too, because a client that could set it could make a stale declaration look fresh.
+// The Version in use (issue #68): well formed, and not newer than the latest stable Release. The day
+// of the declaration is written by the database, because a client that could set it could make a
+// stale declaration look fresh.
 describe("the Version in use", () => {
-  let bare: Catalog;
+  const [bare] = seedCatalog(db, 1);
 
-  const DeclarationSchema = z.object({
-    current_version: z.string().nullable(),
-    current_version_declared_at: z.string().nullable(),
+  beforeAll(() => {
+    writeFollows(db, [content.technologyId], true);
   });
 
-  beforeAll(async () => {
-    bare = await seedCatalog(1);
-    const { error } = await anonClient().from("follows").insert({ technology_id: content.technologyId });
-    if (error) throw error;
-  });
-
-  afterAll(async () => {
-    await clearFollows();
-    await bare.remove();
-  });
-
-  async function declare(version: string | null, technologyId = content.technologyId) {
-    return anonClient()
-      .from("follows")
-      .update({ current_version: version })
-      .eq("technology_id", technologyId)
-      .select("current_version, current_version_declared_at")
-      .single();
-  }
-
-  function declaration(data: unknown) {
-    return DeclarationSchema.parse(data);
+  function declare(version: string | null, technologyId = content.technologyId) {
+    return writeCurrentVersion(db, technologyId, version);
   }
 
   it("starts undeclared", async () => {
-    const { data } = await declare(null);
-    expect(declaration(data)).toEqual({ current_version: null, current_version_declared_at: null });
+    expect(await declare(null)).toEqual({ ok: true, currentVersion: null });
   });
 
   it("is saved with the day the database wrote it, and keeps it when nothing moved", async () => {
-    const { data, error } = await declare("1.0.0");
-    expect(error).toBeNull();
-    const first = declaration(data);
-    expect(first.current_version).toBe("1.0.0");
-    expect(first.current_version_declared_at).not.toBeNull();
+    const first = await declare("1.0.0");
+    if (!first.ok || first.currentVersion === null) throw new Error("not declared");
+    expect(first.currentVersion.version).toBe("1.0.0");
 
-    const again = declaration((await declare("1.0.0")).data);
-    expect(again.current_version_declared_at).toBe(first.current_version_declared_at);
+    const again = await declare("1.0.0");
+    expect(again).toEqual(first);
 
-    // A different Version is a new declaration, so it stands from now on.
-    const moved = declaration((await declare("0.9.0")).data);
-    expect(moved.current_version).toBe("0.9.0");
-    expect(moved.current_version_declared_at).not.toBe(first.current_version_declared_at);
+    // A different Version is a new declaration, so it stands from now on. The pause is what keeps
+    // two writes from landing on the same millisecond.
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const moved = await declare("0.9.0");
+    if (!moved.ok || moved.currentVersion === null) throw new Error("not declared");
+    expect(moved.currentVersion.version).toBe("0.9.0");
+    expect(moved.currentVersion.declaredAt).not.toEqual(first.currentVersion.declaredAt);
+  });
+
+  it("is written without the `v` it accepts", async () => {
+    const declared = await declare("v1.0.0");
+    expect(declared.ok && declared.currentVersion?.version).toBe("1.0.0");
   });
 
   it("can be taken away, and takes its day with it", async () => {
-    expect((await declare("1.0.0")).error).toBeNull();
-    expect(declaration((await declare(null)).data)).toEqual({
-      current_version: null,
-      current_version_declared_at: null,
-    });
+    expect((await declare("1.0.0")).ok).toBe(true);
+    expect(await declare(null)).toEqual({ ok: true, currentVersion: null });
   });
 
   it("refuses a Version newer than the latest stable Release", async () => {
-    expect((await declare("2.0.0")).error?.code).toBe(NOT_OLDER);
+    expect(await declare("2.0.0")).toEqual({ ok: false, decline: "notOlder" });
   });
 
   it("refuses a Version that is not a Version", async () => {
-    expect((await declare("1.x")).error?.code).toBe(MALFORMED);
+    expect(await declare("1.x")).toEqual({ ok: false, decline: "malformed" });
   });
 
   it("refuses a Technology with no stable Release to measure from", async () => {
-    const [technologyId] = bare.technologyIds;
-    const { error: followed } = await anonClient().from("follows").insert({ technology_id: technologyId });
-    expect(followed).toBeNull();
-    expect((await declare("1.0.0", technologyId)).error?.code).toBe(NO_STABLE);
+    expect(writeFollows(db, [bare], true)).toBeNull();
+    expect(await declare("1.0.0", bare)).toEqual({ ok: false, decline: "noStable" });
   });
 
-  // The grant is one column wide, and this is what that buys: an update that could move
-  // `technology_id` would walk past the follow rules, which only guard an insert.
-  it("is the only column of a follow a client may update", async () => {
-    const [technologyId] = bare.technologyIds;
-    const { error } = await anonClient()
-      .from("follows")
-      .update({ technology_id: technologyId })
-      .eq("technology_id", content.technologyId);
-    expect(error?.code).toBe(PERMISSION_DENIED);
+  it("refuses a Technology that is not followed", async () => {
+    writeFollows(db, [bare], false);
+    expect(await declare(null, bare)).toEqual({ ok: false, decline: "denied" });
   });
 });

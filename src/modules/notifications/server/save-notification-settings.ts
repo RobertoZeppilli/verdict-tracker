@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createRequestClient } from "@/lib/supabase-request";
+import { getDatabase } from "@/modules/db/server";
 import { localeSchema } from "@/modules/i18n";
 import { NotificationChannelSchema, NotificationEventSchema } from "../domain/events";
 import { canSwitch } from "../domain/preferences";
@@ -44,7 +44,7 @@ export async function savePreference(previous: SwitchSaved, form: FormData): Pro
   }
 
   try {
-    await writePreference(await createRequestClient(), parsed.data);
+    await writePreference(getDatabase(), parsed.data);
   } catch {
     // The reason is not shown to the reader: what they can do about it is press again, and the line
     // that says so is in the dictionary (`settings.notifications.error`). Nothing is logged here
@@ -59,7 +59,7 @@ export async function savePreferredLocale(previous: LocaleSaved, form: FormData)
   if (!parsed.success) return { status: "failed", locale: previous.locale };
 
   try {
-    await writePreferredLocale(await createRequestClient(), parsed.data);
+    await writePreferredLocale(getDatabase(), parsed.data);
   } catch {
     return { status: "failed", locale: previous.locale };
   }

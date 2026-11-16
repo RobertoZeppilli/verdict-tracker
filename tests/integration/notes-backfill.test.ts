@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { StoredTechnology } from "@/modules/catalog";
 import { getTechnology } from "@/modules/catalog/server";
 import type { SourceAdapters } from "@/modules/detection";
 import { backfillNotes } from "@/modules/detection/server";
-import { serviceClient } from "./supabase";
+import { sqliteJson } from "@/modules/db";
+import { seedTechnology, testDatabase } from "./database";
 
 // What the Source has learned to find since these Releases were imported. `2.0.1` is the Release the
 // Source has nothing for: it stands for the `v7.0-rc` of TypeScript, a tag nobody ever published.
@@ -33,123 +34,93 @@ const adapters: SourceAdapters = {
 const StateSchema = z.array(
   z.object({
     version: z.string(),
-    release_notes: z.object({ body: z.string(), source_id: z.uuid().nullable() }).nullable(),
-    summaries: z.object({ status: z.string(), content: z.unknown() }).nullable(),
+    body: z.string().nullable(),
+    source_id: z.uuid().nullable(),
+    status: z.string().nullable(),
+    content: sqliteJson(z.unknown()).nullable(),
   }),
 );
 
+const db = testDatabase();
 let technology: StoredTechnology;
 let bare: StoredTechnology;
 
-async function readState(technologyId: string) {
-  const { data, error } = await serviceClient()
-    .from("releases")
-    .select("version, release_notes (body, source_id), summaries (status, content)")
-    .eq("technology_id", technologyId)
-    .order("version");
-  if (error) throw error;
-  return StateSchema.parse(data);
+function readState(technologyId: string) {
+  const rows = db
+    .prepare(
+      `select r.version, n.body, n.source_id, s.status, s.content
+       from releases r
+       left join release_notes n on n.release_id = r.id
+       left join summaries s on s.release_id = r.id
+       where r.technology_id = ? order by r.version`,
+    )
+    .all(technologyId);
+  return StateSchema.parse(rows).map((row) => ({
+    version: row.version,
+    release_notes: row.body === null ? null : { body: row.body, source_id: row.source_id },
+    summaries: row.status === null ? null : { status: row.status, content: row.content },
+  }));
 }
 
-async function seedTechnology(prefix: string, withNotesSource: boolean) {
-  const db = serviceClient();
+async function seed(prefix: string, withNotesSource: boolean) {
   const slug = `${prefix}-${randomUUID()}`;
-  const inserted = await db
-    .from("technologies")
-    .insert({ slug, name: "Backfill test", category: "library", classification_strategy: "semver" })
-    .select("id")
-    .single();
-  if (inserted.error) throw inserted.error;
-  const technologyId = z.object({ id: z.uuid() }).parse(inserted.data).id;
-
-  type SourceRow = { technology_id: string; role: string; kind: string; config: Record<string, string> };
-  const sources: SourceRow[] = [{ technology_id: technologyId, role: "detection", kind: "npm", config: { package: slug } }];
-  if (withNotesSource) {
-    sources.push({
-      technology_id: technologyId,
-      role: "notes",
-      kind: "github-releases",
-      config: { repo: `test/${slug}`, tagFormat: "v{version}" },
-    });
-  }
-  const written = await db.from("sources").insert(sources);
-  if (written.error) throw written.error;
-
+  seedTechnology(db, {
+    slug,
+    name: "Backfill test",
+    sources: [
+      { role: "detection", kind: "npm", config: { package: slug } },
+      ...(withNotesSource
+        ? [{ role: "notes" as const, kind: "github-releases", config: { repo: `test/${slug}`, tagFormat: "v{version}" } }]
+        : []),
+    ],
+  });
   const stored = await getTechnology(db, slug);
   if (!stored) throw new Error("seeded Technology not found");
   return stored;
 }
 
-async function seedRelease(
+function seedRelease(
   technologyId: string,
   version: string,
   significance: string,
   summary: { status: string; content?: unknown; model?: string; promptVersion?: string },
   notes?: string,
 ) {
-  const db = serviceClient();
-  const inserted = await db
-    .from("releases")
-    .insert({
-      technology_id: technologyId,
-      version,
-      significance,
-      origin: "imported",
-      published_at: "2026-02-01T09:00:00Z",
-    })
-    .select("id")
-    .single();
-  if (inserted.error) throw inserted.error;
-  const releaseId = z.object({ id: z.uuid() }).parse(inserted.data).id;
-
-  const written = await db.from("summaries").insert({
-    release_id: releaseId,
-    status: summary.status,
-    content: summary.content ?? null,
-    model: summary.model ?? null,
-    prompt_version: summary.promptVersion ?? null,
-  });
-  if (written.error) throw written.error;
-  if (notes !== undefined) {
-    const stored = await db.from("release_notes").insert({ release_id: releaseId, body: notes });
-    if (stored.error) throw stored.error;
-  }
+  const releaseId = randomUUID();
+  db.prepare(
+    "insert into releases (id, technology_id, version, significance, origin, published_at) values (?, ?, ?, ?, 'imported', '2026-02-01T09:00:00Z')",
+  ).run(releaseId, technologyId, version, significance);
+  db.prepare("insert into summaries (release_id, status, content, model, prompt_version) values (?, ?, ?, ?, ?)").run(
+    releaseId,
+    summary.status,
+    summary.content === undefined ? null : JSON.stringify(summary.content),
+    summary.model ?? null,
+    summary.promptVersion ?? null,
+  );
+  if (notes !== undefined) db.prepare("insert into release_notes (release_id, body) values (?, ?)").run(releaseId, notes);
 }
 
 beforeAll(async () => {
-  technology = await seedTechnology("backfill", true);
-  bare = await seedTechnology("backfill-bare", false);
+  technology = await seed("backfill", true);
+  bare = await seed("backfill-bare", false);
   // Already complete, and already summarized: the run must leave both alone.
-  await seedRelease(
+  seedRelease(
     technology.id,
     "1.0.0",
     "featured",
     { status: "ready", content: { title: "A ready Summary" }, model: "claude-haiku-5-5", promptVersion: "v7" },
     "### Features\n\n* the notes it was born with",
   );
-  await seedRelease(technology.id, "2.0.0", "notable", { status: "unavailable" });
-  await seedRelease(technology.id, "2.0.1", "digest", { status: "unavailable" });
-  await seedRelease(technology.id, "3.0.0-rc.0", "preview", { status: "unavailable" });
-  await seedRelease(bare.id, "9.9.9", "notable", { status: "unavailable" });
-});
-
-afterAll(async () => {
-  const db = serviceClient();
-  for (const seeded of [technology, bare]) {
-    const releases = await db.from("releases").select("id").eq("technology_id", seeded.id);
-    const ids = z.array(z.object({ id: z.uuid() })).parse(releases.data).map((row) => row.id);
-    await db.from("summaries").delete().in("release_id", ids);
-    await db.from("release_notes").delete().in("release_id", ids);
-    await db.from("releases").delete().eq("technology_id", seeded.id);
-    await db.from("sources").delete().eq("technology_id", seeded.id);
-    await db.from("technologies").delete().eq("id", seeded.id);
-  }
+  seedRelease(technology.id, "2.0.0", "notable", { status: "unavailable" });
+  seedRelease(technology.id, "2.0.1", "digest", { status: "unavailable" });
+  seedRelease(technology.id, "3.0.0-rc.0", "preview", { status: "unavailable" });
+  seedRelease(bare.id, "9.9.9", "notable", { status: "unavailable" });
 });
 
 describe("Ripresa delle Note di rilascio", () => {
   it("asks the Sources only for the Releases without notes, and writes nothing on a dry run", async () => {
     const before = await readState(technology.id);
-    const report = await backfillNotes(serviceClient(), adapters, { slug: technology.slug, apply: false });
+    const report = await backfillNotes(db, adapters, { slug: technology.slug, apply: false });
 
     expect(asked).toEqual([["2.0.0", "2.0.1", "3.0.0-rc.0"]]);
     expect(report.applied).toBe(false);
@@ -161,7 +132,7 @@ describe("Ripresa delle Note di rilascio", () => {
   });
 
   it("fills the missing notes and settles their Summary as skipped, never as pending", async () => {
-    const report = await backfillNotes(serviceClient(), adapters, { slug: technology.slug, apply: true });
+    const report = await backfillNotes(db, adapters, { slug: technology.slug, apply: true });
 
     expect(report.applied).toBe(true);
     expect(report.settled).toBe(2);
@@ -189,7 +160,7 @@ describe("Ripresa delle Note di rilascio", () => {
 
   it("asks only for what is still missing when it runs again", async () => {
     asked.length = 0;
-    const report = await backfillNotes(serviceClient(), adapters, { slug: technology.slug, apply: true });
+    const report = await backfillNotes(db, adapters, { slug: technology.slug, apply: true });
 
     expect(asked).toEqual([["2.0.1"]]);
     expect(report.missing).toBe(1);
@@ -199,7 +170,7 @@ describe("Ripresa delle Note di rilascio", () => {
 
   it("says why a Technology without a notes Source is left as it is, without asking anybody", async () => {
     asked.length = 0;
-    const report = await backfillNotes(serviceClient(), adapters, { slug: bare.slug, apply: true });
+    const report = await backfillNotes(db, adapters, { slug: bare.slug, apply: true });
 
     expect(asked).toEqual([]);
     expect(report.asked).toBe(0);

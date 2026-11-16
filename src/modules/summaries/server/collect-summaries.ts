@@ -1,6 +1,5 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { selectAllRows } from "@/lib/supabase-rows";
+import type { Database } from "@/modules/db/server";
 import type { SummaryBatches, SummaryResult } from "../domain/summary-batches";
 import { parseSummaryOutput } from "../domain/summary-output";
 import type { SummaryScope } from "./summary-scope";
@@ -9,7 +8,8 @@ const SubmittedSchema = z.array(
   z.object({
     release_id: z.uuid(),
     batch_id: z.string(),
-    releases: z.object({ version: z.string(), technologies: z.object({ slug: z.string() }) }),
+    version: z.string(),
+    slug: z.string(),
   }),
 );
 
@@ -29,30 +29,34 @@ export type CollectReport = {
 
 // Phase two of ADR 0007: read the results of every batch sent by an earlier run and validate them.
 export async function collectSummaryBatches(
-  db: SupabaseClient,
+  db: Database,
   batches: SummaryBatches,
   { technologyIds }: SummaryScope = {},
 ): Promise<CollectReport> {
-  // Paged: a run that submitted the whole Catalog leaves more than a thousand Summaries
-  // `processing`, and unpaged each run saw only the first thousand of them (issue #190).
-  const submitted = await selectAllRows((from, to) => {
-    const query = db
-      .from("summaries")
-      .select("release_id, batch_id, releases!inner(version, technologies!inner(slug))")
-      .eq("status", "processing")
-      .not("batch_id", "is", null);
-    if (technologyIds) query.in("releases.technology_id", technologyIds);
-    // By the primary key, the only order over these rows without ties.
-    return query.order("release_id").range(from, to);
-  });
+  const submitted = db
+    .prepare(
+      `select s.release_id, s.batch_id, r.version, t.slug from summaries s
+       join releases r on r.id = s.release_id
+       join technologies t on t.id = r.technology_id
+       where s.status = 'processing' and s.batch_id is not null
+         and (:scope is null or r.technology_id in (select value from json_each(:scope)))
+       order by s.release_id`,
+    )
+    .all({ scope: technologyIds === undefined ? null : JSON.stringify(technologyIds) });
 
   const byBatch = new Map<string, string[]>();
   const pageOf = new Map<string, ChangedRelease>();
   for (const row of SubmittedSchema.parse(submitted)) {
     byBatch.set(row.batch_id, [...(byBatch.get(row.batch_id) ?? []), row.release_id]);
-    pageOf.set(row.release_id, { slug: row.releases.technologies.slug, version: row.releases.version });
+    pageOf.set(row.release_id, { slug: row.slug, version: row.version });
   }
 
+  // Guarded on the batch, so a run that overlaps this one cannot settle the Summary twice.
+  const update = db.prepare(
+    `update summaries set status = :status, content = :content, failure_reason = :failure_reason,
+       batch_id = case when :clear_batch then null else batch_id end, updated_at = :now
+     where release_id = :release_id and status = 'processing' and batch_id = :batch_id`,
+  );
   const report: CollectReport = { ready: [], failed: [], stillProcessing: [], pending: [], changed: [] };
   for (const [batchId, releaseIds] of byBatch) {
     const results = await batches.collect(batchId);
@@ -62,14 +66,15 @@ export async function collectSummaryBatches(
     }
     for (const releaseId of releaseIds) {
       const outcome = settle(results.get(releaseId));
-      // Guarded on the batch, so a run that overlaps this one cannot settle the Summary twice.
-      const update = await db
-        .from("summaries")
-        .update({ ...outcome, updated_at: new Date().toISOString() })
-        .eq("release_id", releaseId)
-        .eq("status", "processing")
-        .eq("batch_id", batchId);
-      if (update.error) throw update.error;
+      update.run({
+        status: outcome.status,
+        content: outcome.content === null ? null : JSON.stringify(outcome.content),
+        failure_reason: outcome.failure_reason,
+        clear_batch: "batch_id" in outcome ? 1 : 0,
+        now: new Date().toISOString(),
+        release_id: releaseId,
+        batch_id: batchId,
+      });
       report[outcome.status].push(releaseId);
       const page = pageOf.get(releaseId);
       if (page) report.changed.push(page);

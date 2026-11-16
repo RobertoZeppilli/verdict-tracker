@@ -1,6 +1,6 @@
 import { serverEnv } from "@/env/server";
 import { isAuthorizedJob } from "@/lib/job-auth";
-import { createServiceClient } from "@/lib/supabase-server";
+import { getDatabase } from "@/modules/db/server";
 import { backfillNotes, createSourceAdapters } from "@/modules/detection/server";
 import { revalidateReleasePages } from "@/modules/releases/server";
 
@@ -20,7 +20,7 @@ export async function GET(request: Request): Promise<Response> {
   const apply = parameters.get("apply") === "1";
 
   const adapters = createSourceAdapters({ githubToken: serverEnv.GITHUB_TOKEN });
-  const report = await backfillNotes(createServiceClient(), adapters, { slug, apply });
+  const report = await backfillNotes(getDatabase(), adapters, { slug, apply });
   // Notes are the body of the Release page and the row's link on the Technology page.
   const revalidated = apply ? revalidateReleasePages(report.filled) : [];
   return Response.json({ ...report, revalidated });

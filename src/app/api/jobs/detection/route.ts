@@ -1,7 +1,7 @@
 import { env } from "@/env";
 import { serverEnv } from "@/env/server";
 import { isAuthorizedJob } from "@/lib/job-auth";
-import { createServiceClient } from "@/lib/supabase-server";
+import { getDatabase } from "@/modules/db/server";
 import { createSourceAdapters, detectReleases } from "@/modules/detection/server";
 import { deliverSlack, generateNotifications, pruneNotifications } from "@/modules/notifications/server";
 import { revalidateReleasePages } from "@/modules/releases/server";
@@ -14,7 +14,7 @@ export async function GET(request: Request): Promise<Response> {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
   const adapters = createSourceAdapters({ githubToken: serverEnv.GITHUB_TOKEN });
-  const db = createServiceClient();
+  const db = getDatabase();
   const { detected, ...report } = await detectReleases(db, adapters);
   // Notifications ride along with the only cron there is (ADR 0009): the Summary phases are run by
   // hand, so hanging the Notifications on them alone would leave a Release whose Summary was never
