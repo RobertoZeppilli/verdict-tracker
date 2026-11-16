@@ -51,7 +51,7 @@ export function typedVersion(version: string): string {
   return version.trim().replace(/^v(?=\d)/, "");
 }
 
-export type Declared ={ ok: true; currentVersion: CurrentVersion | null } | { ok: false; decline: Decline };
+export type Declared = { ok: true; currentVersion: CurrentVersion | null } | { ok: false; decline: Decline };
 
 // The rule `enforce_current_version` held in Postgres (issue #68), here because SQLite triggers
 // cannot compare Versions: the Version in use is validated exactly as the start of an Upgrade Path

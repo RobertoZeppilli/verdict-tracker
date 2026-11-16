@@ -56,7 +56,7 @@ export async function alignFollows(db: Database, file: string): Promise<string[]
   }
 
   const unfollow = db.prepare("delete from follows where technology_id = ?");
-  const follow = db.prepare("insert into follows (technology_id) values (?) on conflict (technology_id) do nothing");
+  const follow = db.prepare("insert into follows (technology_id) values (?)");
   // A declaredAt from the file wins; without one, the same Version keeps its day and a new one starts today.
   const declare = db.prepare(
     `update follows set
@@ -70,17 +70,19 @@ export async function alignFollows(db: Database, file: string): Promise<string[]
   );
   db.exec("begin");
   try {
-    for (const row of db.prepare("select technology_id from follows").all()) {
-      const id = String(row.technology_id);
-      if (!wanted.has(id)) unfollow.run(id);
-    }
+    const existing = new Set(db.prepare("select technology_id from follows").all().map((row) => String(row.technology_id)));
+    for (const id of existing) if (!wanted.has(id)) unfollow.run(id);
     for (const [id, { slug, version, declaredAt }] of wanted) {
-      try {
-        follow.run(id);
-      } catch {
-        // The only refusal is the retired trigger, and it aborts this statement, not the transaction.
-        warnings.push(`${slug} is retired and cannot be followed again`);
-        continue;
+      // Only what is not followed yet: the retired trigger fires before `on conflict` would, so a
+      // retired Technology already followed must not be inserted again (GLOSSARY.md, Seguire).
+      if (!existing.has(id)) {
+        try {
+          follow.run(id);
+        } catch {
+          // The only refusal is the retired trigger, and it aborts this statement, not the transaction.
+          warnings.push(`${slug} is retired and cannot be followed again`);
+          continue;
+        }
       }
       declare.run(version, declaredAt, id);
     }

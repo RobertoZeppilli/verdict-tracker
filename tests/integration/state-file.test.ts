@@ -90,6 +90,17 @@ describe("the follows file", () => {
     expect(await bySlug(db, ids)).toEqual({ next: null });
   });
 
+  // GLOSSARY.md: a retired Technology already followed stays followed. The trigger fires before
+  // `on conflict`, so the insert must not even be tried for a row that is there.
+  it("keeps a retired Technology already followed, and aligns its Version in use", async () => {
+    const { db, ids } = catalogDatabase();
+    writeFollows(db, [ids.zod!], true);
+    retire(db, ids.zod!);
+    writeFileSync(file, '{ "follows": { "zod": { "currentVersion": "2.0.0" } } }');
+    expect(await alignFollows(db, file)).toEqual([]);
+    expect(await bySlug(db, ids)).toEqual({ zod: { version: "2.0.0", declaredAt: expect.any(Date) } });
+  });
+
   it("is written from the database the first time, when it does not exist", async () => {
     const { db, ids } = catalogDatabase();
     writeFollows(db, [ids.vite!], true);
