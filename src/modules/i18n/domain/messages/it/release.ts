@@ -44,7 +44,9 @@ export const release = {
   "release.status.imported": "Importata {when}.",
   "release.status.when": "il {date} alle {time} UTC",
   "release.status.queuedBody":
-    "{recorded} Le sintesi arrivano di solito entro qualche ora; le note di rilascio complete sono già qui sotto.",
+    "{recorded} La sintesi viene scritta al prossimo aggiornamento; le note di rilascio complete sono già qui sotto.",
+  "release.status.noKeyBody":
+    "{recorded} Le sintesi si scrivono con la tua chiave API di Anthropic, e questa copia non ne ha una: imposta ANTHROPIC_API_KEY in .env.local e riavvia l'app. Le note di rilascio complete sono già qui sotto.",
   "release.status.unavailableBody":
     "I manutentori hanno pubblicato questa versione senza note di rilascio, e noi non indoviniamo cosa è cambiato.",
   "release.status.unavailableGitHub":

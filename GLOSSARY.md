@@ -206,6 +206,13 @@ _Non disponibile_ (mancano le **Note di rilascio**), _Non generata_ (possibile, 
 farla) o _Fallita_. Una **Release** è visibile in
 dashboard qualunque sia questo stato.
 
+Dalla #212 la **Sintesi** si scrive con la Messages API nello stesso giro del **Rilevamento** che ha
+trovato la **Release**: _In attesa_ dura fino alla fine di quel giro, e _In corso_ i secondi di una
+chiamata. Resta _In attesa_ più a lungo solo per tre ragioni, nessuna colpa della **Release**: la
+copia non ha la chiave Anthropic (la pagina lo dice e dice dove metterla), il credito è finito, o
+l'API non risponde. In tutti e tre i casi il giro dopo la riprende. Una _In corso_ ferma da più di
+quindici minuti è di un giro morto a metà, e torna _In attesa_. Deciso il 2026-11-16.
+
 Quando le **Note di rilascio** arrivano dopo, perché una **Fonte** ha imparato a trovarle, una
 **Sintesi** _Non disponibile_ passa a _Non generata_, mai direttamente a _In attesa_: le note
 diventano leggibili e nessuna **Sintesi** si genera a sorpresa. Lo stato va cambiato comunque,

@@ -4,7 +4,7 @@ import { releasePath } from "./release-page";
 export type ReleaseRef = { slug: string; version: string };
 
 // The pages a change to these Releases makes stale: the Release itself and its Technology, whose
-// Upgrade Path counts read the Summaries, plus the sitemap. Deduplicated, so one batch touching
+// Upgrade Path counts read the Summaries, plus the sitemap. Deduplicated, so one run touching
 // many Versions of a Technology revalidates that Technology once.
 export function publicPagesFor(refs: ReleaseRef[]): string[] {
   if (refs.length === 0) return [];

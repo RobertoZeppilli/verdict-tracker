@@ -7,12 +7,11 @@ export {
   type SummaryEvaluation,
 } from "./domain/evaluation";
 export {
-  CreditExhaustedError,
-  type SummaryBatches,
   type SummaryRequest,
   type SummaryResult,
   type SummaryUsage,
-} from "./domain/summary-batches";
+  type SummaryWriter,
+} from "./domain/summary-writer";
 export {
   type BreakingChange,
   BreakingChangeSchema,

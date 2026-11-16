@@ -59,21 +59,20 @@ di novembre.
   e una pagina che legge solo `getDatabase()` **diventa statica** alla build: `/technologies` vuole
   `await connection()`, che c'è. Una pagina nuova sul database deve fare lo stesso.
 
-### La prossima mossa: chiudere la #211 (2026-11-16, giro quarantadue)
+### Giro quarantadue (2026-11-16): #211 mergiata (PR #247), #212 in PR
 
-Fatti, non ancora committati: variabili Supabase fuori da `src/env`, CI e `.env.example`; via
-`supabase/`, `deploy-database.yml`, `db:*` e le dipendenze `@supabase/*`/`supabase`; `CLAUDE.md`,
-`README.md` (sviluppo locale) e `AMBIENTE.md` aggiornati. Script `pnpm db:export <file nuovo>`
-(`scripts/export-production.mts`): legge la produzione via REST con `EXPORT_SUPABASE_URL` e
-`EXPORT_SUPABASE_SECRET_KEY`, scrive **solo** Catalogo, Release, Note e Sintesi (il file iniziale
-va a tutti: niente follows, notifiche, impostazioni, quindi niente `preferred_locale`); provato
-contro un finto PostgREST. Verdi: lint, typecheck, Vitest (772 + 83), build, e2e (268, 1 saltato).
+- **#211 chiusa.** Il file esportato dalla produzione è in `~/verdict-export/verdict.db`, fuori dal
+  repository: 37 Tecnologie, 2173 Release, 142 Sintesi `ready`, 44 `pending` mai generate. Serve
+  alla #214 (file iniziale) e alla #222 (verifica prima di spegnere Supabase). **Non cancellarlo.**
+- **#212 in PR** dal branch `212-messages-api`: Messages API, Sintesi nel giro del Rilevamento,
+  stato "manca la chiave", migrazione `0002` che toglie `batch_id` (dal file esportato in poi lo
+  schema non si modifica più al suo posto, si aggiunge un file).
+- **Prova vera riuscita** (`pnpm summary:try nodejs 26.13.0`, su una copia del file esportato). Una
+  prima prova con la chiave scaduta ha scoperto un bug, corretto: 401/403 rimettono in attesa invece
+  di far fallire la coda.
+- Il branch locale `212-sintesi-su-richiesta` è vuoto, da cancellare.
 
-1. ⚠️ **L'utente lancia l'export dalla produzione** (le chiavi stanno solo su Supabase/Vercel) e si
-   verifica che l'app lo apra con le Sintesi: è l'ultimo criterio della issue.
-2. Squash dei `WIP`, push, PR con `Closes #211`.
-
-Dopo la #211: #212 → #213 → #217 → #214 → #218 → #221 → #222 → #216, con la **#222**
+Dopo la #212: #213 → #217 → #214 → #218 → #221 → #222 → #216, con la **#222**
 `ready-for-human` e una porta a senso unico.
 
 ### Gli e2e in locale, adesso

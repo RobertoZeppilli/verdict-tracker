@@ -51,7 +51,9 @@ export const release = {
   "release.status.imported": "Imported {when}.",
   "release.status.when": "{date} at {time} UTC",
   "release.status.queuedBody":
-    "{recorded} Summaries usually land within a few hours; the full release notes are already below.",
+    "{recorded} The summary is written on the next update; the full release notes are already below.",
+  "release.status.noKeyBody":
+    "{recorded} Summaries are written with your Anthropic API key, and this copy has none: set ANTHROPIC_API_KEY in .env.local and restart the app. The full release notes are already below.",
   "release.status.unavailableBody":
     "The maintainers published this version without release notes, and we don't guess what changed.",
   // One more sentence where the Technology is on GitHub, added to the one above it rather than

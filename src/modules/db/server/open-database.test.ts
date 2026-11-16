@@ -1,11 +1,14 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import { MigrationOrderError } from "../domain/plan-migrations";
-import { type Database, openDatabase } from "./open-database";
+import { type Database, MIGRATIONS_DIRECTORY, openDatabase } from "./open-database";
+
+// Every migration the app ships, in the order they apply.
+const SHIPPED = readdirSync(MIGRATIONS_DIRECTORY).filter((name) => name.endsWith(".sql")).toSorted();
 
 let directory: string;
 let file: string;
@@ -51,7 +54,7 @@ describe("openDatabase", () => {
     const database = open();
     expect(tableNames(database)).toContain("technologies");
     expect(tableNames(database)).toEqual(expect.arrayContaining(["follows", "releases", "summaries"]));
-    expect(applied(database)).toEqual(["0001_initial_schema.sql"]);
+    expect(applied(database)).toEqual(SHIPPED);
     database.close();
   });
 
@@ -64,7 +67,7 @@ describe("openDatabase", () => {
     rmSync(file);
 
     const second = open();
-    expect(applied(second)).toEqual(["0001_initial_schema.sql"]);
+    expect(applied(second)).toEqual(SHIPPED);
     expect(second.prepare("select count(*) as n from follows").get()).toMatchObject({ n: 0 });
     second.close();
   });
@@ -75,7 +78,7 @@ describe("openDatabase", () => {
     first.close();
 
     const second = open();
-    expect(applied(second)).toEqual(["0001_initial_schema.sql"]);
+    expect(applied(second)).toEqual(SHIPPED);
     // The rows of the first start are still there: the migration did not run over them.
     expect(second.prepare("select count(*) as n from releases").get()).toMatchObject({ n: 1 });
     second.close();

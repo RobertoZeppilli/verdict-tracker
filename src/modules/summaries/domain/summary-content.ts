@@ -19,7 +19,7 @@ export const BreakingChangeSchema = z.object({
 // there is a breaking change, and every breaking change says how to migrate.
 export const SummaryContentSchema = SummaryVerdictSchema.extend({
   // The prompt asks for 120 characters, the schema allows 140. Constrained decoding grants the shape
-  // of the JSON, never the `maxLength` of a string: on the first real batch the model went over 120
+  // of the JSON, never the `maxLength` of a string: on the first real run the model went over 120
   // by at most 6 characters, on 4 Summaries out of 126. The margin absorbs that overshoot instead of
   // throwing away a Summary that has been paid for (issue #56).
   title: Text.max(140),

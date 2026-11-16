@@ -7,12 +7,8 @@ export function exportRow(table: string, row: Record<string, unknown>): Record<s
   for (const [column, value] of Object.entries(row)) {
     out[column] = exportValue(column, value);
   }
-  // A batch sent from production cannot be collected by any other copy: the Summary goes back to
-  // waiting, and the copy that opens the file writes it itself.
-  if (table === "summaries") {
-    if (out.status === "processing") out.status = "pending";
-    out.batch_id = null;
-  }
+  // A Summary production was still writing is written again by the copy that opens the file.
+  if (table === "summaries" && out.status === "processing") out.status = "pending";
   return out;
 }
 

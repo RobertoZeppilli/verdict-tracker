@@ -14,20 +14,20 @@ import {
   type SummaryResult,
   type SummaryUsage,
 } from "@/modules/summaries";
-import { createSummaryBatches } from "@/modules/summaries/server";
+import { createSummaryWriter } from "@/modules/summaries/server";
 
-// A batch to score, whether it was just paid for or read back from the file a run left behind.
-type Replayable = { batchId: string; results: Map<string, SummaryResult>; startedAt: Date };
+// A run to score, whether it was just paid for or read back from the file a run left behind.
+type Replayable = { results: Map<string, SummaryResult>; startedAt: Date };
 
-// The evaluation set of issue #14: every case through the real Message Batches API in one batch,
+// The evaluation set of issue #14: every case through the real Messages API, one request each,
 // compared against what a human said the Summary must say. Costs a few tens of cents a run.
 // `pnpm summary:eval` · `pnpm summary:eval --dry` prints the set without calling Anthropic.
 // `--model <id>` runs the set on another model than the one the app uses, which is how two
 // models are compared on the same prompt (#57): the report keeps the model in its name, so the
 // runs sit side by side in `reports/`.
-// `--results <file>` scores a batch that has already been paid for, from the `.results.json` every
+// `--results <file>` scores a run that has already been paid for, from the `.results.json` every
 // run saves beside its report, instead of submitting a new one. What the model answered does not
-// change when our schema does, and a fix to the schema is not worth a second batch (#93).
+// change when our schema does, and a fix to the schema is not worth a second run (#93).
 const SET_DIR = "eval/summaries";
 const dry = process.argv.includes("--dry");
 const replayFile = process.argv.includes("--results") ? (process.argv[process.argv.indexOf("--results") + 1] ?? "") : null;
@@ -66,7 +66,7 @@ const cases = await Promise.all(
   })),
 );
 
-// The custom id of a batch request is limited to letters, digits, `_` and `-`.
+// One key per case, the same one the saved results are keyed by.
 const idOf = (slug: string, version: string): string => `${slug}-${version}`.replaceAll(/[^A-Za-z0-9_-]/g, "_");
 
 const requests = cases.map((item) => {
@@ -94,42 +94,36 @@ const SavedResultSchema: z.ZodType<SummaryResult> = z.discriminatedUnion("type",
     text: z.string(),
     usage: z.object({ inputTokens: z.number(), outputTokens: z.number() }).optional(),
   }),
-  z.object({ type: z.enum(["errored", "expired", "canceled", "credit_exhausted"]), message: z.string() }),
+  z.object({ type: z.literal("errored"), message: z.string() }),
+  z.object({ type: z.literal("credit_exhausted"), message: z.string() }),
+  z.object({ type: z.literal("unreachable"), message: z.string() }),
 ]);
 
 const SavedResultsSchema = z.object({
-  batchId: z.string(),
   results: z.record(z.string(), SavedResultSchema),
 });
 
-const { batchId, results, startedAt, replayed } = replayFile === null ? await run() : await replay(replayFile);
+const { results, startedAt, replayed } = replayFile === null ? await run() : await replay(replayFile);
 
 async function run(): Promise<Replayable & { replayed: false }> {
   const env = z.object({ ANTHROPIC_API_KEY: z.string().startsWith("sk-ant-") }).parse(process.env);
-  const batches = createSummaryBatches(env.ANTHROPIC_API_KEY);
-  if (batches === null) throw new Error("no ANTHROPIC_API_KEY in the environment");
+  const write = createSummaryWriter(env.ANTHROPIC_API_KEY);
+  if (write === null) throw new Error("no ANTHROPIC_API_KEY in the environment");
 
   const startedAt = new Date();
-  const id = await batches.submit(requests);
-  console.log(`batch ${id}, waiting (batches usually take minutes)`);
-
-  const deadline = Date.now() + 60 * 60 * 1000;
-  let collected = await batches.collect(id);
-  while (collected === null) {
-    if (Date.now() > deadline) throw new Error(`batch ${id} is still running after an hour`);
-    await new Promise((resolve) => setTimeout(resolve, 20_000));
+  const results = new Map<string, SummaryResult>();
+  for (const request of requests) {
+    results.set(request.releaseId, await write(request));
     process.stdout.write(".");
-    collected = await batches.collect(id);
   }
   console.log("");
-  return { batchId: id, results: collected, startedAt, replayed: false };
+  return { results, startedAt, replayed: false };
 }
 
 async function replay(file: string): Promise<Replayable & { replayed: true }> {
   const saved = SavedResultsSchema.parse(JSON.parse(await readFile(file, "utf8")));
-  console.log(`replaying batch ${saved.batchId} from ${file}, nothing is sent and nothing is spent`);
+  console.log(`replaying ${file}, nothing is sent and nothing is spent`);
   return {
-    batchId: saved.batchId,
     results: new Map(Object.entries(saved.results)),
     startedAt: new Date(),
     replayed: true,
@@ -143,7 +137,7 @@ type CaseReport = {
   reason?: string;
   // The Summary itself: a report you cannot read the Summary back from only says how it scored.
   content?: SummaryContent;
-  // What the batch billed, so a model is priced on measured tokens and not on an estimate (#57).
+  // What the request billed, so a model is priced on measured tokens and not on an estimate (#57).
   usage?: SummaryUsage;
   evaluation?: SummaryEvaluation;
 };
@@ -151,7 +145,7 @@ type CaseReport = {
 const reports: CaseReport[] = cases.map((item) => {
   const head = { slug: item.slug, version: item.version };
   const result = results.get(idOf(item.slug, item.version));
-  if (result === undefined) return { ...head, outcome: "no-output", reason: "missing from the batch" };
+  if (result === undefined) return { ...head, outcome: "no-output", reason: "missing from the results" };
   if (result.type !== "succeeded") return { ...head, outcome: "no-output", reason: `${result.type}: ${result.message}` };
   const parsed = parseSummaryOutput(result.text);
   if (!parsed.ok) return { ...head, outcome: "invalid-output", reason: parsed.reason, usage: result.usage };
@@ -182,15 +176,15 @@ const totals = {
   outputTokens: reports.reduce((sum, report) => sum + (report.usage?.outputTokens ?? 0), 0),
 };
 
-const report = { promptVersion: PROMPT_VERSION, model, batchId, startedAt, replayed, totals, cases: reports };
+const report = { promptVersion: PROMPT_VERSION, model, startedAt, replayed, totals, cases: reports };
 const stamp = startedAt.toISOString().replaceAll(/[:.]/g, "-");
 const path = join(SET_DIR, "reports", `${PROMPT_VERSION}-${model}-${stamp}.json`);
 await mkdir(dirname(path), { recursive: true });
 await writeFile(path, `${JSON.stringify(report, null, 2)}\n`, "utf8");
-// What the model answered, kept apart from how it scored. A batch is paid for once and rereading it
-// is free, so a fix to the schema or to the report never costs a second batch (#93).
+// What the model answered, kept apart from how it scored. A run is paid for once and rereading it
+// is free, so a fix to the schema or to the report never costs a second run (#93).
 const resultsPath = path.replace(/\.json$/, ".results.json");
-await writeFile(resultsPath, `${JSON.stringify({ batchId, results: Object.fromEntries(results) }, null, 2)}\n`, "utf8");
+await writeFile(resultsPath, `${JSON.stringify({ results: Object.fromEntries(results) }, null, 2)}\n`, "utf8");
 
 for (const item of reports) {
   console.log(`\n${item.slug} ${item.version} — ${item.outcome}${item.reason === undefined ? "" : `: ${item.reason}`}`);

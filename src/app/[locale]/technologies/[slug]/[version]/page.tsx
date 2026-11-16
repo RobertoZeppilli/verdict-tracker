@@ -7,6 +7,7 @@ import { BackToTop } from "@/components/back-to-top";
 import { SiteHeader } from "@/components/site-header";
 import { pageMetadata } from "@/lib/metadata";
 import { STATIC_SITE } from "@/lib/static-site";
+import { serverEnv } from "@/env/server";
 import { currentLocale, getTranslator } from "@/modules/i18n/server";
 import { getDatabase } from "@/modules/db/server";
 import type { Translator } from "@/modules/i18n";
@@ -118,7 +119,13 @@ export default async function ReleasePage({ params }: Props) {
           {release.summary && (
             <SummaryView summary={release.summary} notes={lines ?? []} unjudged={release.unjudged} t={t} />
           )}
-          <SummaryStatusBlock release={release} hasGitHub={githubRepo(technology.sources) !== null} t={t} />
+          <SummaryStatusBlock
+            release={release}
+            hasGitHub={githubRepo(technology.sources) !== null}
+            // The showcase is built without a key and is not where anyone adds one.
+            hasKey={STATIC_SITE || serverEnv.ANTHROPIC_API_KEY !== undefined}
+            t={t}
+          />
           {lines && release.notes && <ReleaseNotesSource lines={lines} url={release.notes.url} />}
         </CitationProvider>
         <p className="mt-7 flex flex-wrap items-baseline gap-4 font-mono text-meta text-text-faint">
