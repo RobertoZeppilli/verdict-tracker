@@ -50,6 +50,11 @@ export function writeFollows(db: Database, technologyIds: readonly string[], fol
   }
 }
 
+// Written the way the Upgrade Path reads it: trimmed, and without the `v` it accepts.
+export function typedVersion(version: string): string {
+  return version.trim().replace(/^v(?=\d)/, "");
+}
+
 export type Declared = { ok: true; currentVersion: CurrentVersion | null } | { ok: false; decline: Decline };
 
 // The rule `enforce_current_version` held in Postgres (issue #68), here because SQLite triggers
@@ -60,8 +65,7 @@ export async function writeCurrentVersion(
   technologyId: string,
   version: string | null,
 ): Promise<Declared> {
-  // Written the way the Upgrade Path reads it: trimmed, and without the `v` it accepts.
-  const typed = version?.trim().replace(/^v(?=\d)/, "") ?? null;
+  const typed = version === null ? null : typedVersion(version);
   if (typed !== null) {
     const rejection = upgradeStartRejection(await listReleases(db, technologyId), typed);
     if (rejection) return { ok: false, decline: rejection };

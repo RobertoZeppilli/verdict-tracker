@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { databaseFile } from "../domain/database-file";
+import { databaseFile, STATE_FILE_NAME } from "../domain/database-file";
 import { MigrationOrderError, planMigrations } from "../domain/plan-migrations";
 
 export type Database = DatabaseSync;
@@ -47,6 +47,10 @@ export function openDatabase({ file, migrations = MIGRATIONS_DIRECTORY }: OpenOp
 
 export function defaultDatabaseFile(): string {
   return databaseFile({ platform: process.platform, home: homedir(), env: process.env, cwd: process.cwd() });
+}
+
+export function defaultStateFile(): string {
+  return join(dirname(defaultDatabaseFile()), STATE_FILE_NAME);
 }
 
 function migrate(database: Database, directory: string): void {

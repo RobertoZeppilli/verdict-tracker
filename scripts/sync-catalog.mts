@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { readCatalogDirectory, syncCatalog } from "@/modules/catalog/server";
-import { getDatabase } from "@/modules/db/server";
+import { defaultStateFile, getDatabase } from "@/modules/db/server";
+import { alignFollows } from "@/modules/follows/server";
 import { createSourceAdapters, importTechnology, technologiesAwaitingImport } from "@/modules/detection/server";
 
 // Writes the Catalog into the data file of this install (issue #211), which `getDatabase` opens and
@@ -19,6 +20,10 @@ for (const operation of operations) {
   console.log(`${operation.type} ${target}`);
 }
 console.log(`Catalog synced: ${operations.length} operation(s).`);
+
+// A database rebuilt from scratch knows its Technologies only now: this is when `verdict.json` can
+// bring back the follows (issue #217).
+for (const warning of await alignFollows(db, defaultStateFile())) console.warn(`verdict.json: ${warning}`);
 
 // One failing Technology does not stop the others; the next deploy retries it.
 const adapters = createSourceAdapters({ githubToken: env.GITHUB_TOKEN });

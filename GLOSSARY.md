@@ -97,7 +97,7 @@ La scelta di uno sviluppatore di vedere nella propria dashboard le **Release** d
 **Tecnologia** del **Catalogo**. Si possono **Seguire** solo **Tecnologie** non ritirate; una
 **Tecnologia ritirata** già seguita resta seguita finché lo sviluppatore non smette, e da quel momento
 non si può più seguire. Il comando per **Seguire** non compare mai su una **Tecnologia ritirata** che
-lo sviluppatore non segue, in nessuna schermata: offrirebbe un'azione che il database rifiuta. Le
+lo sviluppatore non segue, in nessuna schermata: offrirebbe un'azione che il database rifiuta.
 **Seguire** e' una voce in `verdict.json`, non una riga in una tabella: quel file e' l'autorita'
 e il database lo rispecchia, cosi' le **Tecnologie** seguite si portano su un altro computer
 copiando un file. Non c'e' nessun limite al numero di **Tecnologie** che si possono **Seguire**.

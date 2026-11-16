@@ -1,6 +1,8 @@
 import { posix, win32 } from "node:path";
 
 export const DATABASE_FILE_NAME = "verdict.db";
+// The follows of the install (issue #217): beside the database, and moved with it.
+export const STATE_FILE_NAME = "verdict.json";
 
 export type DatabaseLocation = {
   platform: NodeJS.Platform;

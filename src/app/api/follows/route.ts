@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { getDatabase } from "@/modules/db/server";
-import { readFollows, writeCurrentVersion, writeFollows } from "@/modules/follows/server";
+import { defaultStateFile, getDatabase } from "@/modules/db/server";
+import { readFollows, saveFollows, writeCurrentVersion, writeFollows } from "@/modules/follows/server";
 
 // The follows of the installed app, read and written by the browser through here since the data
 // moved into a file on this machine (issue #211). Not in the showcase: `build-static` drops
@@ -16,14 +16,19 @@ export async function GET(): Promise<Response> {
 export async function POST(request: Request): Promise<Response> {
   const body = await parse(request, FollowBody);
   if (body === null) return Response.json({ error: "bad request" }, { status: 400 });
-  const rejection = writeFollows(getDatabase(), body.technologyIds, body.follow);
+  const db = getDatabase();
+  const rejection = writeFollows(db, body.technologyIds, body.follow);
+  // `verdict.json` is the authority (issue #217): a change that reached the table goes to the file.
+  if (rejection === null) saveFollows(db, defaultStateFile());
   return rejection === null ? new Response(null, { status: 204 }) : Response.json({ rejection }, { status: 409 });
 }
 
 export async function PATCH(request: Request): Promise<Response> {
   const body = await parse(request, DeclareBody);
   if (body === null) return Response.json({ error: "bad request" }, { status: 400 });
-  const declared = await writeCurrentVersion(getDatabase(), body.technologyId, body.version);
+  const db = getDatabase();
+  const declared = await writeCurrentVersion(db, body.technologyId, body.version);
+  if (declared.ok) saveFollows(db, defaultStateFile());
   return Response.json(declared, { status: declared.ok ? 200 : 409 });
 }
 
