@@ -127,8 +127,7 @@ push: la pubblica il workflow `Showcase` (`.github/workflows/showcase.yml`).
 - **Vetrina**: una volta al giorno, a ogni push su `main` che la tocca o a mano (Actions → Showcase →
   "Run workflow"), il workflow scarica il file dati dell'ultima Release di GitHub, ci fa sopra
   `pnpm catalog:sync` (Rilevamento e Tecnologie nuove, senza Sintesi), costruisce e pubblica in
-  produzione. Una PR che tocca la vetrina riceve un'anteprima. Segreti: `VERCEL_TOKEN`, `VERCEL_ORG_ID`,
-  `VERCEL_PROJECT_ID`.
+  produzione. Una PR che tocca la vetrina riceve un'anteprima. Segreto: `VERCEL_TOKEN`.
 - **Catalogo**: un file `catalog/<slug>.json` per Tecnologia, validato da `pnpm test`. Togliere un file
   ritira la Tecnologia, non la cancella. Il sync non gira mai nella build di Vercel: le anteprime
   condividono il database di produzione. In locale: `pnpm catalog:sync` con le variabili di `.env.local`.

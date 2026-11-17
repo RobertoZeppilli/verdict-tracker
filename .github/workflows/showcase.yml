@@ -10,8 +10,10 @@ name: Showcase
 #
 # Su una PR che tocca la vetrina: un'anteprima. Su `main`, una volta al giorno o a mano: produzione.
 #
-# Segreti: `VERCEL_TOKEN` (vercel.com → Account Settings → Tokens, scope sul team del progetto),
-# `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID` (in `.vercel/` dopo `vercel link`).
+# Segreto: `VERCEL_TOKEN` (vercel.com → Account Settings → Tokens, scope sul team del progetto).
+# Gli ID del team e del progetto non sono segreti e stanno qui sotto (`.vercel/repo.json` dopo
+# `vercel link`). ⚠️ L'ID del team comincia con `team_`: con un altro valore `vercel deploy` lo
+# prende per un utente, chiede `/v2/user` e risponde "Project not found".
 
 on:
   schedule:
@@ -38,8 +40,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_ORG_ID: team_lvdqMT7UCIEX2HkyQ8HhhUwN
+  VERCEL_PROJECT_ID: prj_KNUQRP0WAQnHN3iPtr2QErwbtn16
   VERCEL_ENVIRONMENT: ${{ github.event_name == 'pull_request' && 'preview' || 'production' }}
   VERDICT_DATA_DIR: ${{ github.workspace }}/.showcase-data
   NEXT_PUBLIC_SITE_URL: https://verdict-tracker.vercel.app
@@ -81,5 +83,5 @@ jobs:
           prod=$([ "$VERCEL_ENVIRONMENT" = production ] && echo --prod || true)
           npx --yes vercel@65.14.0 pull --yes --environment="$VERCEL_ENVIRONMENT" --token="$VERCEL_TOKEN"
           npx --yes vercel@65.14.0 build $prod --token="$VERCEL_TOKEN"
-          url=$(npx --yes vercel@65.14.0 deploy --prebuilt $prod --scope="$VERCEL_ORG_ID" --debug --token="$VERCEL_TOKEN")
+          url=$(npx --yes vercel@65.14.0 deploy --prebuilt $prod --token="$VERCEL_TOKEN")
           echo "Published: $url" >> "$GITHUB_STEP_SUMMARY"
