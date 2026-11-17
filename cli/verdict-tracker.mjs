@@ -127,7 +127,9 @@ function serve(port) {
   return spawn(process.execPath, ["--disable-warning=ExperimentalWarning", "server.js"], {
     cwd: APP,
     stdio: "inherit",
-    env: { ...process.env, PORT: String(port), HOSTNAME: "localhost", NODE_ENV: "production", NEXT_TELEMETRY_DISABLED: "1" },
+    // `VERDICT_DATA_DIR` already resolved: the server runs from `app/`, so a relative one (the
+    // workflow's `.`) would name another directory there.
+    env: { ...process.env, VERDICT_DATA_DIR: directory, PORT: String(port), HOSTNAME: "localhost", NODE_ENV: "production", NEXT_TELEMETRY_DISABLED: "1" },
   });
 }
 
