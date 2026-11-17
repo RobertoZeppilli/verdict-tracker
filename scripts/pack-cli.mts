@@ -43,11 +43,11 @@ execSync("pnpm next build", {
   },
 });
 
-// pnpm leaves symlinks in the standalone `node_modules`, with **absolute** targets in the project's
-// own `node_modules`: following them ships whole packages (270 MB instead of 30), and keeping them
-// ships links to a disk nobody else has. The traced copy of every target is inside the standalone
-// directory already, at the same path below the root, so each link is copied from there instead.
-// `sharp` is left out: it is the image optimizer, off in this build, and its binary is per platform.
+// pnpm leaves symlinks in the standalone `node_modules`, which `npm pack` drops. On Linux they point
+// inside the standalone directory; on Windows (measured) at the project's own `node_modules`, where
+// following them ships whole packages (270 MB instead of 43). The traced copy of every target is
+// inside the standalone directory, at the same path below the root, so each link is copied from
+// there. `sharp` is left out: the image optimizer, off in this build, with a binary per platform.
 const SKIPPED = new Set(["sharp", "@img"]);
 
 function copyTree(from: string, to: string): void {
@@ -57,9 +57,11 @@ function copyTree(from: string, to: string): void {
     let source = join(from, entry);
     if (lstatSync(source).isSymbolicLink()) {
       const target = resolve(from, readlinkSync(source));
-      const inside = relative(ROOT, target);
-      if (inside.startsWith("..")) throw new Error(`${source} points outside the project: ${target}`);
-      source = join(STANDALONE, inside);
+      const inStandalone = relative(STANDALONE, target);
+      const inProject = relative(ROOT, target);
+      if (!inStandalone.startsWith("..")) source = target;
+      else if (!inProject.startsWith("..")) source = join(STANDALONE, inProject);
+      else throw new Error(`${source} points outside the project: ${target}`);
     }
     if (lstatSync(source).isDirectory()) copyTree(source, join(to, entry));
     else copyFileSync(source, join(to, entry));
