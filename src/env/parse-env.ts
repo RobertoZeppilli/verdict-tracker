@@ -29,6 +29,17 @@ const ServerEnvSchema = z.object({
     (value) => (value === "" ? undefined : value),
     z.string().startsWith("sk-ant-").optional(),
   ),
+  // `verdict-tracker sync --notify` on a GitHub runner (issue #218): a Slack or Discord webhook, which
+  // wins over the one saved in `/settings`. Optional: the app on a laptop saves its own. The prefixes
+  // are `isSlackWebhook` and `isDiscordWebhook` again, written out because `next.config` loads this
+  // file without the `@/` alias.
+  VERDICT_WEBHOOK_URL: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z
+      .string()
+      .regex(/^https:\/\/(hooks\.slack\.com\/services|discord\.com\/api\/webhooks)\/./, "a Slack or Discord webhook URL")
+      .optional(),
+  ),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

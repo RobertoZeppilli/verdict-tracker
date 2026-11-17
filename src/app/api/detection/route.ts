@@ -4,7 +4,8 @@ import { startDetection } from "@/lib/run-detection";
 // Started by the Dashboard (issue #213): on opening, with `force: false`, it runs only when the data
 // is stale; the Refresh button sends `force: true`. Not in the showcase: `build-static` drops
 // `src/app/api` whole.
-const Body = z.object({ force: z.boolean() });
+// `notify` comes from `verdict-tracker sync --notify` only (issue #218).
+const Body = z.object({ force: z.boolean(), notify: z.object({ sent: z.array(z.string()).max(5000) }).optional() });
 
 export async function POST(request: Request): Promise<Response> {
   // ⚠️ JSON only, the same guard as `/api/follows`: a cross-origin request with this content type

@@ -84,6 +84,9 @@ export const landing = {
   "landing.close.claim": "Follow the technologies that decide your week.",
   "landing.close.catalog":
     "A curated catalog of {size} technologies. Sign-in is GitHub, and the release pages stay readable without it.",
+  // The road for being told with the app closed (issue #218): the README has the workflow.
+  "landing.close.notify":
+    "With the app closed, a GitHub workflow in a repository of yours runs it once a day and posts what is new to Slack or Discord.",
   "landing.close.browse": {
     one: "browse the one technology",
     other: "browse all {count} technologies",

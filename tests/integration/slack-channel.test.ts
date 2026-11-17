@@ -124,3 +124,51 @@ describe("deliverSlack", () => {
     expect(message).toContain("featured ·");
   });
 });
+
+// `verdict-tracker sync --notify` on a GitHub runner (issue #218): the webhook comes from the
+// environment, `/settings` was never opened, and the database may be a fresh download.
+describe("deliverSlack under sync --notify", () => {
+  const DISCORD = "https://discord.com/api/webhooks/1/env";
+  const key = () => `tech-${content.technologyId}@1.0.0`;
+
+  it("takes the webhook from the environment as a channel switched on", async () => {
+    await writeSlackWebhook(db, null);
+    db.exec("delete from notification_preferences");
+    const slack = fakeSlack();
+    const report = await deliverSlack(db, { siteUrl: SITE, webhookUrl: DISCORD, send: slack.send });
+
+    expect(slack.sent.map((one) => one.url)).toEqual([DISCORD]);
+    expect(report.delivered).toEqual([key()]);
+  });
+
+  it("lets a saved switch turned off win over the environment", async () => {
+    db.exec("update notification_preferences set enabled = 0 where channel = 'slack'");
+    const slack = fakeSlack();
+    await deliverSlack(db, { siteUrl: SITE, webhookUrl: DISCORD, send: slack.send });
+
+    expect(slack.sent).toEqual([]);
+  });
+
+  it("skips what an earlier run already sent, from verdict-sync.json", async () => {
+    const slack = fakeSlack();
+    const report = await deliverSlack(db, { siteUrl: SITE, skip: new Set([key()]), send: slack.send });
+
+    expect(slack.sent).toEqual([]);
+    expect(report.delivered).toEqual([]);
+  });
+
+  it("notifies without a key, and the line says the Summary is missing", async () => {
+    db.exec("delete from notifications");
+    db.prepare("update summaries set status = 'pending' where release_id = ?").run(content.releaseId);
+    try {
+      expect((await generateNotifications(db)).planned).toBe(0);
+      await generateNotifications(db, new Date(), { withoutSummary: true });
+      const slack = fakeSlack();
+      await deliverSlack(db, { siteUrl: SITE, send: slack.send });
+
+      expect(slack.sent[0]?.text).toMatch(/1\.0\.0 · pending: .+ · https:\/\/example\.test\//);
+    } finally {
+      db.prepare("update summaries set status = 'ready' where release_id = ?").run(content.releaseId);
+    }
+  });
+});

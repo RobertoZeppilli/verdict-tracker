@@ -411,8 +411,8 @@ l'italiano: **`breaking changes` resta in inglese**, perché è quello che il le
 | Cammino di upgrade | `UpgradePath` | parametro `?from=<version>` |
 | Sviluppatore | `Developer` | |
 | Visitatore | `Visitor` | |
-| Notifica | `Notification` | tabella `notifications`, una per evento; conservata 90 giorni. ⚠️ Ha due forme da riscrivere nella #218: la campanella mentre l'app gira, e il workflow che avvisa ad app chiusa |
-| Canale di notifica | `NotificationChannel` | `in_app` · `slack` · `email`; nessuno a pagamento, l'email fuori dall'MVP (#218) |
+| Notifica | `Notification` | tabella `notifications`, una per evento e per Release; conservata 90 giorni. Ha due forme. **La campanella**, mentre l'app gira: il riepilogo di cosa è cambiato da quando hai guardato l'ultima volta. **Il messaggio** su Slack o Discord, anche ad app chiusa: lo manda `verdict-tracker sync --notify` dal workflow nel repository di chi usa l'app, e vale da solo (Tecnologia, Versione, Rilevanza, Intervento richiesto, link alla vetrina). Nasce con la Sintesi conclusa; con `--notify` e senza chiave nasce lo stesso, con la Sintesi in attesa (#218) |
+| Canale di notifica | `NotificationChannel` | `in_app` · `slack` · `email`; nessuno a pagamento, l'email fuori dall'MVP. Il canale `slack` porta anche un webhook Discord quando arriva da `VERDICT_WEBHOOK_URL` (#218) |
 | Visto | `seenAt` | sulla Notifica, non sulla Release: il contatore conta le Notifiche con `seen_at` nullo |
 | Lingua preferita | `preferredLocale` | nelle impostazioni delle Notifiche, per email e Slack che non hanno un URL; manca, vale `en` |
 | Consegna | `NotificationDelivery` | tabella `notification_deliveries`, una riga per Notifica e canale con esito, errore e istante |

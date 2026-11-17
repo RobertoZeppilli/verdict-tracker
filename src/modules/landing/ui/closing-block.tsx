@@ -22,6 +22,7 @@ export function ClosingBlock({ catalogSize, t }: { catalogSize: number; t: Trans
         <p className="mt-4 font-sans text-body text-text-muted">
           {t("landing.close.catalog", { size: catalogSize })}
         </p>
+        <p className="mt-2 font-sans text-body text-text-muted">{t("landing.close.notify")}</p>
         <div className="mt-5 flex flex-wrap items-center gap-4">
           <EntryAction />
           {/* The Catalog is behind sign-in, so it is not one of the pages the showcase exports and

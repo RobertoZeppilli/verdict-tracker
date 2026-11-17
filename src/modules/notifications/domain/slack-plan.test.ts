@@ -18,6 +18,7 @@ const pending: PendingSlack = {
   technologyName: "React",
   slug: "react",
   version: "19.3.1",
+  verdict: "ok: safe to upgrade",
   url: "https://example.test/en/releases/react/19.3.1",
 };
 

@@ -1,0 +1,56 @@
+# Verdict tells Slack or Discord about new Releases while the app is closed (issue #218).
+#
+# Copy this file to `.github/workflows/verdict.yml` in a repository of yours, put your `verdict.json`
+# at its root, and add the repository secrets (Settings → Secrets and variables → Actions):
+#   VERDICT_WEBHOOK_URL   a Slack or Discord incoming webhook
+#   ANTHROPIC_API_KEY     optional: without it the messages say the Summaries are missing
+# Nothing else needs changing.
+name: Verdict
+
+on:
+  schedule:
+    - cron: "17 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  # To commit `verdict-sync.json`.
+  contents: write
+
+concurrency: verdict
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # The data file between runs, so each Summary is paid for once. A cache cannot be overwritten,
+      # so every run saves its own and the next one restores the newest. `*` keeps the SQLite journal
+      # with the file it belongs to.
+      - uses: actions/cache@v4
+        with:
+          path: verdict.db*
+          key: verdict-${{ github.run_id }}
+          restore-keys: verdict-
+
+      - run: npx --yes verdict-tracker@latest sync --notify
+        env:
+          VERDICT_DATA_DIR: .
+          VERDICT_WEBHOOK_URL: ${{ secrets.VERDICT_WEBHOOK_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Raises GitHub's limit for reading the Releases; it is the token every run already has.
+          GITHUB_TOKEN: ${{ github.token }}
+
+      # What was sent, so an expired cache does not send it again. The daily commit also keeps the
+      # schedule alive: GitHub pauses it after 60 days without activity in the repository.
+      - name: Remember what was sent
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add verdict-sync.json
+          git commit --quiet -m "Verdict: sync" && git push

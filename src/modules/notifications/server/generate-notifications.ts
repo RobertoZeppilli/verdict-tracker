@@ -41,7 +41,11 @@ export type GenerateReport = { considered: number; planned: number };
 // and the two unique indexes on `notifications` are what makes a second run write nothing. That is
 // also why this is a step of its own rather than a hook where a Summary settles, since `unavailable`
 // and `skipped` are set when a Release is born, far from where `ready` and `failed` are decided.
-export async function generateNotifications(db: Database, now: Date = new Date()): Promise<GenerateReport> {
+export async function generateNotifications(
+  db: Database,
+  now: Date = new Date(),
+  { withoutSummary = false }: { withoutSummary?: boolean } = {},
+): Promise<GenerateReport> {
   const since = new Date(now.getTime() - WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
   // After a `catalog:sync` every Release carries the same `created_at`, so for thirty days the window
   // holds the whole Catalog: one read, which SQLite does not cap the way PostgREST did (issue #190).
@@ -79,7 +83,7 @@ export async function generateNotifications(db: Database, now: Date = new Date()
     db.prepare("select event, channel, enabled from notification_preferences").all(),
   );
 
-  const planned = planReleaseNotifications({ candidates, followed, preferences });
+  const planned = planReleaseNotifications({ candidates, followed, preferences, withoutSummary });
   if (planned.length === 0) return { considered: candidates.length, planned: 0 };
 
   // `notifications_once_per_subject` is what makes the second run write nothing; `subject` is

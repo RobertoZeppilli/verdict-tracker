@@ -13,6 +13,7 @@ export type PendingSlack = {
   // prints, and the two are not the same word.
   slug: string;
   version: string;
+  verdict: string;
   url: string;
 };
 
@@ -63,6 +64,7 @@ export function planSlackSend(
       event: one.event,
       technologyName: one.technologyName,
       version: one.version,
+      verdict: one.verdict,
       url: one.url,
     })),
   };
