@@ -17,7 +17,7 @@ test.describe("/api/detection", () => {
     expect((await request.post("/api/detection", { data, headers: { origin: "https://evil.example" } })).status()).toBe(403);
     const host = { host: `evil.example:${new URL(String(baseURL)).port}` };
     expect((await request.get("/api/follows", { headers: host })).status()).toBe(403);
-    expect((await request.get("/slack/install", { headers: host, maxRedirects: 0 })).status()).toBe(403);
+    expect((await request.get("/settings", { headers: host, maxRedirects: 0 })).status()).toBe(403);
   });
 
   test("is gone as a GET", async ({ request }) => {

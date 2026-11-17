@@ -8,6 +8,4 @@ export const serverEnv = parseServerEnv({
   GITHUB_TOKEN: process.env.GITHUB_TOKEN,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
   E2E_AUTH_SECRET: process.env.E2E_AUTH_SECRET,
-  SLACK_CLIENT_ID: process.env.SLACK_CLIENT_ID,
-  SLACK_CLIENT_SECRET: process.env.SLACK_CLIENT_SECRET,
 });

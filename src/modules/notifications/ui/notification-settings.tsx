@@ -1,9 +1,9 @@
-import type { Locale, MessageKey, Translator } from "@/modules/i18n";
+import type { MessageKey, Translator } from "@/modules/i18n";
 import { isEnabled, LIVE_CHANNELS, LIVE_EVENTS, type Preference } from "../domain/preferences";
 import { savePreference } from "../server/save-notification-settings";
 import { saveSlackWebhook, sendSlackTest } from "../server/save-slack";
 import { PreferenceRow } from "./preference-row";
-import { SlackConnect } from "./slack-connect";
+import { SlackGuide } from "./slack-guide";
 import { SlackWebhook } from "./slack-webhook";
 
 // The channels a switch may be drawn for (`canSwitch`): the bell, free for good, and Slack, which
@@ -36,23 +36,11 @@ const SLACK_OFF: Readonly<Record<(typeof LIVE_EVENTS)[number], MessageKey>> = {
 export function NotificationSettings({
   preferences,
   slackHint,
-  slackOauth,
-  slackOutcome,
-  locale,
   t,
 }: {
   preferences: readonly Preference[];
-  // The hint of the saved webhook, or null: the URL itself is not readable, by grant (#172). Since
-  // #188 it is the channel by name when the webhook came from "Add to Slack", and the host with
-  // four characters when it was pasted, because that is all a pasted URL can say about itself.
+  // The hint of the saved webhook, or null: the URL itself is never read back (#172).
   slackHint: string | null;
-  // Whether "Add to Slack" exists at all: it needs the credentials of the Slack app, which are
-  // unset in development, where Slack's HTTPS `redirect_uri` cannot be satisfied (#188).
-  slackOauth: boolean;
-  // What the round left in the address on the way back, already turned into a key, or null.
-  slackOutcome: MessageKey | null;
-  // The language of the page, which the install route needs to send the Developer back here.
-  locale: Locale;
   // A prop and not `getTranslator()`: this file is exported from the module's `ui` index, which
   // client components import too.
   t: Translator;
@@ -96,37 +84,13 @@ export function NotificationSettings({
         {t("settings.notifications.slack.title")}
       </h3>
 
-      {/* The press, with the dialog that explains it; the field below is the way in that is left
-          when the round cannot run, and in development it is the only one (#188). */}
-      {slackOauth && <SlackConnect locale={locale} />}
-      {slackOutcome && (
-        <p
-          role="status"
-          className="mt-3 max-w-prose font-mono text-diagnostic text-text"
-        >
-          {t(slackOutcome)}
-        </p>
-      )}
-      {/* ⚠️ The field to paste a webhook into is drawn **only when "Add to Slack" does not exist**,
-          which is when the Slack app's credentials are unset, which is development and the CI. In
-          production the channel is added by the press alone. It is not deleted because Slack demands
-          an HTTPS `redirect_uri` and refuses `localhost`, so in development the round cannot run and
-          the field is the only way to prove the channel locally (#194).
-          ⚠️ The consequence: the CI has no Slack credentials, so **every E2E sees this variant**.
-          The production layout, the one without the field, is covered by no automatic proof. */}
-      {!slackOauth && (
-        <>
-          {/* Not a heading any more, a line that names what follows: a sixth level under Slack would
-              be structure for one field, and `slack.manual` keeps its words either way. */}
-          <p className="mt-6 font-mono text-label text-text-muted">
-            {t("settings.notifications.slack.manual")}
-          </p>
-          <p className="mt-2 max-w-prose font-sans text-meta text-text-muted">
-            {t("settings.notifications.slack.manualNote")}
-          </p>
-          <SlackWebhook hint={slackHint} save={saveSlackWebhook} test={sendSlackTest} />
-        </>
-      )}
+      {/* The guide to making a webhook, then the field it goes into (#218: "Add to Slack" left,
+          because its client secret would have shipped inside the npm package). */}
+      <SlackGuide />
+      <p className="mt-2 max-w-prose font-sans text-meta text-text-muted">
+        {t("settings.notifications.slack.manualNote")}
+      </p>
+      <SlackWebhook hint={slackHint} save={saveSlackWebhook} test={sendSlackTest} />
       {/* The switches come after the webhook, in the order the Developer does it: there is nothing
           to switch on before there is somewhere to send. */}
       <ul className="mt-4">

@@ -18,12 +18,12 @@ function rewriteUrl(request: NextRequest, pathname: string): URL {
 }
 
 // The paths that have no language of their own and must not be rewritten: the internals of Next,
-// the route handlers (`next/root-params` does not even reach them), Slack's own round of #188, and
-// the files served from the app root.
+// the route handlers (`next/root-params` does not even reach them), and the files served from the
+// app root.
 // ⚠️ **No clause against paths with a dot**: a Release page is `/technologies/vite/7.1.0`, and a
 // rule that skipped dotted paths would be a rule that skipped the Releases. The files are named
 // one by one instead.
-const NO_LANGUAGE = /^\/(?:_next|api|slack|icon\.svg|sitemap\.xml|robots\.txt)(?:\/|$)/;
+const NO_LANGUAGE = /^\/(?:_next|api|icon\.svg|sitemap\.xml|robots\.txt)(?:\/|$)/;
 
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
@@ -64,4 +64,4 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   return NextResponse.rewrite(rewriteUrl(request, pathname));
 }
 
-// No matcher: the trust check runs on **every** request, `/api`, Slack and `_next` included (#239).
+// No matcher: the trust check runs on **every** request, `/api` and `_next` included (#239).

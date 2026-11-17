@@ -38,11 +38,10 @@ const SKIPPED = new Set([
 // 404 in its own markup. What those links were, and where they went instead, is in the components:
 // `STATIC_SITE` in `site-header-bar.tsx`, `technology-follow.tsx`, `entry-action.tsx`.
 const PRIVATE_ROUTES = [
-  // The jobs and Slack's round: route handlers, every one of them. `src/app/auth` was here until
+  // The jobs: route handlers, every one of them. `src/app/auth` was here until
   // issue #210 and is not a directory any more -- the check below is loud about a stale entry, and
   // this is the entry it was loud about.
   "src/app/api",
-  "src/app/slack",
   // The pages of the installed app: they read a database and write to it, which is the one thing a
   // site made of files cannot do. `/account` and `/login` left with the login (issue #210).
   "src/app/[locale]/settings",

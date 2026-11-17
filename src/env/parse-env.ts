@@ -24,12 +24,6 @@ const ServerEnvSchema = z.object({
   // routes answering in production. Renaming it to `E2E_SECRET` would be right and costs one line
   // in `.github/workflows/ci.yml`, which is a file this branch may not touch.
   E2E_AUTH_SECRET: z.preprocess((value) => (value === "" ? undefined : value), z.string().min(32).optional()),
-  // The Slack app behind "Add to Slack" (#188), which Verdict owns: the client ID travels in the
-  // open in the consent URL, the secret never leaves the server and also signs the `state`. Both
-  // unset is the normal state in development, where the round cannot run at all: Slack demands an
-  // HTTPS `redirect_uri`, so the manual webhook field is the only way in there.
-  SLACK_CLIENT_ID: z.preprocess((value) => (value === "" ? undefined : value), z.string().min(1).optional()),
-  SLACK_CLIENT_SECRET: z.preprocess((value) => (value === "" ? undefined : value), z.string().min(1).optional()),
   // Without it the summary jobs answer 503; an app that only reads Summaries still starts.
   ANTHROPIC_API_KEY: z.preprocess(
     (value) => (value === "" ? undefined : value),

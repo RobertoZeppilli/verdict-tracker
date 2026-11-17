@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
-import { slackApp } from "@/lib/slack-app";
 import { getDatabase } from "@/modules/db/server";
-import { currentLocale, getTranslator } from "@/modules/i18n/server";
+import { getTranslator } from "@/modules/i18n/server";
 import { LocalePicker } from "@/modules/i18n/ui";
-import { slackOutcomeKey } from "@/modules/notifications";
 import { readNotificationSettings } from "@/modules/notifications/server";
 import { NotificationSettings, PreferredLocaleSection } from "@/modules/notifications/ui";
 
@@ -22,16 +20,8 @@ export async function generateMetadata(): Promise<Metadata> {
 // the panel taller; and that panel's height is the reason the foot had to be rebuilt in two columns
 // (`LocalePicker`, the foot variant). The account page it used to sit beside is gone with the login
 // (issue #210, ADR 0011), and this is the one page left that belongs to the reader.
-// `?slack=` is what the two routes of "Add to Slack" leave in the address on the way back (#188);
-// reading it is also what makes this page say which channel it reached, since the hint below is read
-// from the database after the write.
-export default async function SettingsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ slack?: string | string[] }>;
-}) {
+export default async function SettingsPage() {
   const t = await getTranslator();
-  const slack = (await searchParams).slack;
   // Read here and handed down, so the section stays a component that is given what it draws.
   const settings = await readNotificationSettings(getDatabase());
 
@@ -65,9 +55,6 @@ export default async function SettingsPage({
         <NotificationSettings
           preferences={settings.preferences}
           slackHint={settings.slackHint}
-          slackOauth={slackApp() !== null}
-          slackOutcome={slackOutcomeKey(typeof slack === "string" ? slack : null)}
-          locale={await currentLocale()}
           t={t}
         />
       </main>
