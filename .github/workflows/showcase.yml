@@ -1,0 +1,92 @@
+name: Showcase
+
+# La vetrina statica (issue #221): dati rigenerati, `pnpm build:static`, pubblicata su Vercel.
+# Vercel non costruisce dai push (`deploymentEnabled: false`): questa Action prepara i dati e gli
+# manda il sorgente col file, e la build la fa Vercel.
+#
+# I dati: il file iniziale dell'ultima Release di GitHub, che porta le Sintesi, con sopra il
+# Rilevamento e le Tecnologie nuove del Catalogo (`catalog:sync`). Finché una Release non esiste si
+# parte da un file vuoto, e la vetrina non ha Sintesi. Qui le Sintesi non si generano: il file non
+# si conserva fra un giro e l'altro, e si ripagherebbero ogni giorno.
+#
+# Su una PR che tocca la vetrina: un'anteprima. Su `main`, una volta al giorno o a mano: produzione.
+#
+# Segreto: `VERCEL_TOKEN` (vercel.com → Account Settings → Tokens, scope sul team del progetto).
+# Gli ID del team e del progetto non sono segreti e stanno qui sotto (`.vercel/repo.json` dopo
+# `vercel link`). ⚠️ L'ID del team comincia con `team_`: con un altro valore `vercel deploy` lo
+# prende per un utente, chiede `/v2/user` e risponde "Project not found".
+
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: &showcase
+      - src/**
+      - catalog/**
+      - public/**
+      - scripts/build-static.mts
+      - scripts/sync-catalog.mts
+      - next.config.ts
+      - vercel.json
+      - package.json
+      - pnpm-lock.yaml
+      - .github/workflows/showcase.yml
+  pull_request:
+    paths: *showcase
+
+concurrency:
+  group: showcase-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VERCEL_ORG_ID: team_lvdqMT7UCIEX2HkyQ8HhhUwN
+  VERCEL_PROJECT_ID: prj_KNUQRP0WAQnHN3iPtr2QErwbtn16
+  VERCEL_ENVIRONMENT: ${{ github.event_name == 'pull_request' && 'preview' || 'production' }}
+  VERDICT_DATA_DIR: ${{ github.workspace }}/.showcase-data
+  NEXT_PUBLIC_SITE_URL: https://verdict-tracker.vercel.app
+
+jobs:
+  publish:
+    # Le PR da un fork non hanno il token: niente anteprima, e nessun fallimento rosso per questo.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: The initial data file of the latest Release, if there is one
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$VERDICT_DATA_DIR"
+          gh release download --pattern verdict.db --dir "$VERDICT_DATA_DIR" \
+            || echo "::warning::No Release carries verdict.db: the showcase starts from an empty file, without Summaries."
+
+      # A Source that fails today is retried tomorrow: the site goes out with what the others gave.
+      - name: Detection and new Technologies
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: pnpm catalog:sync
+
+      # Vercel builds, not this runner: a prebuilt upload is capped at 15000 files, and the export has
+      # ~24000 (six RSC payloads for each of ~4000 pages). What goes up is the source plus the data
+      # file, as one file without its write-ahead log; the path is relative because the build runs
+      # in Vercel's checkout and then in `.static-build`, which carries a copy of it.
+      - name: Build and publish on Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          node -e "new (require('node:sqlite').DatabaseSync)(process.argv[1]).exec('pragma wal_checkpoint(truncate); pragma journal_mode = delete')" "$VERDICT_DATA_DIR/verdict.db"
+          prod=$([ "$VERCEL_ENVIRONMENT" = production ] && echo --prod || true)
+          url=$(npx --yes vercel@65.14.0 deploy $prod --yes --token="$VERCEL_TOKEN" \
+            --build-env VERDICT_DATA_DIR=.showcase-data --build-env NEXT_PUBLIC_SITE_URL="$NEXT_PUBLIC_SITE_URL")
+          echo "Published: $url" >> "$GITHUB_STEP_SUMMARY"

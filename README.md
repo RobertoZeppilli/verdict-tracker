@@ -121,15 +121,13 @@ gh release create v0.1.0 ~/verdict-export/verdict.db --target main --title v0.1.
 
 ## Deploy
 
-L'app gira su **Vercel** (Hobby, regione `fra1`) e usa un progetto **Supabase** separato (Free,
-Frankfurt). Anteprime delle PR e produzione condividono lo stesso database.
+Su **Vercel** (Hobby) gira solo la **vetrina statica**, `pnpm build:static`. Vercel non costruisce dai
+push: la pubblica il workflow `Showcase` (`.github/workflows/showcase.yml`).
 
-- **App**: ogni push su `main` va in produzione, ogni PR riceve un deploy di anteprima (integrazione Git
-  di Vercel, nessun workflow nel repository).
-- **Database**: il workflow `Deploy database` gira a ogni push su `main`: prima `supabase db push`, poi
-  `pnpm catalog:sync`, che porta il Catalogo (`catalog/*.json`) sul database remoto. Si può rilanciare a
-  mano da GitHub → Actions → Deploy database → "Run workflow". Le migrazioni devono restare compatibili
-  con la versione dell'app già online, perché app e database si aggiornano in parallelo.
+- **Vetrina**: una volta al giorno, a ogni push su `main` che la tocca o a mano (Actions → Showcase →
+  "Run workflow"), il workflow scarica il file dati dell'ultima Release di GitHub, ci fa sopra
+  `pnpm catalog:sync` (Rilevamento e Tecnologie nuove, senza Sintesi), costruisce e pubblica in
+  produzione. Una PR che tocca la vetrina riceve un'anteprima. Segreto: `VERCEL_TOKEN`.
 - **Catalogo**: un file `catalog/<slug>.json` per Tecnologia, validato da `pnpm test`. Togliere un file
   ritira la Tecnologia, non la cancella. Il sync non gira mai nella build di Vercel: le anteprime
   condividono il database di produzione. In locale: `pnpm catalog:sync` con le variabili di `.env.local`.
