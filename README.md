@@ -3,6 +3,35 @@
 Traccia le Release delle Tecnologie di un Catalogo curato e ne genera Sintesi con l'AI.
 Prodotto e dominio: `PRODUCT.md`, `GLOSSARY.md`; decisioni: `docs/DECISIONI.md`, `docs/adr/`.
 
+## Usarlo
+
+Serve Node.js 24 o successivo. Nient'altro: niente git, niente build, niente Docker.
+
+```sh
+npx verdict-tracker
+```
+
+Il comando avvia l'app su `http://localhost:7357` (o su un'altra porta libera, se quella è
+occupata) e apre il browser sulla Dashboard. Risponde solo da questo computer, mai dalla rete.
+Si ferma con Ctrl+C.
+
+- **I dati** stanno in `~/.verdict/` su Mac e Linux, in `%LOCALAPPDATA%\verdict` su Windows; con
+  `VERDICT_DATA_DIR` li metti dove vuoi. Al primo avvio il comando scarica da GitHub il file
+  iniziale, `verdict.db`, con il Catalogo, le Release e le Sintesi già scritte. Dal secondo avvio
+  usa quello che c'è e non scarica più niente.
+- **La chiave Anthropic** serve per le Sintesi delle Release nuove. Mettila in un file `.env` nella
+  cartella dei dati, accanto a `verdict.db`:
+
+  ```sh
+  ANTHROPIC_API_KEY=sk-ant-...
+  ```
+
+  Oppure impostala nella shell prima del comando: la variabile della shell vale più del file. Un
+  `GITHUB_TOKEN` nello stesso file alza il limite di GitHub da 60 richieste l'ora.
+- **Su un altro computer** ti basta copiare `verdict.json` (sotto) nella cartella dei dati di là,
+  prima o dopo il primo avvio: le Tecnologie che segui tornano al riavvio. `verdict.db` non serve
+  copiarlo, si riscarica.
+
 ## Sviluppo locale
 
 Servono Node 24 e pnpm. I dati stanno in un file SQLite, `~/.verdict/verdict.db`
@@ -41,6 +70,28 @@ da questo file. Il file si può tenere nei dotfiles, in un repository o in una c
 - Uno slug che non è nel Catalogo, una Tecnologia ritirata o una Versione in uso non valida vengono
   segnalati nel terminale e saltati, senza fermare l'avvio. Uno slug sconosciuto resta nel file.
 - Se il file non è JSON valido l'app non lo tocca, lo segnala e usa quello che ha nel database.
+
+## Pubblicare una versione
+
+`pnpm pack:cli` costruisce in `dist/cli` il pacchetto `verdict-tracker`: la build standalone di
+Next, il comando in `cli/` e un `package.json` senza dipendenze. Il workflow `Release` lo prova su
+Linux, Windows e macOS a ogni PR che lo tocca, e al tag lo pubblica:
+
+```sh
+# alza "version" in package.json, poi
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+Al tag il workflow prende `verdict.db` dalla Release precedente, ci aggiunge le Release nuove del
+Catalogo, lo allega alla Release del tag e solo dopo pubblica su npm. Serve il segreto `NPM_TOKEN`.
+
+**La prima volta** non c'è una Release precedente: si crea a mano, col file esportato dalla
+produzione, prima di spingere il tag (che `gh release create` crea da sé):
+
+```sh
+node -e "new (require('node:sqlite').DatabaseSync)(process.argv[1]).exec('pragma wal_checkpoint(truncate); pragma journal_mode = delete')" ~/verdict-export/verdict.db
+gh release create v0.1.0 ~/verdict-export/verdict.db --target main --title v0.1.0 --notes "Prima versione."
+```
 
 ## Deploy
 

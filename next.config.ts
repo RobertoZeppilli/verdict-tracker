@@ -13,6 +13,9 @@ parseServerEnv(process.env);
 // the tree it builds from: `output: "export"` is a global setting and refuses a Server Action or a
 // route handler **anywhere** in the tree, exported or not.
 const staticSite = process.env.NEXT_PUBLIC_STATIC_SITE === "1";
+// The package `npx verdict-tracker` runs (issue #214): `scripts/pack-cli.mts` sets it. Only there,
+// because `next start` -- the end-to-end tests -- refuses to run a standalone build.
+const standalone = process.env.VERDICT_STANDALONE === "1";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
@@ -24,8 +27,10 @@ const nextConfig: NextConfig = {
   // ⚠️ No `remotePatterns`: the one remote image this app ever loaded was the GitHub picture in the
   // account button, and the account left with the login (issue #210, ADR 0011). Every image the
   // product draws now comes from the repository itself, so nothing has to be allowed in.
-  images: staticSite ? { unoptimized: true } : {},
+  // The installed package ships without `sharp`, whose binary is per platform (issue #214).
+  images: staticSite || standalone ? { unoptimized: true } : {},
   ...(staticSite ? { output: "export" as const } : {}),
+  ...(standalone ? { output: "standalone" as const } : {}),
 };
 
 export default nextConfig;

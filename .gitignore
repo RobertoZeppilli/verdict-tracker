@@ -34,3 +34,6 @@ docs/Cattura.JPG
 
 # The data file of the E2E runs (playwright.config.ts)
 /.e2e-data/
+
+# Il pacchetto npm di `pnpm pack:cli` (#214)
+/dist/
