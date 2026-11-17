@@ -12,7 +12,7 @@ export default defineConfig({
         resolve,
         test: {
           name: "unit",
-          include: ["src/**/*.test.ts", "eslint/**/*.test.ts", "catalog/**/*.test.ts"],
+          include: ["src/**/*.test.ts", "cli/**/*.test.ts", "eslint/**/*.test.ts", "catalog/**/*.test.ts"],
           // Linting the fixtures loads the whole ESLint config on first use.
           testTimeout: 30_000,
           // As the integration project below, and for the same reason: a server module imports

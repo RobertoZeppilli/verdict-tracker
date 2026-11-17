@@ -64,7 +64,7 @@ const eslintConfig = defineConfig([
   },
   // `.static-build` is the pruned copy `pnpm build:static` builds the showcase from (issue #215):
   // the same files, already linted where they live.
-  globalIgnores([".next/**", ".static-build/**", "out/**", "build/**", "coverage/**", "next-env.d.ts"]),
+  globalIgnores([".next/**", ".static-build/**", "out/**", "build/**", "dist/**", "coverage/**", "next-env.d.ts"]),
 ]);
 
 export default eslintConfig;
