@@ -28,3 +28,37 @@ export function dataDirectory({ platform, home, env, cwd }) {
 export function initialFileUrl(version) {
   return `https://github.com/${REPOSITORY}/releases/download/v${version}/verdict.db`;
 }
+
+// `verdict-sync.json`, which the workflow of `sync --notify` commits (issue #218): when the cached
+// database is gone, it is what keeps a fresh download from sending the same Releases again.
+const KEEP_DAYS = 30;
+
+/**
+ * What the file says, or an empty state when it is missing or not ours: at worst a Release is sent
+ * twice, which is better than a run that stops on a file somebody edited by hand.
+ * @param {string | null} text
+ * @returns {{ lastRun: string | null, sent: Record<string, string> }}
+ */
+export function parseSyncState(text) {
+  try {
+    const { lastRun, sent } = JSON.parse(text ?? "");
+    const entries = Object.entries(sent ?? {}).filter(([, at]) => typeof at === "string");
+    return { lastRun: typeof lastRun === "string" ? lastRun : null, sent: Object.fromEntries(entries) };
+  } catch {
+    return { lastRun: null, sent: {} };
+  }
+}
+
+/**
+ * The state after a run: what went out joins what was there, and what is older than the window of
+ * a Notification leaves, so the file does not grow for ever.
+ * @param {{ sent: Record<string, string> }} previous
+ * @param {readonly string[]} delivered `slug@version`
+ * @param {Date} now
+ */
+export function nextSyncState(previous, delivered, now) {
+  const oldest = now.getTime() - KEEP_DAYS * 24 * 60 * 60 * 1000;
+  const kept = Object.entries(previous.sent).filter(([, at]) => Date.parse(at) >= oldest);
+  const added = delivered.map((key) => [key, now.toISOString()]);
+  return { lastRun: now.toISOString(), sent: Object.fromEntries([...kept, ...added].sort()) };
+}

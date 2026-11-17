@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createTranslator, dictionaryFor } from "@/modules/i18n";
-import { isSlackWebhook, MAX_LINES, type SlackLine, slackMessage, webhookHint } from "./slack";
+import { isDiscordWebhook, isSlackWebhook, MAX_LINES, type SlackLine, slackMessage, webhookHint } from "./slack";
 
 const t = createTranslator("en", dictionaryFor("en"));
 
@@ -8,6 +8,7 @@ const line: SlackLine = {
   event: "featured_release",
   technologyName: "React",
   version: "19.3.1",
+  verdict: "warning: action required",
   url: "https://example.test/en/releases/react/19.3.1",
 };
 
@@ -30,6 +31,14 @@ describe("isSlackWebhook", () => {
   });
 });
 
+describe("isDiscordWebhook", () => {
+  it("takes a Discord webhook and refuses a Slack one or another host", () => {
+    expect(isDiscordWebhook("https://discord.com/api/webhooks/1/xxxx")).toBe(true);
+    expect(isDiscordWebhook("https://hooks.slack.com/services/T0/B0/xxxx")).toBe(false);
+    expect(isDiscordWebhook("https://discord.com.evil.test/api/webhooks/1")).toBe(false);
+  });
+});
+
 describe("webhookHint", () => {
   it("says the host and the last four characters, never the path that is the secret", () => {
     const hint = webhookHint("https://hooks.slack.com/services/T0/B0/sEcReT1234");
@@ -45,13 +54,17 @@ describe("slackMessage", () => {
     expect(message).toContain("Release");
   });
 
+  it("says the verdict in the line, since the message arrives with the app closed", () => {
+    expect(slackMessage(t, [line])).toContain("React 19.3.1 · warning: action required · https://");
+  });
+
   it("writes one message with a line per Release, not one message per Release", () => {
     const message = slackMessage(t, lines(3));
     expect(message.split("\n")).toHaveLength(4);
     expect(message).toContain("3 new releases");
   });
 
-  it("stops at twenty lines and counts what it left out", () => {
+  it("stops at MAX_LINES and counts what it left out", () => {
     const message = slackMessage(t, lines(MAX_LINES + 5));
     expect(message.split("\n")).toHaveLength(MAX_LINES + 2);
     expect(message).toContain("and 5 more");

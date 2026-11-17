@@ -68,6 +68,8 @@ export const landing = {
   "landing.close.claim": "Segui le tecnologie che decidono la tua settimana.",
   "landing.close.catalog":
     "Un catalogo curato di {size} tecnologie. Si accede con GitHub, e le pagine delle release restano leggibili senza.",
+  "landing.close.notify":
+    "Ad app chiusa, un workflow di GitHub in un tuo repository lo fa girare una volta al giorno e manda le novità su Slack o Discord.",
   "landing.close.browse": {
     one: "sfoglia l'unica tecnologia",
     many: "sfoglia tutte le {count} tecnologie",

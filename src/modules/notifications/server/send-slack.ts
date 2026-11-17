@@ -1,4 +1,5 @@
 import "server-only";
+import { isDiscordWebhook } from "../domain/slack";
 
 // How long a webhook has to answer. Slack answers in well under a second; this is the ceiling that
 // keeps one dead endpoint from holding the whole run (the cron has a budget of its own).
@@ -21,7 +22,8 @@ export const sendToSlack: SendToSlack = async (webhookUrl, text) => {
     const response = await fetch(webhookUrl, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ text }),
+      // The same message under Discord's own name for it (issue #218).
+      body: JSON.stringify(isDiscordWebhook(webhookUrl) ? { content: text } : { text }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     if (response.ok) return { ok: true };

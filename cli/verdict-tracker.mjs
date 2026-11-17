@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
-import { createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
-import { DEFAULT_PORT, dataDirectory, initialFileUrl } from "./launch.mjs";
+import { DEFAULT_PORT, dataDirectory, initialFileUrl, nextSyncState, parseSyncState } from "./launch.mjs";
 
 // `npx verdict-tracker` (issue #214): the data file in place, then the standalone server of Next on
 // localhost, then the browser.
+// `npx verdict-tracker sync [--notify]` (issue #218): the same server for the length of one run, with
+// no browser, for a GitHub workflow that sends Slack or Discord what is new while the app is closed.
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const APP = join(HERE, "..", "app");
@@ -26,8 +28,13 @@ const database = join(directory, "verdict.db");
 
 // ⚠️ `exitCode` and not `process.exit`: on Windows, exiting while `fetch` closes its handles trips
 // an assertion in libuv and the command dies with 127 instead of the message.
-if (existsSync(database) || (await download())) await start();
-else process.exitCode = 1;
+const [command, ...flags] = process.argv.slice(2);
+if (command !== undefined && command !== "sync") {
+  console.error("Usage: verdict-tracker [sync [--notify]]");
+  process.exitCode = 1;
+} else if (!existsSync(database) && !(await download())) process.exitCode = 1;
+else if (command === "sync") await sync(flags.includes("--notify"));
+else await start();
 
 // First run only: the next one finds the file and downloads nothing. Written aside and renamed, so
 // an interrupted download never leaves a half file that the next run would take as the real one.
@@ -51,29 +58,77 @@ async function download() {
 }
 
 async function start() {
+  const port = (await isFree(DEFAULT_PORT)) ? DEFAULT_PORT : await anyFreePort();
+  const url = `http://localhost:${port}`;
+  const server = serve(port);
+  server.on("exit", (code) => process.exit(code ?? 0));
+
+  await waitFor(url);
+  console.log(`\nVerdict is running at ${url}  (data: ${directory}, Ctrl+C to stop)\n`);
+  openBrowser(`${url}/dashboard`);
+}
+
+// One Refresh, as the Dashboard's button does it, so the run has one road (`runOnce`). `--notify` is
+// the rule of `docs/DECISIONI.md` for a run nobody watches: without a key the Notifications do not
+// wait for Summaries, and `verdict-sync.json` remembers what went out.
+/** @param {boolean} notify */
+async function sync(notify) {
+  const port = await anyFreePort();
+  const url = `http://localhost:${port}`;
+  const server = serve(port);
+  const stateFile = join(directory, "verdict-sync.json");
+  const previous = parseSyncState(existsSync(stateFile) ? readFileSync(stateFile, "utf8") : null);
+  try {
+    await waitFor(url);
+    // `origin` is what the proxy asks of a request that writes (`src/lib/trusted-request.ts`).
+    const response = await fetch(`${url}/api/detection`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: url },
+      body: JSON.stringify({ force: true, ...(notify ? { notify: { sent: Object.keys(previous.sent) } } : {}) }),
+    });
+    if (!response.ok) throw new Error(`the app answered ${response.status}`);
+    const run = await response.json();
+    console.log(`Detection: ${run.detected.length} new Releases, ${run.failed.length} Technologies not reached`);
+    console.log(
+      run.summaryKey
+        ? `Summaries: ${run.summaries.ready.length} written, ${run.summaries.failed.length} failed`
+        : "Summaries: missing, ANTHROPIC_API_KEY is not set. Notifications go out without them.",
+    );
+    // `planned` counts the ones already there too: the insert skips those.
+    console.log(`Notifications: ${run.notifications.planned} for the Releases you follow`);
+    console.log(
+      run.slack.failed > 0
+        ? "Webhook: the send failed, see the reason in /settings or check VERDICT_WEBHOOK_URL"
+        : `Webhook: ${run.slack.sent} sent`,
+    );
+    if (notify) writeFileSync(stateFile, `${JSON.stringify(nextSyncState(previous, run.slack.delivered, new Date()), null, 2)}\n`);
+    // A red run in the Actions tab is how a broken webhook gets noticed with nobody looking.
+    if (run.slack.failed > 0) process.exitCode = 1;
+  } catch (error) {
+    console.error(`The run did not complete: ${error instanceof Error ? error.message : error}`);
+    process.exitCode = 1;
+  } finally {
+    server.kill();
+  }
+}
+
+/** @param {number} port */
+function serve(port) {
   // The Anthropic key, for whoever prefers a file to a variable in the shell. A variable already set
   // in the shell wins over the file.
   const envFile = join(directory, ".env");
   if (existsSync(envFile)) process.loadEnvFile(envFile);
-
-  const port = (await isFree(DEFAULT_PORT)) ? DEFAULT_PORT : await anyFreePort();
-  const url = `http://localhost:${port}`;
 
   // ⚠️ `HOSTNAME` is where the standalone server listens, and its default is every interface: with no
   // login, anyone on the same network would open the app and spend the key (issue #239).
   // `localhost` and not `127.0.0.1`: the proxy rewrites to a `localhost` URL, and a standalone server
   // bound to another name takes that for an outside address and loops through its own proxy (a 308
   // on every English page, measured). Both names are loopback only.
-  const server = spawn(process.execPath, ["--disable-warning=ExperimentalWarning", "server.js"], {
+  return spawn(process.execPath, ["--disable-warning=ExperimentalWarning", "server.js"], {
     cwd: APP,
     stdio: "inherit",
     env: { ...process.env, PORT: String(port), HOSTNAME: "localhost", NODE_ENV: "production", NEXT_TELEMETRY_DISABLED: "1" },
   });
-  server.on("exit", (code) => process.exit(code ?? 0));
-
-  await waitFor(url);
-  console.log(`\nVerdict is running at ${url}  (data: ${directory}, Ctrl+C to stop)\n`);
-  openBrowser(`${url}/dashboard`);
 }
 
 /** @param {number} port */

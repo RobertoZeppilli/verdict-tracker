@@ -32,6 +32,32 @@ Si ferma con Ctrl+C.
   prima o dopo il primo avvio: le Tecnologie che segui tornano al riavvio. `verdict.db` non serve
   copiarlo, si riscarica.
 
+### Gli avvisi ad app chiusa: Slack o Discord
+
+Mentre l'app è aperta, la campanella ti dice cosa è cambiato da quando hai guardato l'ultima volta.
+Per sapere delle Release nuove senza aprirla, fai girare Verdict una volta al giorno su GitHub
+Actions, in un repository tuo, con la tua chiave e il tuo webhook. Sui repository pubblici i runner
+sono gratis.
+
+1. Crea un repository (anche privato) e mettici alla radice il tuo `verdict.json`.
+2. Copia [`examples/verdict-notify.yml`](examples/verdict-notify.yml) in
+   `.github/workflows/verdict.yml`. Non va cambiato niente.
+3. Nei segreti del repository (Settings, Secrets and variables, Actions) aggiungi
+   `VERDICT_WEBHOOK_URL`, l'indirizzo di un incoming webhook di Slack o di Discord, e se vuoi le
+   Sintesi `ANTHROPIC_API_KEY`.
+4. Lancialo a mano la prima volta dalla scheda Actions (Run workflow) per vedere arrivare il messaggio.
+
+Il workflow lancia `npx verdict-tracker sync --notify`, che fa il giro del Refresh senza browser e
+manda al webhook un messaggio con Tecnologia, Versione, Rilevanza, Intervento richiesto e il link
+alla pagina della Release. Senza chiave le Release nuove arrivano lo stesso, con la Sintesi in
+attesa. `verdict.db` resta nella cache di Actions, così ogni Sintesi si paga una volta. Ogni giorno
+il workflow committa `verdict-sync.json`, con quello che ha già mandato: se la cache scade, niente
+arriva due volte. Il commit tiene anche acceso il cron, che GitHub ferma dopo 60 giorni senza
+attività.
+
+Sul tuo computer lo stesso comando, con `VERDICT_WEBHOOK_URL` nel `.env` della cartella dei dati,
+manda il messaggio subito.
+
 ## Sviluppo locale
 
 Servono Node 24 e pnpm. I dati stanno in un file SQLite, `~/.verdict/verdict.db`

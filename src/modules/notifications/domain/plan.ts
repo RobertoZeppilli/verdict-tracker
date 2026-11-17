@@ -20,6 +20,9 @@ export type PlanInput = {
   followed: readonly string[];
   // Only the rows actually saved; everything absent is the declared starting point.
   preferences: readonly Preference[];
+  // `verdict-tracker sync --notify` with no Anthropic key (issue #218, `docs/DECISIONI.md`): a
+  // Summary that cannot arrive is not waited for, and the Notification says it is missing.
+  withoutSummary?: boolean;
 };
 
 // Decides what is worth hearing about. Pure, so the rule can be read and tested without a database:
@@ -27,12 +30,12 @@ export type PlanInput = {
 //
 // ⚠️ It used to decide **who** as well, and that half left with the account (issue #210): a planned
 // Notification no longer names anybody, because there is nobody it could name.
-export function planReleaseNotifications({ candidates, followed, preferences }: PlanInput): PlannedNotification[] {
+export function planReleaseNotifications({ candidates, followed, preferences, withoutSummary = false }: PlanInput): PlannedNotification[] {
   const following = new Set(followed);
 
   const planned: PlannedNotification[] = [];
   for (const candidate of candidates) {
-    if (!isSummarySettled(candidate.summaryStatus)) continue;
+    if (!isSummarySettled(candidate.summaryStatus) && !withoutSummary) continue;
     if (!following.has(candidate.technologyId)) continue;
     const event = releaseEventFor(candidate.significance);
     if (event === null) continue;

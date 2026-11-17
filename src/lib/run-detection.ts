@@ -1,7 +1,7 @@
 import "server-only";
 
-import { env } from "@/env";
 import { serverEnv } from "@/env/server";
+import { SHOWCASE_URL } from "@/lib/static-site";
 import { getDatabase } from "@/modules/db/server";
 import { isDetectionStale } from "@/modules/detection";
 import { createSourceAdapters, detectReleases, readLastDetection, recordDetection } from "@/modules/detection/server";
@@ -17,12 +17,16 @@ declare global {
 
 export type DetectionOutcome = { ran: false } | ({ ran: true } & Awaited<ReturnType<typeof runOnce>>);
 
+// `notify` is `verdict-tracker sync --notify` (issue #218): `sent` is `slug@version` already sent by
+// an earlier run, from `verdict-sync.json`.
+export type Notify = { sent: string[] };
+
 // `force` is the Refresh button; without it the run starts only when the data is stale.
-export function startDetection({ force }: { force: boolean }): Promise<DetectionOutcome> {
+export function startDetection({ force, notify }: { force: boolean; notify?: Notify }): Promise<DetectionOutcome> {
   if (globalThis.verdictDetection !== undefined) return globalThis.verdictDetection;
   if (!force && !isDetectionStale(readLastDetection(getDatabase()), new Date())) return Promise.resolve({ ran: false });
 
-  const run = runOnce()
+  const run = runOnce(notify)
     .then((report) => ({ ran: true as const, ...report }))
     .finally(() => {
       globalThis.verdictDetection = undefined;
@@ -38,22 +42,28 @@ export function isDetectionRunning(): boolean {
 // The Detection (ADR 0003), and the Summaries of what it found in the same run (issue #212): a new
 // Release has its Summary when the run ends. Without an Anthropic key the Summaries stay `pending`
 // and the pages say what is missing.
-async function runOnce() {
+async function runOnce(notify?: Notify) {
   const db = getDatabase();
   const adapters = createSourceAdapters({ githubToken: serverEnv.GITHUB_TOKEN });
   const { detected, ...report } = await detectReleases(db, adapters);
   const writer = createSummaryWriter(serverEnv.ANTHROPIC_API_KEY);
   const { changed, ...summaries } = writer === null ? { changed: [] } : await generatePendingSummaries(db, writer);
   // After the Summaries, since a settled Summary is when a Notification is born (ADR 0009).
-  const notifications = await generateNotifications(db);
+  // Under `sync --notify` with no key a Summary will not come, so the Notification does not wait for
+  // it (`docs/DECISIONI.md`, #218).
+  const notifications = await generateNotifications(db, new Date(), { withoutSummary: notify !== undefined && writer === null });
   // The Slack channel rides the same run, after the Notifications exist: one message per Developer
   // (`docs/DECISIONI.md`), and a broken webhook is written down rather than thrown (#172).
-  const slack = await deliverSlack(db, { siteUrl: env.NEXT_PUBLIC_SITE_URL });
+  const slack = await deliverSlack(db, {
+    siteUrl: SHOWCASE_URL,
+    webhookUrl: serverEnv.VERDICT_WEBHOOK_URL,
+    skip: new Set(notify?.sent),
+  });
   const pruned = await pruneNotifications(db);
   // Recorded only at the end: a run that throws half way leaves the data stale, so the next opening
   // of the Dashboard tries again.
   recordDetection(db, new Date());
   // A new Release changes the Technology page and gives the Release page its own address.
   const revalidated = revalidateReleasePages([...detected, ...changed]);
-  return { ...report, detected, summaries, notifications, slack, pruned, revalidated };
+  return { ...report, detected, summaries, summaryKey: writer !== null, notifications, slack, pruned, revalidated };
 }

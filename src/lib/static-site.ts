@@ -8,6 +8,10 @@
 // The variable is declared in `src/env/parse-env.ts` all the same, where every variable is declared.
 export const STATIC_SITE = process.env.NEXT_PUBLIC_STATIC_SITE === "1";
 
+// Where the showcase is served. The links of a Slack or Discord message point here and not at the
+// installed copy, whose `localhost` does not answer while the app is closed (issue #218).
+export const SHOWCASE_URL = "https://verdict-tracker.vercel.app";
+
 // The address the showcase's catch-all route exports its one document at, before
 // `scripts/build-static.mts` moves it to `404.html`, which is what a static host serves for every
 // address it has no file for. Here and not in the route, so the script can read it without loading

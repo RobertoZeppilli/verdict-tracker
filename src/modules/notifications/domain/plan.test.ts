@@ -36,6 +36,16 @@ describe("planReleaseNotifications", () => {
     expect(planned).toEqual([]);
   });
 
+  it("does not wait for a Summary that no key will write, under sync --notify", () => {
+    const planned = planReleaseNotifications({
+      candidates: [{ ...featured, summaryStatus: "pending" }],
+      followed,
+      preferences: noPreferences,
+      withoutSummary: true,
+    });
+    expect(planned).toEqual([{ event: "featured_release", releaseId: "release-1" }]);
+  });
+
   it("notifies a Release whose Summary will never arrive, without a verdict", () => {
     const planned = planReleaseNotifications({
       candidates: [{ ...featured, summaryStatus: "unavailable" }],
