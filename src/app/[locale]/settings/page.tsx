@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { SiteHeader } from "@/components/site-header";
 import { getDatabase } from "@/modules/db/server";
 import { getTranslator } from "@/modules/i18n/server";
@@ -20,7 +21,10 @@ export async function generateMetadata(): Promise<Metadata> {
 // the panel taller; and that panel's height is the reason the foot had to be rebuilt in two columns
 // (`LocalePicker`, the foot variant). The account page it used to sit beside is gone with the login
 // (issue #210, ADR 0011), and this is the one page left that belongs to the reader.
+// ⚠️ `connection()`: the data file is no request API, and without it the build prerenders this page
+// and serves the settings of the build (it was dynamic only by reading `?slack=`, until #218).
 export default async function SettingsPage() {
+  await connection();
   const t = await getTranslator();
   // Read here and handed down, so the section stays a component that is given what it draws.
   const settings = await readNotificationSettings(getDatabase());
