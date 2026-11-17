@@ -31,10 +31,12 @@ export function openDatabase({ file, migrations = MIGRATIONS_DIRECTORY }: OpenOp
   const database = new DatabaseSync(path);
   // Off by default in SQLite, and every `references` in the schema is dead without it.
   database.exec("pragma foreign_keys = on");
+  // First, before anything that takes a lock: the static build opens the file from seven workers
+  // at once, and switching to WAL without a timeout failed at once with `database is locked`.
+  database.exec("pragma busy_timeout = 5000");
   // The read of a page and the write of the Detection no longer wait on each other, which is what a
   // long job in the background does to an interface on the same file.
   database.exec("pragma journal_mode = wal");
-  database.exec("pragma busy_timeout = 5000");
 
   try {
     migrate(database, migrations);

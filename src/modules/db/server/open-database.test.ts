@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { Worker } from "node:worker_threads";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 
@@ -50,6 +51,29 @@ const seedRelease = (database: Database): string => {
 };
 
 describe("openDatabase", () => {
+  // The static build opens the file from seven workers at once (issue #221): one that finds it locked
+  // waits for it, instead of failing on the switch to WAL.
+  it("waits for a file another connection holds for a moment", async () => {
+    mkdirSync(dirname(file), { recursive: true });
+    const holder = new Worker(
+      `const { DatabaseSync } = require("node:sqlite");
+       const { parentPort, workerData } = require("node:worker_threads");
+       const db = new DatabaseSync(workerData);
+       db.exec("begin exclusive; create table held (id integer)");
+       parentPort.postMessage("held");
+       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 300);
+       db.exec("commit");
+       db.close();`,
+      { eval: true, workerData: file },
+    );
+    await new Promise((resolve) => holder.once("message", resolve));
+
+    const db = open();
+    expect(db.prepare("pragma journal_mode").get()).toEqual({ journal_mode: "wal" });
+    db.close();
+    await new Promise((resolve) => holder.once("exit", resolve));
+  });
+
   it("creates the file, its directory and the whole schema on first start", () => {
     const database = open();
     expect(tableNames(database)).toContain("technologies");
