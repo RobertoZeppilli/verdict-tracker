@@ -17,6 +17,8 @@ export const landing = {
     "{name} {version} shipped {breaking} across {lines} lines of release notes. One of them makes {propTypes} do nothing, silently, and it is on line {line}.",
   "landing.promise":
     "Verdict follows the releases of the technologies in your stack and gives each one a single verdict: whether it asks something of you, what breaks, and how to migrate. Every claim points at the line of the release notes it was read from, so you can check it in one click instead of trusting it.",
+  // The Dashboard the showcase prerenders (issue #221).
+  "landing.seeDemo": "open the demo dashboard",
   "landing.seeVerdict": "see the verdict for {name} {version}",
   // The one counted phrase of the page, and it is read in three places: the lede, the source stage
   // and the help stage. One key, so one language cannot say it three ways.
@@ -83,10 +85,7 @@ export const landing = {
   // The close, and the counter-position beside it.
   "landing.close.claim": "Follow the technologies that decide your week.",
   "landing.close.catalog":
-    "A curated catalog of {size} technologies. Sign-in is GitHub, and the release pages stay readable without it.",
-  // The road for being told with the app closed (issue #218): the README has the workflow.
-  "landing.close.notify":
-    "With the app closed, a GitHub workflow in a repository of yours runs it once a day and posts what is new to Slack or Discord.",
+    "A curated catalog of {size} technologies. The release pages are public, and reading them needs nothing installed.",
   "landing.close.browse": {
     one: "browse the one technology",
     other: "browse all {count} technologies",
@@ -94,6 +93,27 @@ export const landing = {
   "landing.close.note.claim": "it does not open pull requests",
   "landing.close.note.body":
     "Dependabot and Renovate do that well, and they tell you a version moved. A newsletter tells you a release was interesting. Verdict answers the question those leave open: does this release ask something of me, and where does it say so. It reads only the release notes, it never guesses, and when the notes say nothing it says nothing.",
+
+  // Before you install (issue #221): the command and the four things to know first. `{home}`,
+  // `{windows}`, `{env}` and `{file}` are code, filled by the component.
+  "landing.install.copy": "copy",
+  "landing.install.copied": "copied",
+  "landing.install.title": "Before you install",
+  "landing.install.sub":
+    "Verdict runs on your computer. There is no account, and no server of ours in between.",
+  "landing.install.key.term": "your Anthropic key",
+  "landing.install.key.body":
+    "Claude writes the summary of each new release with your key, on your bill: a few cents a release. The summaries already written come with the data file. Without a key, new releases still arrive and their summaries wait.",
+  "landing.install.data.term": "your disk",
+  "landing.install.data.body":
+    "The data is one SQLite file in {home} on macOS and Linux, in {windows} on Windows, or wherever {env} points. Release notes go to Anthropic to be summarized, and nothing about you goes with them.",
+  "landing.install.follows.term": "verdict.json",
+  "landing.install.follows.body":
+    "The technologies you follow, and the version you run of each, are kept in {file} next to the data. Copy that one file to another computer and they come with you.",
+  "landing.install.notify.term": "with the app closed",
+  "landing.install.notify.body":
+    "A GitHub workflow in a repository of yours runs Verdict once a day and posts what is new to Slack or Discord. The README has it, ready to copy.",
+  "landing.install.source": "source and README on {repository}, MIT licence",
 
   // The foot of the page, under the rule: where the content came from, and the link that lets a
   // sceptical reader check the whole page against the source in one click.

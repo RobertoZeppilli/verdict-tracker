@@ -12,6 +12,10 @@ export const page = {
   "page.landing.description":
     "Verdict follows the releases of the technologies in your stack and gives each one a single verdict: whether it asks something of you, what breaks, and how to migrate, with every claim pointing at the line of the release notes it was read from.",
   "page.dashboard.title": "Dashboard",
+  // The showcase's Dashboard, read from a fixed stack of the Catalog (issue #221).
+  "page.demo.title": "Demo dashboard",
+  "page.demo.description":
+    "The Verdict dashboard for a stack of popular technologies, built from their real release notes. Nothing to install to look at it.",
   "page.technologies.title": "Technologies",
   // The five document pages. Their title is read twice, as the tab and as the heading of the page
   // itself, so it is one key and not two: a heading that drifts from its tab is a page that answers

@@ -110,7 +110,7 @@ for (const theme of THEMES) {
 
     // The five pages of issue #132, in one test: they are prose and they share one component, so
     // what axe has to see on each of them is the same thing seen five times.
-    for (const path of ["/terms", "/privacy", "/attributions", "/faq", "/contact"]) {
+    for (const path of ["/terms", "/privacy", "/attributions", "/faq", "/contact", "/demo"]) {
       test(path, async ({ page }) => {
         await page.goto(path);
         await scan(page, theme);

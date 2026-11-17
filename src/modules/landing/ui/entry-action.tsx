@@ -9,9 +9,9 @@ import { entryFace } from "./entry-copy";
 // It had two faces until the login left (issue #210, ADR 0011): there is one reader of an installed
 // copy, so there is one face, and nothing on this page depends on who is looking any more.
 export function EntryAction() {
-  // ⚠️ The Dashboard is the app's and the showcase has none: the app is installed, not signed into
-  // (ADR 0011). What stands here instead is the command to copy, which is issue #221; until then the
-  // landing closes on its own words rather than on a button that answers 404 (issue #215).
+  // ⚠️ The Dashboard is the app's and the showcase has none of its own: the app is installed, not
+  // signed into (ADR 0011). What stands there instead is the command to copy (issue #221), which
+  // the blocks render themselves: its labels come from the server, see `install-command.tsx`.
   if (STATIC_SITE) return null;
   return <DashboardEntry />;
 }

@@ -128,7 +128,7 @@ for (const width of WIDTHS) {
       // ⚠️ German was the worst case for both of these and left with ADR 0012: the compounds
       // `Nutzungsbedingungen` and `Gewährleistung` were five characters longer than anything
       // printed now, so what this measures is the longest the product still has.
-      const pages = ["/", "/it", "/it/terms", "/it/privacy", "/faq"];
+      const pages = ["/", "/it", "/it/terms", "/it/privacy", "/faq", "/demo"];
       for (const path of [...pages, `/technologies/${technology.slug}`, `/technologies/${technology.slug}?from=2.0.0`]) {
         await page.goto(path);
         await expectNoOverflow(page, path);

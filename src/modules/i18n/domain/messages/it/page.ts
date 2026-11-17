@@ -9,6 +9,9 @@ export const page = {
   "page.landing.description":
     "Verdict segue le release delle tecnologie del tuo stack e dà a ognuna un verdetto solo: se ti chiede qualcosa, cosa si rompe e come migrare, e ogni affermazione punta alla riga delle note di rilascio da cui è stata letta.",
   "page.dashboard.title": "Dashboard",
+  "page.demo.title": "Dashboard dimostrativa",
+  "page.demo.description":
+    "La Dashboard di Verdict per uno stack di tecnologie diffuse, costruita dalle loro vere note di rilascio. Per guardarla non serve installare niente.",
   "page.technologies.title": "Tecnologie",
   // Le cinque pagine documento. Il titolo dice la parola con cui il piede chiama la pagina, non un
   // sinonimo: `attribuzioni` e non `riconoscimenti`, perché chi clicca `attribuzioni` deve arrivare

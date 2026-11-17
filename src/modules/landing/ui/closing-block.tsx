@@ -2,6 +2,7 @@ import { HelpPointer } from "@/components/help-pointer";
 import { type Translator } from "@/modules/i18n";
 import { STATIC_SITE } from "@/lib/static-site";
 import { EntryAction } from "./entry-action";
+import { InstallCommand } from "./install-command";
 import { LandingNote } from "./landing-note";
 
 // The close, on the same split the page opened on: the invitation on the left, the counter-position
@@ -22,12 +23,17 @@ export function ClosingBlock({ catalogSize, t }: { catalogSize: number; t: Trans
         <p className="mt-4 font-sans text-body text-text-muted">
           {t("landing.close.catalog", { size: catalogSize })}
         </p>
-        <p className="mt-2 font-sans text-body text-text-muted">{t("landing.close.notify")}</p>
         <div className="mt-5 flex flex-wrap items-center gap-4">
+          {STATIC_SITE ? (
+          <InstallCommand copy={t("landing.install.copy")} copied={t("landing.install.copied")} />
+        ) : (
           <EntryAction />
-          {/* The Catalog is behind sign-in, so it is not one of the pages the showcase exports and
-              this pointer would be a 404 there (issue #215). */}
-          {!STATIC_SITE && (
+        )}
+          {/* The Catalog page is the installed app's and the showcase does not export it (issue #215):
+              there the pointer goes to the demo instead (issue #221). */}
+          {STATIC_SITE ? (
+            <HelpPointer href="/demo">{t("landing.seeDemo")}</HelpPointer>
+          ) : (
             <HelpPointer href="/technologies">{t("landing.close.browse", { count: catalogSize })}</HelpPointer>
           )}
         </div>

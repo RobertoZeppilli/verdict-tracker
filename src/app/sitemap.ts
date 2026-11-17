@@ -68,6 +68,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // the same reason the landing does not: they change when their text is edited, which is a
     // deploy and not a row anything here could read.
     ...STATIC_PAGES.flatMap((path) => entry(path)),
+    // The showcase's Dashboard (issue #221), rebuilt with the data on every deploy.
+    ...entry("/demo"),
     ...pages.flatMap(({ path, kind, lastModified }) =>
       kind === "release" ? defaultLocaleEntry(path, lastModified) : entry(path, lastModified),
     ),

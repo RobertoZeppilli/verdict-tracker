@@ -4,6 +4,9 @@ import type { MessageDictionary } from "../index";
 // richiesto` is the name of the judgement (GLOSSARY.md), so a sentence about it reads `richiede un
 // intervento`. `digest` stays as it is, here and everywhere: it is the name of a Significance.
 export const dashboard = {
+  "dashboard.demo.lede":
+    "Una Dashboard che segue {count} tecnologie del catalogo, letta dalle loro vere note di rilascio quando questo sito è stato costruito. Installato, Verdict segue quelle che scegli tu.",
+  "dashboard.demo.install": "installalo",
   // ⚠️ Short because the Column verdict is: at 1.2rem inside a 326px panel the line holds about 26
   // characters, label included, and `warning: 2 richiedono un intervento` is 35 (DESIGN.md, The
   // One-Line Verdict Rule, which says the copy gives way and the scale never does). So the claim is

@@ -3,6 +3,10 @@
 // not here: they are the product's grammar and stay as they are in every language (ADR 0008), and
 // so does `digest`, which is the name of a Significance.
 export const dashboard = {
+  // The showcase's Dashboard (issue #221): what the page is, said above it, and the way back.
+  "dashboard.demo.lede":
+    "A dashboard following {count} technologies of the catalog, read from their real release notes when this site was built. Installed, Verdict follows the ones you choose.",
+  "dashboard.demo.install": "install it",
   // One key for one sentence, read in two places: the page verdict says it of the whole stack and a
   // Standing Row says it of one Technology. Two keys with the same words would be two places to
   // translate it, and the second is the one that gets forgotten.

@@ -12,6 +12,8 @@ export const landing = {
     "{name} {version} ha portato {breaking} in {lines} righe di note di rilascio. Una di queste fa sì che {propTypes} non faccia più niente, in silenzio, ed è alla riga {line}.",
   "landing.promise":
     "Verdict segue le release delle tecnologie del tuo stack e dà a ognuna un verdetto solo: se ti chiede qualcosa, cosa si rompe e come migrare. Ogni affermazione punta alla riga delle note di rilascio da cui è stata letta, così la controlli in un clic invece di fidarti.",
+  // The Dashboard the showcase prerenders (issue #221).
+  "landing.seeDemo": "apri la Dashboard dimostrativa",
   "landing.seeVerdict": "vedi il verdetto di {name} {version}",
   "landing.breakingChanges": {
     one: "{count} breaking change",
@@ -67,9 +69,7 @@ export const landing = {
 
   "landing.close.claim": "Segui le tecnologie che decidono la tua settimana.",
   "landing.close.catalog":
-    "Un catalogo curato di {size} tecnologie. Si accede con GitHub, e le pagine delle release restano leggibili senza.",
-  "landing.close.notify":
-    "Ad app chiusa, un workflow di GitHub in un tuo repository lo fa girare una volta al giorno e manda le novità su Slack o Discord.",
+    "Un catalogo curato di {size} tecnologie. Le pagine delle release sono pubbliche, e per leggerle non serve installare niente.",
   "landing.close.browse": {
     one: "sfoglia l'unica tecnologia",
     many: "sfoglia tutte le {count} tecnologie",
@@ -78,6 +78,25 @@ export const landing = {
   "landing.close.note.claim": "non apre pull request",
   "landing.close.note.body":
     "Dependabot e Renovate lo fanno bene, e ti dicono che una versione si è mossa. Una newsletter ti dice che una release era interessante. Verdict risponde alla domanda che quelli lasciano aperta: questa release mi chiede qualcosa, e dove lo dice. Legge solo le note di rilascio, non indovina mai, e quando le note non dicono niente non dice niente.",
+
+  "landing.install.copy": "copia",
+  "landing.install.copied": "copiato",
+  "landing.install.title": "Prima di installare",
+  "landing.install.sub":
+    "Verdict gira sul tuo computer. Non c'è un account, e in mezzo non c'è nessun nostro server.",
+  "landing.install.key.term": "la tua chiave Anthropic",
+  "landing.install.key.body":
+    "Claude scrive la sintesi di ogni release nuova con la tua chiave, a tue spese: qualche centesimo a release. Le sintesi già scritte arrivano col file dei dati. Senza chiave le release nuove arrivano lo stesso, e le loro sintesi aspettano.",
+  "landing.install.data.term": "il tuo disco",
+  "landing.install.data.body":
+    "I dati sono un file SQLite, in {home} su macOS e Linux, in {windows} su Windows, oppure dove punta {env}. Ad Anthropic vanno le note di rilascio da sintetizzare, e niente che riguardi te.",
+  "landing.install.follows.term": "verdict.json",
+  "landing.install.follows.body":
+    "Le tecnologie che segui, e la versione che usi di ognuna, stanno in {file} accanto ai dati. Copi quel file su un altro computer e vengono con te.",
+  "landing.install.notify.term": "ad app chiusa",
+  "landing.install.notify.body":
+    "Un workflow di GitHub in un tuo repository fa girare Verdict una volta al giorno e manda le novità su Slack o Discord. Nel README è pronto da copiare.",
+  "landing.install.source": "codice e README su {repository}, licenza MIT",
 
   "landing.foot.read": "contenuto letto dalle note di rilascio pubbliche",
   "landing.foot.notes": "note di {name} {version}",
