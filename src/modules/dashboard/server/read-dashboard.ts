@@ -30,29 +30,41 @@ export type DashboardData = { followed: FollowedTechnology[]; releases: Dashboar
 // a followed Technology comes back, not just the window: the compact row needs the latest major
 // however old, and the Weekly Digest needs them all.
 export async function readDashboard(db: Database): Promise<DashboardData> {
-  const follows = z.array(FollowRowSchema).parse(
+  return read(db, "follows", []);
+}
+
+// The showcase's Dashboard (issue #221): the same reading over a fixed stack instead of the follows
+// table, with no Current Version declared. Only `?` placeholders are spliced into the SQL.
+export async function readDemoDashboard(db: Database, slugs: readonly string[]): Promise<DashboardData> {
+  const demo = `(select id as technology_id, null as current_version, null as current_version_declared_at
+    from technologies where slug in (${slugs.map(() => "?").join(", ")}))`;
+  return read(db, demo, slugs);
+}
+
+function read(db: Database, follows: string, params: readonly string[]): DashboardData {
+  const followRows = z.array(FollowRowSchema).parse(
     db
       .prepare(
         `select t.slug, t.name, f.current_version, f.current_version_declared_at
-         from follows f join technologies t on t.id = f.technology_id`,
+         from ${follows} f join technologies t on t.id = f.technology_id`,
       )
-      .all(),
+      .all(...params),
   );
   const releases = z.array(ReleaseRowSchema).parse(
     db
       .prepare(
         `select t.slug, r.version, r.significance, r.significance_override, r.published_at,
            s.status as summary_status, s.content as summary_content, n.body_head
-         from follows f
+         from ${follows} f
          join technologies t on t.id = f.technology_id
          join releases r on r.technology_id = f.technology_id
          left join summaries s on s.release_id = r.id
          left join release_notes n on n.release_id = r.id`,
       )
-      .all(),
+      .all(...params),
   );
   return {
-    followed: follows.map((row) => ({
+    followed: followRows.map((row) => ({
       slug: row.slug,
       name: row.name,
       // The database keeps the two columns together, so one being set is enough to read the pair.

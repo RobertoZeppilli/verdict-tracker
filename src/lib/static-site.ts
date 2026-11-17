@@ -17,3 +17,7 @@ export const SHOWCASE_URL = "https://verdict-tracker.vercel.app";
 // address it has no file for. Here and not in the route, so the script can read it without loading
 // a page module and everything a page imports with it.
 export const STATIC_NOT_FOUND_SEGMENT = "_404";
+
+// The source, which the landing links (issue #221). The same repository `cli/launch.mjs` downloads
+// the initial data file from.
+export const REPOSITORY_URL = "https://github.com/RobertoZeppilli/verdict-tracker";

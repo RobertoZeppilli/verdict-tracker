@@ -229,3 +229,22 @@ test("the landing is built once: nothing over the fold is swapped after it arriv
   expect((await boxesOf(entry)).length).toBe(2);
   expect(await page.evaluate(() => window.quoteSwaps)).toBe(0);
 });
+
+test("the four things to know before installing are on the page", async ({ page }) => {
+  await page.goto("/");
+  const band = page.getByRole("region", { name: "Before you install" });
+  for (const term of ["your Anthropic key", "your disk", "verdict.json", "with the app closed"])
+    await expect(band.getByRole("term").filter({ hasText: term })).toBeVisible();
+  await expect(band.getByRole("link", { name: "github.com/RobertoZeppilli/verdict-tracker" })).toBeVisible();
+});
+
+test("the demo dashboard is the stack read from the catalog, and asks no server for anything", async ({ page }) => {
+  const calls: string[] = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.startsWith("/api/")) calls.push(request.url());
+  });
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Demo dashboard");
+  await expect(page.getByRole("link", { name: /^React/ }).first()).toHaveAttribute("href", "/technologies/react");
+  expect(calls).toEqual([]);
+});
