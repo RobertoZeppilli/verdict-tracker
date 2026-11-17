@@ -10,12 +10,6 @@ export { readFeed, readUnseen, writeSeen } from "./read-feed";
 export { type NotificationSettings, readNotificationSettings } from "./read-notification-settings";
 export { type SendResult, sendToSlack, type SendToSlack } from "./send-slack";
 export {
-  exchangeSlackCode,
-  type ExchangeResult,
-  type SlackApp,
-  slackStateSigner,
-} from "./slack-oauth";
-export {
   writePreference,
   writePreferredLocale,
   writeSlackWebhook,

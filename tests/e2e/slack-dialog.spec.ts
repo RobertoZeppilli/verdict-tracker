@@ -1,52 +1,27 @@
 import { expect, test } from "@playwright/test";
-import { clearNotificationSettings } from "./fixtures";
 
-// The dialog "Add to Slack" opens before leaving for Slack (#199), and the layout of production
-// around it: no field to paste a webhook into (#194).
-//
-// ⚠️ **This file skips itself when the Slack app's credentials are unset**, which is the CI and the
-// normal development run: without them the button is not drawn at all, by decision (#188), and there
-// is nothing to open. It runs when they are set, which is how this was proved on 2026-10-28:
-//
-//     SLACK_CLIENT_ID=0000000000.1111111111 SLACK_CLIENT_SECRET=finto pnpm dev
-//     pnpm test:e2e slack-dialog
-//
-// The credentials can be fake, because nothing here follows the link to Slack: what would happen on
-// slack.com is Slack's half of the round, proved by hand in production. A skipped test says so out
-// loud, which is the point: it is not a hole hidden behind a pass.
-
-test.afterAll(async () => {
-  await clearNotificationSettings();
-});
-
-test("the dialog says what Slack will ask, and nothing else", async ({ page }) => {
+// The dialog of #199, a guide to making a webhook since #218: "Add to Slack" left with its client
+// secret, so the field to paste a webhook into is the only way in, and the dialog says how to get one.
+test("the guide lists the steps, links to Slack, and closes", async ({ page }) => {
   await page.goto("/settings");
+  // The field is always there now: no credentials decide the layout any more.
+  await expect(page.getByLabel("incoming webhook URL")).toBeVisible();
 
-  const button = page.getByRole("link", { name: "Add to Slack" });
-  test.skip((await button.count()) === 0, "the Slack app's credentials are unset, so there is no button");
-
-  // With the credentials in the environment the field to paste a webhook into is gone: this is the
-  // layout production has, and the only run in which it is seen at all.
-  await expect(page.getByLabel("incoming webhook URL")).toHaveCount(0);
-
-  await button.click();
+  const open = page.getByRole("button", { name: "how to make a webhook" });
+  await open.click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog.getByText("Add Verdict to Slack")).toBeVisible();
-  // One sentence, and the dialog has nothing else to say: the thirty day trial it used to explain
-  // left with the Plan (issue #209).
-  await expect(dialog.getByText("Slack asks for a workspace and a channel.")).toBeVisible();
-  await expect(dialog.getByRole("link", { name: "continue to Slack" })).toHaveAttribute(
+  await expect(dialog.getByText("A Slack webhook, step by step")).toBeVisible();
+  await expect(dialog.getByRole("listitem")).toHaveCount(4);
+  await expect(dialog.getByRole("link", { name: "open Slack's app page" })).toHaveAttribute(
     "href",
-    "/slack/install?locale=en",
+    "https://api.slack.com/apps",
   );
 
   // `Esc` closes it, which is Radix's own doing and is asserted because it is a promise of WCAG 2.2.
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
-  // Cancel does nothing but close: the address is still `/settings` and Slack was never reached.
-  await button.click();
-  await page.getByRole("button", { name: "cancel" }).click();
+  await open.click();
+  await page.getByRole("button", { name: "close" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page).toHaveURL("/settings");
 });
