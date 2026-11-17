@@ -81,5 +81,5 @@ jobs:
           prod=$([ "$VERCEL_ENVIRONMENT" = production ] && echo --prod || true)
           npx --yes vercel@65.14.0 pull --yes --environment="$VERCEL_ENVIRONMENT" --token="$VERCEL_TOKEN"
           npx --yes vercel@65.14.0 build $prod --token="$VERCEL_TOKEN"
-          url=$(npx --yes vercel@65.14.0 deploy --prebuilt $prod --token="$VERCEL_TOKEN")
+          url=$(npx --yes vercel@65.14.0 deploy --prebuilt $prod --debug --token="$VERCEL_TOKEN")
           echo "Published: $url" >> "$GITHUB_STEP_SUMMARY"
