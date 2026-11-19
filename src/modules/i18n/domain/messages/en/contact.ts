@@ -11,8 +11,9 @@ export const contact = {
   "contact.noNeed.title": "two things you do not have to write for",
   // The lead of each pair is a `strong` and the rest is the sentence that follows it, so a language
   // keeps the two apart the way the page prints them.
-  "contact.noNeed.delete.lead": "Deleting your account.",
-  "contact.noNeed.delete.body": "It is a button on the {account} and it works at once. Nobody has to approve it.",
+  "contact.noNeed.data.lead": "Deleting your data.",
+  "contact.noNeed.data.body":
+    "There is none of it on our side: it is in a folder on your computer, and deleting that folder is all it takes.",
   "contact.noNeed.add.lead": "Adding a technology.",
   "contact.noNeed.add.body":
     "The catalog is curated and there is no request queue, so a mail about it is a thing to know and not a thing to track. Say it anyway if it matters to you.",

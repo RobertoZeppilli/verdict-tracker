@@ -10,6 +10,5 @@ export const doc = {
   "doc.governing":
     "Questa pagina è pubblicata in inglese e in italiano. Dove non coincidono, è il testo inglese quello che vale.",
   "doc.link.privacy": "informativa sulla privacy",
-  "doc.link.account": "pagina dell'account",
   "doc.link.faq": "FAQ",
 } as const satisfies Partial<MessageDictionary>;

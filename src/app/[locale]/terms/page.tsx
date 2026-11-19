@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Filled, LocaleLink as Link } from "@/modules/i18n/ui";
-import { AccountLink, DocumentPage, DocumentSection } from "@/components/document-page";
+import { DocumentPage, DocumentSection } from "@/components/document-page";
 import { CONTACT_EMAIL } from "@/lib/contact";
 import { pageMetadata } from "@/lib/metadata";
 import { currentLocale, getTranslator } from "@/modules/i18n/server";
@@ -28,7 +28,7 @@ export default async function TermsPage() {
   return (
     <DocumentPage
       title={t("page.terms.title")}
-      updated="2026-10-15"
+      updated="2026-11-19"
       lede={t("terms.lede")}
       governing
     >
@@ -45,14 +45,11 @@ export default async function TermsPage() {
         <p>{t("terms.summaries.check")}</p>
       </DocumentSection>
 
-      <DocumentSection title={t("terms.account.title")}>
+      <DocumentSection title={t("terms.data.title")}>
         <p>
           <Filled
-            text={t("terms.account.body")}
+            text={t("terms.data.body")}
             nodes={{
-              account: (
-                <AccountLink label={t("doc.link.account")} />
-              ),
               privacy: (
                 <Link href="/privacy" className="text-link">
                   {t("doc.link.privacy")}

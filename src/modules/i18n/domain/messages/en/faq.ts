@@ -15,9 +15,9 @@ export const faq = {
   "faq.when.q": "How soon does a new release appear?",
   "faq.when.a":
     "The job that looks for new releases runs once a day. A release page shows the notes as soon as the release is recorded; its verdict appears once the summary has been written, which is a separate job and can lag behind.",
-  "faq.read.q": "Do I need an account to read a release?",
+  "faq.read.q": "Do I need an account?",
   "faq.read.a":
-    "No. Release and technology pages are public. An account is only for the part that is yours: following technologies, declaring the version you are on, and the dashboard built from the two.",
+    "No. There is no account. The app runs on your computer, and the technologies you follow, with the version you run of each, are kept in `verdict.json` next to its data. The showcase online is public and read-only.",
 
   "faq.section.summaries": "the summaries",
   "faq.who.q": "Who writes the summaries?",
@@ -29,21 +29,21 @@ export const faq = {
   "faq.prompt.q": "Does anything about me go into a prompt?",
   // `{privacy}` is the link to the privacy notice, named in `document`.
   "faq.prompt.a":
-    "No. The summaries are written by a job on the server, before anyone opens the page, and that job knows nothing about accounts. A summary is the same text for every reader. The rest of it is in the {privacy}.",
+    "No. A summary is written from the release notes alone, and the request for it carries nothing about who you are or what you follow. A summary is the same text for every reader. The rest of it is in the {privacy}.",
 
   "faq.section.notifications": "notifications",
   "faq.notify.q": "When does something notify me?",
   "faq.notify.a":
     "When a featured or notable release of a technology you follow has its summary in. The bell in the top bar is the only channel built so far.",
 
-  "faq.section.account": "the account",
-  "faq.scope.q": "What does the GitHub sign-in ask for?",
+  "faq.section.data": "your data",
+  "faq.scope.q": "Does Verdict need my GitHub account?",
   "faq.scope.a":
-    "Your public profile and your email address. No access to any repository, private or public, and nothing is ever written to your GitHub account.",
-  "faq.delete.q": "How do I delete my account?",
+    "No. The app reads public release notes from GitHub without signing in. A `GITHUB_TOKEN` is optional: it raises GitHub's limit of 60 requests an hour and is only used to read.",
+  "faq.delete.q": "How do I delete my data?",
   "faq.delete.a":
-    "On the {account}. You type one word to confirm, and the account goes at once, with the technologies you followed and the versions you declared. There is no grace period and nothing to undo it with.",
+    "Delete the data folder: `~/.verdict/` on macOS and Linux, `%LOCALAPPDATA%\\verdict` on Windows, or wherever `VERDICT_DATA_DIR` points. Nothing about you is kept anywhere else.",
   "faq.cookies.q": "Is there a cookie banner?",
   "faq.cookies.a":
-    "No, because there is nothing to ask about: no advertising, no profiling, and no third party setting anything in your browser. Signing in sets the session cookies that keep you signed in, and the theme you pick stays in your own browser.",
+    "No, because there is nothing to ask about: no advertising, no profiling, no cookies, and no third party setting anything in your browser. The theme you pick stays in your own browser.",
 } as const;

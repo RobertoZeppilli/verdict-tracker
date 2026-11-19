@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Filled, LocaleLink as Link } from "@/modules/i18n/ui";
-import { AccountLink, DocumentPage, DocumentSection } from "@/components/document-page";
+import { DocumentPage, DocumentSection } from "@/components/document-page";
 import { pageMetadata } from "@/lib/metadata";
 import { currentLocale, getTranslator } from "@/modules/i18n/server";
 
@@ -33,7 +33,7 @@ export default async function FaqPage() {
   const t = await getTranslator();
 
   return (
-    <DocumentPage title={t("page.faq.title")} updated="2026-10-23" lede={t("faq.lede")}>
+    <DocumentPage title={t("page.faq.title")} updated="2026-11-19" lede={t("faq.lede")}>
       <DocumentSection title={t("faq.section.product")}>
         <Question question={t("faq.does.q")}>
           <p>{t("faq.does.a")}</p>
@@ -80,21 +80,12 @@ export default async function FaqPage() {
         </Question>
       </DocumentSection>
 
-      <DocumentSection title={t("faq.section.account")}>
+      <DocumentSection title={t("faq.section.data")}>
         <Question question={t("faq.scope.q")}>
           <p>{t("faq.scope.a")}</p>
         </Question>
         <Question question={t("faq.delete.q")}>
-          <p>
-            <Filled
-              text={t("faq.delete.a")}
-              nodes={{
-                account: (
-                  <AccountLink label={t("doc.link.account")} />
-                ),
-              }}
-            />
-          </p>
+          <p>{t("faq.delete.a")}</p>
         </Question>
         <Question question={t("faq.cookies.q")}>
           <p>{t("faq.cookies.a")}</p>

@@ -13,7 +13,7 @@ import { expect, test } from "@playwright/test";
 // quoted from `src/modules/i18n/domain/messages/en`: if the wording changes there, this fails and
 // is to be updated, because what it guards is the key's absence and not the sentence.
 const SERVER_ONLY = [
-  "nothing about you is ever sent to a language model",
+  "there is no server of ours to keep it on",
   "The questions this product is actually asked",
 ];
 

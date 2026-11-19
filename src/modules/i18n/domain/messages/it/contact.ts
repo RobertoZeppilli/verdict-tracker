@@ -11,8 +11,9 @@ export const contact = {
     "Una sintesi che legge male le sue note di rilascio, una release che non è mai comparsa, una pagina che si rompe alla tua larghezza, una domanda a cui le {faq} non rispondono: vale la pena scrivere di tutto questo. Se su una pagina c'è qualcosa che non va, l'indirizzo di quella pagina è la riga più utile del messaggio.",
 
   "contact.noNeed.title": "due cose per cui non devi scrivere",
-  "contact.noNeed.delete.lead": "Cancellare il tuo account.",
-  "contact.noNeed.delete.body": "È un pulsante nella {account} e funziona subito. Non deve approvarlo nessuno.",
+  "contact.noNeed.data.lead": "Cancellare i tuoi dati.",
+  "contact.noNeed.data.body":
+    "Da noi non ce ne sono: stanno in una cartella sul tuo computer, e basta cancellare quella.",
   "contact.noNeed.add.lead": "Aggiungere una tecnologia.",
   "contact.noNeed.add.body":
     "Il catalogo è curato e non c'è una coda di richieste, quindi una mail al riguardo è una cosa da sapere e non una cosa da tracciare. Dillo lo stesso, se ci tieni.",
