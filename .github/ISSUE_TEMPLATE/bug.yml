@@ -1,0 +1,22 @@
+name: Bug
+description: Something does not work as described.
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Version
+      description: The latest on npm when you ran it (`npm view verdict-tracker version`), or the commit if you run from source.
+  - type: input
+    attributes:
+      label: Operating system and Node.js version
+  - type: textarea
+    attributes:
+      label: Terminal output
+      description: Leave out your Anthropic key and webhook URL.
+      render: text
