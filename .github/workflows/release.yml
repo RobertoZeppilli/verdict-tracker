@@ -18,6 +18,8 @@ on:
   pull_request:
     paths:
       - cli/**
+      # Every page is prerendered by the package build: a page can break it (issue #221's demo did).
+      - src/**
       - scripts/pack-cli.mts
       - next.config.ts
       - src/proxy.ts
