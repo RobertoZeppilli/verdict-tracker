@@ -5,8 +5,7 @@ import { execFileSync } from "node:child_process";
 // di come si leggono i codici di uscita di solito.
 //
 // Perché esiste: ogni deploy di produzione azzera la cache ISR, e riscaldarla di nuovo costa
-// scritture (le misure stanno in `docs/handoff/PESO.md`). Un commit che tocca solo il diario o un
-// documento produce un sito identico, byte per byte, e pagarlo due volte non ha senso.
+// scritture. Un commit che tocca solo un documento produce un sito identico, byte per byte, e pagarlo due volte non ha senso.
 //
 // ⚠️ Node e non `tsx`: questo gira **prima** dell'installazione delle dipendenze, quindi non può
 // importare niente che non sia di Node.
