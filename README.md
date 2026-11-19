@@ -106,6 +106,47 @@ commit also keeps the schedule alive, which GitHub pauses after 60 days without 
 On your own computer the same command, with `VERDICT_WEBHOOK_URL` in the `.env` next to the data,
 sends the message right away.
 
+## Releases that need action, in your Obsidian vault
+
+Set `VERDICT_VAULT_DIR` to the folder of your vault. When a release of a technology you follow gets
+a summary that asks for action, Verdict writes a note to `<vault>/Verdict/<Technology>/<Version>.md`.
+Releases that ask for nothing are left out. It writes plain files, so there is no plugin to install
+and Obsidian can be closed. Notes are written after every summary the app generates, and at startup
+for any that are missing.
+
+A note is written once and never overwritten: what you add to it stays. Delete it and the next start
+writes it again. Without `VERDICT_VAULT_DIR` nothing is written. A folder that is missing or read-only
+is reported in the terminal and the app starts anyway.
+
+```markdown
+---
+technology: "Next.js"
+version: "16.0.0"
+significance: featured
+actionRequired: true
+publishedAt: "2026-10-21T17:00:00.000Z"
+url: "https://verdict-tracker.vercel.app/technologies/next/16.0.0"
+notesUrl: "https://github.com/vercel/next.js/releases/tag/v16.0.0"
+generatedBy: verdict
+---
+
+# Middleware becomes proxy
+
+## Breaking changes
+
+- `middleware.ts` is renamed
+  Migration: Rename it to `proxy.ts`
+  > the quote from the release notes, when there is one
+
+## Key points
+
+- Turbopack by default
+```
+
+The frontmatter keys are the same in every language, so Dataview queries keep working (for example
+`TABLE version, significance FROM "Verdict" WHERE generatedBy = "verdict"`). The headings follow the
+language chosen in `/settings`. `notesUrl` is `null` when the release has no notes page.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md): running it locally, opening a pull request, and adding a

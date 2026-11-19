@@ -12,4 +12,5 @@ export const serverEnv = parseServerEnv({
   VERDICT_MODEL_CONTEXT: process.env.VERDICT_MODEL_CONTEXT,
   E2E_AUTH_SECRET: process.env.E2E_AUTH_SECRET,
   VERDICT_WEBHOOK_URL: process.env.VERDICT_WEBHOOK_URL,
+  VERDICT_VAULT_DIR: process.env.VERDICT_VAULT_DIR,
 });

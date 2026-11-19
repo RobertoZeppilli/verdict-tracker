@@ -46,6 +46,9 @@ const ServerEnvSchema = z.object({
       .regex(/^https:\/\/(hooks\.slack\.com\/services|discord\.com\/api\/webhooks)\/./, "a Slack or Discord webhook URL")
       .optional(),
   ),
+  // The Obsidian vault the Releases that need action are written into (issue #242). Unset: nothing is
+  // written. A folder that does not exist is reported at startup, not refused here.
+  VERDICT_VAULT_DIR: z.preprocess((value) => (value === "" ? undefined : value), z.string().min(1).optional()),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

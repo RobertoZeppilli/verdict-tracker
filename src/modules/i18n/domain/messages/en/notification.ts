@@ -30,4 +30,9 @@ export const notification = {
   "notification.slack.more": { one: "and {count} more", other: "and {count} more" },
   "notification.slack.test": "Test message from verdict. The Slack channel is working.",
   "notification.unseen": "unseen",
+  // The headings of a Vault note (#242). The frontmatter keys are not here: they stay English in every
+  // language, so a Dataview query keeps working when the language changes.
+  "notification.vault.breaking": "Breaking changes",
+  "notification.vault.migration": "Migration",
+  "notification.vault.keyPoints": "Key points",
 } as const;
