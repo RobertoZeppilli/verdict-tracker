@@ -1,64 +1,44 @@
 import type { MessageDictionary } from "../index";
 
-// L'informativa sulla privacy, in italiano. Le sei righe di `cosa viene tenuto` sono il database
-// letto riga per riga (issue #132): l'etichetta resta minuscola e corta come in inglese, perché è
-// una colonna di una tabella e non un titolo. `account id` resta così: è il nome della colonna.
+// L'informativa sulla privacy, in italiano. Dalla issue #236 non c'è un account né una tabella di
+// righe tenute su una persona: i dati sono due file sul computer di chi legge.
 export const privacy = {
   "privacy.lede":
-    "Tutto quello che questo prodotto sa di te, scritto a partire dalle tabelle in cui è tenuto. È un elenco corto, e la parte più corta è quella che conta di più: di te al modello linguistico non va mai niente.",
+    "Cosa sa di te questo prodotto, e la risposta è niente: non c'è un nostro server su cui tenerlo. L'app gira sul tuo computer e tiene lì i suoi dati. Quello che dal tuo computer esce sono note di rilascio, mai qualcosa su di te, e qui sotto c'è l'elenco.",
 
-  "privacy.held.title": "cosa viene tenuto",
+  "privacy.held.title": "cosa viene tenuto, e dove",
   "privacy.held.intro":
-    "Nove cose, e arrivano tutte o dall'accesso con GitHub o da qualcosa che hai fatto nell'app. Non c'è un profilo da compilare, non c'è un nome oltre a quello che GitHub pubblica, e non c'è un campo che ti chieda altro.",
-  "privacy.held.id.label": "account id",
-  "privacy.held.id.why": "l'identificatore che crea l'accesso, con cui è indicizzata ogni riga qui sotto",
-  "privacy.held.email.label": "indirizzo email",
-  "privacy.held.email.why": "da GitHub, perché l'account possa essere riconosciuto e raggiunto",
-  "privacy.held.github.label": "nome e foto github",
-  "privacy.held.github.why": "da GitHub, mostrati nella barra in alto e in nessun altro posto",
-  "privacy.held.follows.label": "tecnologie seguite",
-  "privacy.held.follows.why": "quali, e il giorno in cui hai cominciato a seguire ognuna",
-  "privacy.held.versions.label": "versioni dichiarate",
-  "privacy.held.versions.why": "la versione che dici di usare, e il giorno in cui l'hai detto",
-  "privacy.held.notifications.label": "notifiche",
-  "privacy.held.notifications.why":
-    "di quale release ti abbiamo avvisato, il giorno in cui è stata scritta, e se l'hai vista",
-  "privacy.held.channels.label": "canali delle notifiche",
-  "privacy.held.channels.why":
-    "quali eventi ti raggiungono su quale canale, e l'indirizzo slack che gli dai, se gliene dai uno",
-  "privacy.held.sendLocale.label": "lingua di email e slack",
-  "privacy.held.sendLocale.why":
-    "la lingua in cui quelle due sono scritte, che imposti nelle impostazioni",
-  "privacy.held.yours": "La tua copia di quell'elenco, riempita con le tue righe, la leggi nella {account}.",
+    "Di te non teniamo niente. L'app tiene due file sul tuo computer: `verdict.json`, con le tecnologie che segui e la versione che usi di ognuna, e `verdict.db`, con il catalogo, le release, le sintesi e le tue notifiche. La tua chiave Anthropic e l'indirizzo del webhook, se li dai, stanno in un file `.env` accanto a loro. Non ne abbiamo nessuna copia.",
 
   "privacy.prompt.title": "nessun dato personale entra in un prompt",
   "privacy.prompt.body":
-    "Le sintesi le scrive un modello linguistico, e al modello non viene mai detto chi sei. Il job che le scrive gira sul server, su una sua pianificazione, e legge una cosa sola: le note di rilascio che un progetto ha pubblicato. Non sa quali tecnologie segua nessuno, e una sintesi è lo stesso testo per chiunque legga, scritta una volta e salvata.",
+    "Le sintesi le scrive un modello linguistico, chiamato dal tuo computer con la tua chiave, e al modello non viene mai detto chi sei. La richiesta porta una cosa sola: le note di rilascio che un progetto ha pubblicato. Non dice niente di quali tecnologie segui, e una sintesi è lo stesso testo per chiunque legga.",
   "privacy.prompt.images":
-    "Nemmeno il browser parla con un terzo. La foto di GitHub è servita attraverso il nostro ottimizzatore di immagini, quindi il tuo browser la chiede a questo sito invece che a GitHub.",
+    "Nemmeno il browser parla con un terzo. Le pagine arrivano dall'app sul tuo computer, e ogni chiamata a GitHub, npm o Anthropic la fa l'app, non il browser.",
 
   "privacy.who.title": "chi altro ci mette le mani",
   "privacy.who.github":
-    "autentica l'accesso e consegna il tuo profilo pubblico e il tuo indirizzo email. Non ha accesso ai dati di quest'app, e quest'app non ha accesso ai tuoi repository.",
-  "privacy.who.supabase": "fa girare il database e le sessioni: le nove righe qui sopra stanno lì.",
+    "serve le note di rilascio pubbliche e il file dati che l'app scarica al primo avvio. L'app da GitHub legge soltanto, e un `GITHUB_TOKEN`, se lo imposti, alza solo il limite orario.",
+  "privacy.who.npm":
+    "serve l'app stessa attraverso `npx`, e gli elenchi delle versioni delle tecnologie pubblicate lì.",
   "privacy.who.vercel":
-    "ospita l'app, quindi serve ogni richiesta e tiene i log delle richieste che ne vengono, e conta le visualizzazioni delle pagine con Vercel Analytics.",
+    "ospita la vetrina, quindi serve ogni richiesta che le arriva, tiene i log delle richieste che ne vengono, e conta le visualizzazioni delle pagine con Vercel Analytics. L'app sul tuo computer da Vercel non passa.",
   "privacy.who.anthropic":
-    "fornisce il modello che scrive le sintesi, a partire dalle sole note di rilascio pubbliche, come sopra.",
+    "fornisce il modello che scrive le sintesi. L'app lo chiama con la tua chiave, a partire dalle sole note di rilascio pubbliche, come sopra.",
 
   "privacy.cookies.title": "i cookie, e cosa c'è nel tuo browser",
   "privacy.cookies.body":
     "Su questo sito non c'è un banner di consenso perché non c'è niente a cui acconsentire: nessuna pubblicità, nessuna profilazione, e nessun terzo che metta qualcosa nel tuo browser.",
   "privacy.cookies.what":
-    "L'accesso imposta i cookie di sessione, che sono quelli che ti tengono dentro da una pagina all'altra; uscire o cancellare l'account li cancella. Il tema che scegli è tenuto nel local storage del tuo browser, non in un cookie, e dal browser non esce mai. Vercel Analytics conta le visualizzazioni senza un cookie e senza salvare un identificatore nel tuo browser: quello che produce sono conteggi di pagine, non la traccia di una persona.",
+    "Non ci sono cookie. Il tema che scegli è tenuto nel local storage del tuo browser e dal browser non esce mai. Sulla vetrina, Vercel Analytics conta le visualizzazioni senza un cookie e senza salvare un identificatore nel tuo browser: quello che produce sono conteggi di pagine, non la traccia di una persona.",
 
   "privacy.keep.title": "per quanto, e come farla finire",
   "privacy.keep.body":
-    "Tutto quello che c'è qui sopra è tenuto finché l'account esiste. Cancellare l'account dalla {account} lo toglie subito: la riga dell'account va via, e con lei vanno le tecnologie seguite e le versioni dichiarate, perché sono indicizzate su di lei e cancellate con lei. Non c'è un periodo di grazia, non c'è un nostro archivio, e non c'è niente con cui tornare indietro.",
+    "Tutto quello che c'è qui sopra resta sul tuo computer finché tieni i file. Cancellare la cartella dei dati lo toglie: `~/.verdict/` su macOS e Linux, `%LOCALAPPDATA%\\verdict` su Windows, o dove punta `VERDICT_DATA_DIR`. Non c'è una nostra copia da chiedere.",
   "privacy.keep.notifications":
     "Le notifiche sono l'unica riga con un orologio suo: ognuna è cancellata 90 giorni dopo che è stata scritta, vista o no, e dopo non ne resta niente.",
   "privacy.keep.after":
-    "Quello che resta dopo è fuori dall'account: il catalogo, le release e le sintesi, che non sono mai stati tuoi né su di te. I fornitori qui sopra fanno i loro backup e i loro log su pianificazioni loro, che non controlliamo e da cui non possiamo cancellare.",
+    "Il catalogo, le release e le sintesi non sono mai stati tuoi né su di te, e il prossimo avvio li scarica di nuovo. I fornitori qui sopra fanno i loro backup e i loro log su pianificazioni loro, che non controlliamo e da cui non possiamo cancellare.",
 
   "privacy.reach.title": "come scriverci",
   "privacy.reach.body":

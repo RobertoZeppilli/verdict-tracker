@@ -2,18 +2,6 @@ import type { ReactNode } from "react";
 import { getTranslator } from "@/modules/i18n/server";
 import { SiteHeader } from "./site-header";
 
-// The account page, named in a sentence by all five documents. On the showcase it was never a link,
-// because the page is the app's and is not exported (issue #215); since issue #210 it is not a link
-// anywhere, because there is no account and no page to point at, and a link to `/account` would be
-// a 404 in the installed app too.
-// ⚠️ **The sentences around it still describe an account**: deleting it, signing in with GitHub,
-// what is kept while it exists. The name stops being a link here so that nothing on the page is
-// broken, but the five documents want a rewrite of their own, which is prose in both languages and
-// not a line of code.
-export function AccountLink({ label }: { label: string }) {
-  return label;
-}
-
 // The five pages that say what the product is (terms, privacy, attributions, faq, contact) share
 // one shape, so they share one component: the same container the rest of the app uses, the
 // breadcrumb that says where the page sits, the heading, a lede, and the day the text last changed.

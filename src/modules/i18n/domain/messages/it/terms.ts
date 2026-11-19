@@ -9,7 +9,7 @@ export const terms = {
 
   "terms.service.title": "il servizio",
   "terms.service.body":
-    "Verdict segue le release delle tecnologie del suo catalogo e dà a ognuna un verdetto: se ti chiede qualcosa, cosa si rompe e come migrare. Le pagine delle release e delle tecnologie sono pubbliche e non vogliono un account. Seguire una tecnologia, dichiarare la versione in uso e la Dashboard sono soltanto tuoi, e quelli un account lo vogliono.",
+    "Verdict segue le release delle tecnologie del suo catalogo e dà a ognuna un verdetto: se ti chiede qualcosa, cosa si rompe e come migrare. È software open source con licenza MIT e gira sul tuo computer, con la tua chiave Anthropic e i tuoi dati in file tuoi. La vetrina online è una copia pubblica, in sola lettura, delle stesse pagine.",
 
   "terms.catalog.title": "il catalogo è curato",
   "terms.catalog.body":
@@ -22,13 +22,13 @@ export const terms = {
   "terms.summaries.check":
     "Un modello può leggere male. È per questo che una sintesi non è l'ultima parola della pagina: le sue affermazioni portano la riga delle note di rilascio da cui sono state lette, e la pagina linka le note alla fonte. La citazione è lì perché tu possa controllare invece di fidarti. Quando sbagliare costa caro, leggi la riga citata prima di agire sul verdetto.",
 
-  "terms.account.title": "il tuo account",
-  "terms.account.body":
-    "Accedi con GitHub, a cui vengono chiesti il tuo profilo pubblico e il tuo indirizzo email e niente altro: nessun accesso a nessun repository. Puoi cancellare l'account quando vuoi dalla {account}, e cancellandolo se ne vanno con lui le tecnologie che segui e le versioni che hai dichiarato. Cosa viene tenuto, e da chi, sta nell'{privacy}.",
+  "terms.data.title": "i tuoi dati e la tua chiave",
+  "terms.data.body":
+    "Non c'è un account. Le tecnologie che segui e le versioni che hai dichiarato stanno in `verdict.json`, e tutto il resto in `verdict.db`, tutti e due sul tuo computer: cancellarli cancella tutto. Le sintesi delle release nuove le scrive la tua chiave Anthropic, e Anthropic le fattura a te. Cosa esce dal tuo computer, e dove va, sta nell'{privacy}.",
 
   "terms.conduct.title": "cosa chiediamo a te",
   "terms.conduct.body":
-    "Leggerlo, seguire quello che usi, e lasciare stare il resto: niente traffico automatico oltre a quello che fa un lettore, nessun tentativo di arrivare ai dati di un altro account, nessun tentativo di rompere l'app o i servizi che ci stanno dietro. Un account che faccia una di queste cose può essere chiuso senza preavviso.",
+    "Sulla vetrina, leggi e lascia stare il resto: niente traffico automatico oltre a quello che fa un lettore, e nessun tentativo di rompere la vetrina o i servizi che ci stanno dietro. L'app sul tuo computer è tua, e la usi come la licenza permette.",
 
   "terms.warranty.title": "nessuna garanzia",
   "terms.warranty.body":

@@ -95,7 +95,7 @@ test("the two binding pages say which language holds, and the other three do not
 // long address or an unbreakable word pushes the document sideways.
 // ⚠️ Italian is in the loop and not only English: its prose is the longer of the two, and a word
 // like `identificatore` in the 22ch column of the privacy table is exactly what pushes a document
-// sideways at this width.
+// sideways at this width. The `%LOCALAPPDATA%\verdict` path in privacy and faq is the long word now.
 test("none of the five is wider than a phone, in either language", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
 

@@ -76,8 +76,8 @@ function StackPanel() {
       >
         <Figure label={t("stack.figure.followed")} value={count} testId="follow-status" />
       </dl>
-      {/* The one hue this page may carry, and it is the system's own: the navigational `-->` and
-          its `help` label, not an accent (DESIGN.md, The Severity-Only Colour Rule). The sentence
+      {/* The one hue this page may carry, and it is the system's own: the navigational
+          pointer and its `help` label, not an accent (DESIGN.md, The Severity-Only Colour Rule). The sentence
           that said the same thing had a destination in it and no way to go there. */}
       <p className="mt-3 border-t border-rule pt-3">
         <HelpPointer href="/dashboard">{t("stack.seeDashboard")}</HelpPointer>

@@ -12,6 +12,5 @@ export const doc = {
   "doc.governing":
     "This page is published in English and Italian. Where they differ, the English text is the one that holds.",
   "doc.link.privacy": "privacy notice",
-  "doc.link.account": "account page",
   "doc.link.faq": "FAQ",
 } as const;

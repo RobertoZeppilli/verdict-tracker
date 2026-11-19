@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { Filled } from "@/modules/i18n/ui";
-import { AccountLink, DocumentPage, DocumentSection } from "@/components/document-page";
+import { DocumentPage, DocumentSection } from "@/components/document-page";
 import { CONTACT_EMAIL } from "@/lib/contact";
 import { pageMetadata } from "@/lib/metadata";
 import { currentLocale, getTranslator } from "@/modules/i18n/server";
-import type { MessageKey } from "@/modules/i18n";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslator();
@@ -18,60 +17,21 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-// The list below is the database, read row by row (issue #132): `auth.users` for the identity and
-// `follows` for the technologies and the declared version. Nothing is described from memory, and
-// anything added to those tables has to be added here too. The `plans` row left with the Plan
-// (issue #209): there is one level of service, so there is nothing about it to hold.
-// ⚠️ It is a list of **keys** and not of strings now (issue #131): the label and the reason are two
-// messages per row, so a row added here without its two keys is a build error, and a row added
-// without its Italian is a failing dictionary test rather than an English line on an Italian page.
-// ⚠️ The last three arrived with the Notifications (ADR 0009): `notifications` for what was sent,
-// `notification_preferences` for which event reaches which channel, and `notification_settings` for
-// the language the external channels are written in. The count is in the prose above the list, so a
-// row added here is a word to change there as well.
-const HELD = [
-  "id",
-  "email",
-  "github",
-  "follows",
-  "versions",
-  "notifications",
-  "channels",
-  "sendLocale",
-] as const;
-
+// The table of rows held about a person left with the account (issue #236): the data is two files on
+// the reader's computer, and `privacy.held.intro` names them. A file added next to them, or a new
+// service the app calls, is a sentence to change here.
 export default async function PrivacyPage() {
   const t = await getTranslator();
 
   return (
     <DocumentPage
       title={t("page.privacy.title")}
-      updated="2026-10-23"
+      updated="2026-11-19"
       lede={t("privacy.lede")}
       governing
     >
       <DocumentSection title={t("privacy.held.title")}>
         <p>{t("privacy.held.intro")}</p>
-        <dl className="mt-1 font-mono text-diagnostic">
-          {HELD.map((row) => (
-            <div key={row} className="flex flex-wrap gap-x-4 gap-y-1 border-b border-rule py-2">
-              <dt className="w-[22ch] shrink-0 text-text-muted">
-                {t(`privacy.held.${row}.label` satisfies MessageKey)}
-              </dt>
-              <dd className="text-text">{t(`privacy.held.${row}.why` satisfies MessageKey)}</dd>
-            </div>
-          ))}
-        </dl>
-        <p>
-          <Filled
-            text={t("privacy.held.yours")}
-            nodes={{
-              account: (
-                <AccountLink label={t("doc.link.account")} />
-              ),
-            }}
-          />
-        </p>
       </DocumentSection>
 
       <DocumentSection title={t("privacy.prompt.title")}>
@@ -84,7 +44,7 @@ export default async function PrivacyPage() {
           <strong className="font-semibold text-text">GitHub</strong> {t("privacy.who.github")}
         </p>
         <p>
-          <strong className="font-semibold text-text">Supabase</strong> {t("privacy.who.supabase")}
+          <strong className="font-semibold text-text">npm</strong> {t("privacy.who.npm")}
         </p>
         <p>
           <strong className="font-semibold text-text">Vercel</strong> {t("privacy.who.vercel")}
@@ -100,16 +60,7 @@ export default async function PrivacyPage() {
       </DocumentSection>
 
       <DocumentSection title={t("privacy.keep.title")}>
-        <p>
-          <Filled
-            text={t("privacy.keep.body")}
-            nodes={{
-              account: (
-                <AccountLink label={t("doc.link.account")} />
-              ),
-            }}
-          />
-        </p>
+        <p>{t("privacy.keep.body")}</p>
         <p>{t("privacy.keep.notifications")}</p>
         <p>{t("privacy.keep.after")}</p>
       </DocumentSection>

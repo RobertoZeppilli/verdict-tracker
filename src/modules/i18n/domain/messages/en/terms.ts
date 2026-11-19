@@ -7,7 +7,7 @@ export const terms = {
 
   "terms.service.title": "the service",
   "terms.service.body":
-    "Verdict follows the releases of the technologies in its catalog and gives each one a verdict: whether it asks something of you, what breaks, and how to migrate. Release and technology pages are public and need no account. Following a technology, declaring the version you are on and the dashboard are yours alone, and those need one.",
+    "Verdict follows the releases of the technologies in its catalog and gives each one a verdict: whether it asks something of you, what breaks, and how to migrate. It is open source software under the MIT license and runs on your computer, with your Anthropic key and your data in files of your own. The showcase online is a public, read-only copy of the same pages.",
 
   "terms.catalog.title": "the catalog is curated",
   "terms.catalog.body":
@@ -20,13 +20,13 @@ export const terms = {
   "terms.summaries.check":
     "A model can misread. That is why a summary is not the last word on the page: its claims carry the line of the release notes they were read from, and the page links the notes at their source. The quote is there so you can check instead of trust. When a change is expensive to get wrong, read the cited line before you act on the verdict.",
 
-  "terms.account.title": "your account",
-  "terms.account.body":
-    "You sign in with GitHub, which is asked for your public profile and your email address and nothing else: no access to any repository. You can delete the account at any time from the {account}, and deleting it takes the technologies you follow and the versions you declared with it. What is held, and by whom, is in the {privacy}.",
+  "terms.data.title": "your data and your key",
+  "terms.data.body":
+    "There is no account. The technologies you follow and the versions you declared are in `verdict.json`, and everything else in `verdict.db`, both on your computer: deleting them deletes all of it. The summaries of new releases are written with your Anthropic key, and Anthropic bills you for them. What leaves your computer, and where it goes, is in the {privacy}.",
 
   "terms.conduct.title": "what we ask of you",
   "terms.conduct.body":
-    "Read it, follow what you use, and leave the rest alone: no automated traffic beyond what a reader generates, no attempt to reach another account’s data, no attempt to break the app or the services behind it. An account doing any of those can be ended without notice.",
+    "On the showcase, read and leave the rest alone: no automated traffic beyond what a reader generates, and no attempt to break it or the services behind it. The app on your computer is yours to run as the license allows.",
 
   "terms.warranty.title": "no warranty",
   "terms.warranty.body":
