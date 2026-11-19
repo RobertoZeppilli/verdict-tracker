@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { createServer, type ServerResponse } from "node:http";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { databaseFile } from "@/modules/db";
-import { dataDirectory, nextSyncState, parseSyncState } from "./launch.mjs";
+import { dataDirectory, nextSyncState, parseSyncState, postJson } from "./launch.mjs";
 
 // The launcher downloads the initial file where the server will look for it: one path, two copies.
 describe("dataDirectory", () => {
@@ -37,5 +38,28 @@ describe("the state of sync --notify", () => {
   it("starts empty from a missing or broken file instead of stopping", () => {
     expect(parseSyncState(null)).toEqual({ lastRun: null, sent: {} });
     expect(parseSyncState("{not json")).toEqual({ lastRun: null, sent: {} });
+  });
+});
+
+// `fetch` gives up on a response after 300 s, and a run with many Summaries takes longer (issue #261).
+describe("postJson", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("waits for a run that answers after more than five minutes", async () => {
+    let answer: ServerResponse | undefined;
+    const server = createServer((_, res) => (answer = res));
+    await new Promise<void>((done) => server.listen(0, "localhost", done));
+    const address = server.address();
+    if (address === null || typeof address === "string") throw new Error("expected a port");
+    const { port } = address;
+
+    vi.useFakeTimers({ toFake: ["setTimeout", "setInterval"] });
+    const response = postJson(`http://localhost:${port}/api/detection`, { origin: "x" }, { force: true });
+    await vi.waitFor(() => expect(answer).toBeDefined(), { interval: 10 });
+    vi.advanceTimersByTime(6 * 60 * 1000);
+    answer?.writeHead(200, { "content-type": "application/json" }).end('{"ran":true}');
+
+    await expect(response).resolves.toEqual({ status: 200, text: '{"ran":true}' });
+    server.close();
   });
 });
