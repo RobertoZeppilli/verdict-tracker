@@ -35,7 +35,7 @@ const adapters = createSourceAdapters({ githubToken: env.GITHUB_TOKEN });
 
 // The new versions of the Technologies already in the file, before the import: a file carried over
 // from an earlier run (the initial one of a Release, the showcase's) is otherwise frozen (#221).
-// No Summaries here: they cost, and the file is not kept between showcase runs.
+// No Summaries here: they cost, and the showcase writes them in a step of its own (#269).
 const detection = await detectReleases(db, adapters);
 console.log(`Detection: ${detection.asked} asked, ${detection.detected.length} new release(s).`);
 for (const { slug, error } of detection.failed) console.error(`detection ${slug} failed: ${error}`);
