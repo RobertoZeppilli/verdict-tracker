@@ -14,6 +14,7 @@
     "test:e2e": "playwright test",
     "catalog:sync": "tsx --conditions=react-server scripts/sync-catalog.mts",
     "notes:backfill": "tsx --conditions=react-server scripts/backfill-notes.mts",
+    "summaries:pending": "tsx --conditions=react-server scripts/summarize-pending.mts",
     "summary:try": "tsx --conditions=react-server scripts/summarize-release.mts",
     "summary:eval": "tsx --conditions=react-server scripts/evaluate-summaries.mts",
     "icons:sync": "tsx scripts/sync-technology-marks.mts",
