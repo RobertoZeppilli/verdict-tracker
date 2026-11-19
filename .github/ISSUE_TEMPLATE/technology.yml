@@ -1,0 +1,19 @@
+name: New technology
+description: Ask for a technology to join the catalog, or add it yourself.
+labels: [enhancement]
+body:
+  - type: input
+    attributes:
+      label: Technology
+      description: Its name and where it is published (npm package or GitHub repository).
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Release notes
+      description: Where the project publishes them (GitHub Releases or a changelog file).
+  - type: checkboxes
+    attributes:
+      label: Pull request
+      options:
+        - label: I would like to add the `catalog/<slug>.json` file myself (see CONTRIBUTING.md).

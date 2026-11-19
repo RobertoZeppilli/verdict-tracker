@@ -1,93 +1,50 @@
 # verdict-tracker
 
-Traccia le Release delle Tecnologie di un Catalogo curato e ne genera Sintesi con l'AI. Gira sul tuo
-computer, con la tua chiave Anthropic e i dati in un file SQLite: niente account, niente server.
-L'interfaccia è in inglese e in italiano (la lingua si sceglie in Settings).
+Verdict follows the releases of the technologies in your stack and gives each one a single verdict:
+whether it asks something of you, what breaks, and how to migrate. Every claim points at the line of
+the release notes it was read from, so you can check it in one click instead of trusting it.
 
-La vetrina, con una Dashboard dimostrativa: <https://verdict-tracker.vercel.app>.
+It runs on your computer. There is no account, and no server of ours in between. The interface is in
+English and Italian.
 
-Prodotto e dominio: `PRODUCT.md`, `GLOSSARY.md`; decisioni: `docs/DECISIONI.md`, `docs/adr/`.
+The showcase, with a demo dashboard: <https://verdict-tracker.vercel.app>.
 
-## Usarlo
+## Run it
 
-Serve Node.js 24 o successivo. Nient'altro: niente git, niente build, niente Docker.
+You need Node.js 24 or later.
 
 ```sh
 npx verdict-tracker
 ```
 
-Il comando avvia l'app su `http://localhost:7357` (o su un'altra porta libera, se quella è
-occupata) e apre il browser sulla Dashboard. Risponde solo da questo computer, mai dalla rete.
-Si ferma con Ctrl+C.
+The app starts on `http://localhost:7357` (or another free port) and opens the dashboard in your
+browser. It answers only on this computer, never on the network. Stop it with Ctrl+C.
 
-- **I dati** stanno in `~/.verdict/` su Mac e Linux, in `%LOCALAPPDATA%\verdict` su Windows; con
-  `VERDICT_DATA_DIR` li metti dove vuoi. Al primo avvio il comando scarica da GitHub il file
-  iniziale, `verdict.db`, con il Catalogo, le Release e le Sintesi già scritte. Dal secondo avvio
-  usa quello che c'è e non scarica più niente.
-- **La chiave Anthropic** serve per le Sintesi delle Release nuove. Mettila in un file `.env` nella
-  cartella dei dati, accanto a `verdict.db`:
+On first start it downloads the data file, `verdict.db`, from the latest GitHub Release: the catalog,
+its releases and the summaries already written. After that it uses what it has.
+
+## Before you install
+
+- **Your Anthropic key.** Claude writes the summary of each new release with your key, on your bill:
+  a few cents a release. The summaries already written come with the data file. Without a key, new
+  releases still arrive and their summaries wait. Put the key in a `.env` file next to `verdict.db`,
+  or set it in your shell, which wins over the file:
 
   ```sh
   ANTHROPIC_API_KEY=sk-ant-...
   ```
 
-  Oppure impostala nella shell prima del comando: la variabile della shell vale più del file. Un
-  `GITHUB_TOKEN` nello stesso file alza il limite di GitHub da 60 richieste l'ora.
-- **Su un altro computer** ti basta copiare `verdict.json` (sotto) nella cartella dei dati di là,
-  prima o dopo il primo avvio: le Tecnologie che segui tornano al riavvio. `verdict.db` non serve
-  copiarlo, si riscarica.
+  A `GITHUB_TOKEN` in the same file raises GitHub's limit of 60 requests an hour.
+- **Your disk.** The data is one SQLite file in `~/.verdict/` on macOS and Linux, in
+  `%LOCALAPPDATA%\verdict` on Windows, or wherever `VERDICT_DATA_DIR` points. Release notes go to
+  Anthropic to be summarized, and nothing about you goes with them.
+- **`verdict.json`.** The technologies you follow, and the version you run of each, are kept in
+  `verdict.json` next to the data. Copy that one file to another computer and they come with you.
+  `verdict.db` does not need copying: it downloads again.
+- **With the app closed.** A GitHub workflow in a repository of yours runs Verdict once a day and
+  posts what is new to Slack or Discord. See below.
 
-### Gli avvisi ad app chiusa: Slack o Discord
-
-Mentre l'app è aperta, la campanella ti dice cosa è cambiato da quando hai guardato l'ultima volta.
-Per sapere delle Release nuove senza aprirla, fai girare Verdict una volta al giorno su GitHub
-Actions, in un repository tuo, con la tua chiave e il tuo webhook. Sui repository pubblici i runner
-sono gratis.
-
-1. Crea un repository (anche privato) e mettici alla radice il tuo `verdict.json`.
-2. Copia [`examples/verdict-notify.yml`](examples/verdict-notify.yml) in
-   `.github/workflows/verdict.yml`. Non va cambiato niente.
-3. Nei segreti del repository (Settings, Secrets and variables, Actions) aggiungi
-   `VERDICT_WEBHOOK_URL`, l'indirizzo di un incoming webhook di Slack o di Discord, e se vuoi le
-   Sintesi `ANTHROPIC_API_KEY`.
-4. Lancialo a mano la prima volta dalla scheda Actions (Run workflow) per vedere arrivare il messaggio.
-
-Il workflow lancia `npx verdict-tracker sync --notify`, che fa il giro del Refresh senza browser e
-manda al webhook un messaggio con Tecnologia, Versione, Rilevanza, Intervento richiesto e il link
-alla pagina della Release. Senza chiave le Release nuove arrivano lo stesso, con la Sintesi in
-attesa. `verdict.db` resta nella cache di Actions, così ogni Sintesi si paga una volta. Ogni giorno
-il workflow committa `verdict-sync.json`, con quello che ha già mandato: se la cache scade, niente
-arriva due volte. Il commit tiene anche acceso il cron, che GitHub ferma dopo 60 giorni senza
-attività.
-
-Sul tuo computer lo stesso comando, con `VERDICT_WEBHOOK_URL` nel `.env` della cartella dei dati,
-manda il messaggio subito.
-
-## Sviluppo locale
-
-Servono Node 24 e pnpm. I dati stanno in un file SQLite, `~/.verdict/verdict.db`
-(`%LOCALAPPDATA%\verdict` su Windows, spostabile con `VERDICT_DATA_DIR`), creato al primo avvio.
-
-```sh
-pnpm install
-cp .env.example .env.local
-pnpm catalog:sync              # il Catalogo e le sue Release nel file dei dati
-pnpm dev
-```
-
-Controlli: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`, `pnpm test:e2e`.
-Gli e2e usano la porta 3000; se è occupata da altro, `E2E_PORT=3100 pnpm test:e2e`.
-
-Due comandi chiamano Anthropic e costano: `pnpm summary:try <slug> <version>` scrive la Sintesi di
-una Release (qualche centesimo), `pnpm summaries:pending` scrive tutte quelle in attesa, al massimo
-`SUMMARY_MAX_COUNT` (100 se non lo imposti).
-Nuova migrazione: un file `.sql` numerato in `src/modules/db/migrations/`, applicato al prossimo avvio.
-
-### Le Tecnologie che segui: `verdict.json`
-
-Accanto a `verdict.db` c'è `verdict.json`, con le Tecnologie che segui e la Versione in uso di
-ognuna. Il database si può cancellare: `pnpm catalog:sync` lo ricrea e le Tecnologie seguite tornano
-da questo file. Il file si può tenere nei dotfiles, in un repository o in una cartella sincronizzata.
+### `verdict.json`
 
 ```json
 {
@@ -98,50 +55,47 @@ da questo file. Il file si può tenere nei dotfiles, in un repository o in una c
 }
 ```
 
-- Le chiavi sono gli slug del Catalogo, i nomi dei file in `catalog/`.
-- `currentVersion` è facoltativa. `declaredAt` dice da quando la dichiari; se la scrivi a mano senza
-  data, vale il giorno in cui l'app la legge.
-- Il file comanda: all'avvio l'app segue quello che c'è scritto e smette di seguire il resto. Seguire
-  o smettere dall'interfaccia riscrive il file.
-- Uno slug che non è nel Catalogo, una Tecnologia ritirata o una Versione in uso non valida vengono
-  segnalati nel terminale e saltati, senza fermare l'avvio. Uno slug sconosciuto resta nel file.
-- Se il file non è JSON valido l'app non lo tocca, lo segnala e usa quello che ha nel database.
+- The keys are catalog slugs, the file names in [`catalog/`](catalog).
+- `currentVersion` is optional. `declaredAt` says since when you run it; written by hand without a
+  date, it counts from the day the app reads it.
+- The file is in charge: on start the app follows what it lists and stops following the rest.
+  Following or unfollowing in the interface rewrites the file.
+- An unknown slug, a retired technology or an invalid version is reported in the terminal and
+  skipped. An unknown slug stays in the file.
+- If the file is not valid JSON the app leaves it alone, says so, and uses what the database has.
 
-## Pubblicare una versione
+You can delete `verdict.db` at any time: the next start downloads it again and your follows come back
+from `verdict.json`.
 
-`pnpm pack:cli` costruisce in `dist/cli` il pacchetto `verdict-tracker`: la build standalone di
-Next, il comando in `cli/` e un `package.json` senza dipendenze. Il workflow `Release` lo prova su
-Linux, Windows e macOS a ogni PR che lo tocca, e al tag lo pubblica:
+## Notifications with the app closed: Slack or Discord
 
-```sh
-# alza "version" in package.json, poi
-git tag v0.2.0 && git push origin v0.2.0
-```
+While the app is open, the bell tells you what changed since you last looked. To hear about new
+releases without opening it, run Verdict once a day on GitHub Actions, in a repository of yours,
+with your key and your webhook. Runners are free on public repositories, and a private one fits in
+the free minutes.
 
-Al tag il workflow prende `verdict.db` dalla Release precedente, ci aggiunge le Release nuove del
-Catalogo, lo allega alla Release del tag e solo dopo pubblica su npm. Serve il segreto `NPM_TOKEN`.
-Nel frattempo il file allegato all'ultima Release lo aggiorna ogni giorno il workflow `Showcase`
-(sotto), quindi chi installa adesso parte già con le Sintesi più recenti.
+1. Create a repository (private is fine) and put your `verdict.json` at its root.
+2. Copy [`examples/verdict-notify.yml`](examples/verdict-notify.yml) to
+   `.github/workflows/verdict.yml`. Nothing in it needs changing.
+3. Add the repository secrets (Settings, Secrets and variables, Actions): `VERDICT_WEBHOOK_URL`, a
+   Slack or Discord incoming webhook, and `ANTHROPIC_API_KEY` if you want the summaries.
+4. Run it once by hand from the Actions tab (Run workflow) and watch the message arrive.
 
-La prima, `v0.1.0`, è stata creata a mano col file esportato dalla produzione prima di spegnerla
-(#222): da lì ogni versione parte dal file di quella prima.
+The workflow runs `npx verdict-tracker sync --notify`. It checks for new releases with no browser
+and posts one message with the technology, the version, its significance, what it asks of you and a
+link to the release page. Without a key the new releases still arrive, with the summary missing.
+`verdict.db` stays in the Actions cache, so each summary is paid for once. Every day the workflow
+commits `verdict-sync.json` with what it has sent: if the cache expires, nothing arrives twice. The
+commit also keeps the schedule alive, which GitHub pauses after 60 days without activity.
 
-## Deploy
+On your own computer the same command, with `VERDICT_WEBHOOK_URL` in the `.env` next to the data,
+sends the message right away.
 
-Su **Vercel** (Hobby) gira solo la **vetrina statica**, `pnpm build:static`. Vercel non costruisce dai
-push: la pubblica il workflow `Showcase` (`.github/workflows/showcase.yml`).
+## Contributing
 
-- **Vetrina**: una volta al giorno, a ogni push su `main` che la tocca o a mano (Actions → Showcase →
-  "Run workflow"), il workflow scarica il file dati dell'ultima Release di GitHub, ci fa sopra
-  `pnpm catalog:sync` (Rilevamento e Tecnologie nuove) e `pnpm summaries:pending` (al massimo 100
-  Sintesi), rimette il file sulla Release, costruisce e pubblica in produzione. Così ogni Sintesi si
-  paga una volta. Senza `ANTHROPIC_API_KEY` il giro avvisa e pubblica senza Sintesi nuove.
-- **Anteprime**: una PR che tocca la vetrina riceve un'anteprima. Le anteprime non generano Sintesi e
-  non scrivono sulla Release.
-- **Catalogo**: un file `catalog/<slug>.json` per Tecnologia, validato da `pnpm test`. Togliere un file
-  ritira la Tecnologia, non la cancella. In locale `pnpm catalog:sync` riempie il file dati.
+See [CONTRIBUTING.md](CONTRIBUTING.md): running it locally, opening a pull request, and adding a
+technology to the catalog with one JSON file.
 
-Il progetto Vercel non ha variabili d'ambiente: quelle della build le passa il workflow. I segreti
-del repository sono `VERCEL_TOKEN` (vetrina), `ANTHROPIC_API_KEY` (Sintesi della vetrina, facoltativo)
-e `NPM_TOKEN` (pubblicazione). Nel codice non ce n'è nessuno: `.env.local` è ignorato da git e la CI
-usa valori segnaposto.
+## License
+
+[MIT](LICENSE)
