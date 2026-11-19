@@ -2,4 +2,4 @@
 // terms, privacy and the FAQ) and an address that disagrees with itself is worse than none.
 // ⚠️ It is a personal mailbox until the product has a domain of its own: when that arrives this is
 // the single line to change, and no page has to be rewritten (decided with the user, 2026-10-15).
-export const CONTACT_EMAIL = "robertozeppilli@proton.me";
+export const CONTACT_EMAIL = "robzepdev@proton.me";
