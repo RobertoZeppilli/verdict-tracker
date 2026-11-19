@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { windowStart } from "../domain/build-dashboard";
 import type { DashboardRelease, FollowedTechnology } from "../domain/followed";
 import { sqliteJson } from "@/modules/db";
 import type { Database } from "@/modules/db/server";
-import { SignificanceSchema, SummaryStatusSchema } from "@/modules/releases";
+import { latestStableRelease, SignificanceSchema, SummaryStatusSchema } from "@/modules/releases";
 import { judge, storedNotesHead, SummaryContentSchema } from "@/modules/summaries";
 
 const FollowRowSchema = z.object({
@@ -34,11 +35,23 @@ export async function readDashboard(db: Database): Promise<DashboardData> {
 }
 
 // The showcase's Dashboard (issue #221): the same reading over a fixed stack instead of the follows
-// table, with no Current Version declared. Only `?` placeholders are spliced into the SQL.
-export async function readDemoDashboard(db: Database, slugs: readonly string[]): Promise<DashboardData> {
+// table. Each Technology declares its highest stable Release published before the window, on that
+// day, so the Releases of the window are judged as an install would judge them; none, no declaration.
+// Only `?` placeholders are spliced into the SQL.
+export async function readDemoDashboard(db: Database, slugs: readonly string[], now: Date): Promise<DashboardData> {
   const demo = `(select id as technology_id, null as current_version, null as current_version_declared_at
     from technologies where slug in (${slugs.map(() => "?").join(", ")}))`;
-  return read(db, demo, slugs);
+  const { followed, releases } = read(db, demo, slugs);
+  const start = windowStart(now);
+  const declared = (slug: string) =>
+    latestStableRelease(releases.filter((release) => release.slug === slug && release.publishedAt < start));
+  return {
+    followed: followed.map((technology) => {
+      const release = declared(technology.slug);
+      return { ...technology, currentVersion: release && { version: release.version, declaredAt: release.publishedAt } };
+    }),
+    releases,
+  };
 }
 
 function read(db: Database, follows: string, params: readonly string[]): DashboardData {
