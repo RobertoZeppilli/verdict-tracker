@@ -9,7 +9,7 @@ export const terms = {
 
   "terms.service.title": "il servizio",
   "terms.service.body":
-    "Verdict segue le release delle tecnologie del suo catalogo e dà a ognuna un verdetto: se ti chiede qualcosa, cosa si rompe e come migrare. È software open source con licenza MIT e gira sul tuo computer, con la tua chiave Anthropic e i tuoi dati in file tuoi. La vetrina online è una copia pubblica, in sola lettura, delle stesse pagine.",
+    "Verdict segue le release delle tecnologie del suo catalogo e dà a ognuna un verdetto: se ti chiede qualcosa, cosa si rompe e come migrare. È software open source con licenza MIT e gira sul tuo computer, con il modello che scegli e i tuoi dati in file tuoi. La vetrina online è una copia pubblica, in sola lettura, delle stesse pagine.",
 
   "terms.catalog.title": "il catalogo è curato",
   "terms.catalog.body":
@@ -22,9 +22,9 @@ export const terms = {
   "terms.summaries.check":
     "Un modello può leggere male. È per questo che una sintesi non è l'ultima parola della pagina: le sue affermazioni portano la riga delle note di rilascio da cui sono state lette, e la pagina linka le note alla fonte. La citazione è lì perché tu possa controllare invece di fidarti. Quando sbagliare costa caro, leggi la riga citata prima di agire sul verdetto.",
 
-  "terms.data.title": "i tuoi dati e la tua chiave",
+  "terms.data.title": "i tuoi dati e il tuo modello",
   "terms.data.body":
-    "Non c'è un account. Le tecnologie che segui e le versioni che hai dichiarato stanno in `verdict.json`, e tutto il resto in `verdict.db`, tutti e due sul tuo computer: cancellarli cancella tutto. Le sintesi delle release nuove le scrive la tua chiave Anthropic, e Anthropic le fattura a te. Cosa esce dal tuo computer, e dove va, sta nell'{privacy}.",
+    "Non c'è un account. Le tecnologie che segui e le versioni che hai dichiarato stanno in `verdict.json`, e tutto il resto in `verdict.db`, tutti e due sul tuo computer: cancellarli cancella tutto. Le sintesi delle release nuove le scrive il modello che imposti; un provider remoto te le fattura secondo i suoi termini. Cosa esce dal tuo computer, e dove va, sta nell'{privacy}.",
 
   "terms.conduct.title": "cosa chiediamo a te",
   "terms.conduct.body":

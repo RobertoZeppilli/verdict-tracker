@@ -40,16 +40,17 @@ export function isDetectionRunning(): boolean {
 }
 
 // The Detection (ADR 0003), and the Summaries of what it found in the same run (issue #212): a new
-// Release has its Summary when the run ends. Without an Anthropic key the Summaries stay `pending`
+// Release has its Summary when the run ends. Without a configured model the Summaries stay `pending`
 // and the pages say what is missing.
 async function runOnce(notify?: Notify) {
   const db = getDatabase();
   const adapters = createSourceAdapters({ githubToken: serverEnv.GITHUB_TOKEN });
   const { detected, ...report } = await detectReleases(db, adapters);
-  const writer = createSummaryWriter(serverEnv.ANTHROPIC_API_KEY);
-  const { changed, ...summaries } = writer === null ? { changed: [] } : await generatePendingSummaries(db, writer);
+  const writer = createSummaryWriter(modelConfig());
+  const { changed, ...summaries } =
+    writer === null ? { changed: [] } : await generatePendingSummaries(db, writer.write, { model: writer.model });
   // After the Summaries, since a settled Summary is when a Notification is born (ADR 0009).
-  // Under `sync --notify` with no key a Summary will not come, so the Notification does not wait for
+  // Under `sync --notify` with no model a Summary will not come, so the Notification does not wait for
   // it (`docs/DECISIONI.md`, #218).
   const notifications = await generateNotifications(db, new Date(), { withoutSummary: notify !== undefined && writer === null });
   // The Slack channel rides the same run, after the Notifications exist: one message per Developer
@@ -66,4 +67,14 @@ async function runOnce(notify?: Notify) {
   // A new Release changes the Technology page and gives the Release page its own address.
   const revalidated = revalidateReleasePages([...detected, ...changed]);
   return { ...report, detected, summaries, summaryKey: writer !== null, notifications, slack, pruned, revalidated };
+}
+
+// What the Developer configured in the environment, read here so the summaries module stays free of it.
+export function modelConfig() {
+  return {
+    url: serverEnv.VERDICT_MODEL_URL,
+    model: serverEnv.VERDICT_MODEL,
+    key: serverEnv.VERDICT_MODEL_KEY,
+    contextTokens: serverEnv.VERDICT_MODEL_CONTEXT,
+  };
 }

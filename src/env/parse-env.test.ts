@@ -21,19 +21,21 @@ describe("parseEnv", () => {
 });
 
 describe("parseServerEnv", () => {
-  it("accepts an empty environment", () => {
-    expect(parseServerEnv({})).toEqual({});
+  it("accepts an empty environment, with Ollama on this computer as the model's address", () => {
+    expect(parseServerEnv({})).toEqual({ VERDICT_MODEL_URL: "http://localhost:11434/v1" });
   });
 
-  it("accepts a missing or empty Anthropic key", () => {
-    expect(
-      parseServerEnv({ ANTHROPIC_API_KEY: "" }).ANTHROPIC_API_KEY,
-    ).toBeUndefined();
+  it("reads empty model variables as missing", () => {
+    const env = parseServerEnv({ VERDICT_MODEL_URL: "", VERDICT_MODEL: "", VERDICT_MODEL_KEY: "", VERDICT_MODEL_CONTEXT: "" });
+    expect(env).toEqual({ VERDICT_MODEL_URL: "http://localhost:11434/v1" });
   });
 
-  it("rejects an Anthropic key that is not an API key", () => {
-    expect(() =>
-      parseServerEnv({ ANTHROPIC_API_KEY: "not-a-key" }),
-    ).toThrow(/ANTHROPIC_API_KEY/);
+  it("reads the context as a whole number of tokens", () => {
+    expect(parseServerEnv({ VERDICT_MODEL_CONTEXT: "32768" }).VERDICT_MODEL_CONTEXT).toBe(32_768);
+    expect(() => parseServerEnv({ VERDICT_MODEL_CONTEXT: "a lot" })).toThrow(/VERDICT_MODEL_CONTEXT/);
+  });
+
+  it("rejects a model address that is not a URL", () => {
+    expect(() => parseServerEnv({ VERDICT_MODEL_URL: "localhost" })).toThrow(/VERDICT_MODEL_URL/);
   });
 });

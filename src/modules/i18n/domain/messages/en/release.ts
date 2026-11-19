@@ -53,7 +53,7 @@ export const release = {
   "release.status.queuedBody":
     "{recorded} The summary is written on the next update; the full release notes are already below.",
   "release.status.noKeyBody":
-    "{recorded} Summaries are written with your Anthropic API key, and this copy has none: set ANTHROPIC_API_KEY in the .env file beside your data (.env.local if you run it from the repository) and restart the app. The full release notes are already below.",
+    "{recorded} Summaries are written by the model you set up, and this copy has none: set VERDICT_MODEL in the .env file beside your data (.env.local if you run it from the repository) and restart the app. The full release notes are already below.",
   "release.status.unavailableBody":
     "The maintainers published this version without release notes, and we don't guess what changed.",
   // One more sentence where the Technology is on GitHub, added to the one above it rather than

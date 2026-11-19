@@ -50,7 +50,7 @@ export default async function PrivacyPage() {
           <strong className="font-semibold text-text">Vercel</strong> {t("privacy.who.vercel")}
         </p>
         <p>
-          <strong className="font-semibold text-text">Anthropic</strong> {t("privacy.who.anthropic")}
+          {t("privacy.who.model")}
         </p>
       </DocumentSection>
 

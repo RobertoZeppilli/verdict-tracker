@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { MAX_NOTES_LENGTH, PROMPT_VERSION, prepareSummaryRequest, SUMMARY_MODEL } from "./summary-prompt";
+import { MAX_NOTES_LENGTH, PROMPT_VERSION, prepareSummaryRequest } from "./summary-prompt";
 
-const release = { releaseId: "7b0c5f6e-5d0e-4c55-9b43-1b0f3f3b8d11", technologyName: "Vite", version: "6.0.0" };
+const release = { releaseId: "7b0c5f6e-5d0e-4c55-9b43-1b0f3f3b8d11", model: "qwen3:8b", technologyName: "Vite", version: "6.0.0" };
 
 describe("prepareSummaryRequest", () => {
   it("builds the request from the release notes only", () => {
     const result = prepareSummaryRequest({ ...release, notes: "## Breaking\n\n- Drop Node 21" });
     if (!result.ok) throw new Error(result.reason);
-    expect(result.request).toMatchObject({ releaseId: release.releaseId, model: SUMMARY_MODEL });
+    expect(result.request).toMatchObject({ releaseId: release.releaseId, model: "qwen3:8b" });
     expect(result.request.prompt).toContain("Vite 6.0.0");
     expect(result.request.prompt).toContain("<release_notes>\n## Breaking\n\n- Drop Node 21\n</release_notes>");
   });

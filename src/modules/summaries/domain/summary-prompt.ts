@@ -1,6 +1,5 @@
 import type { SummaryRequest } from "./summary-writer";
 
-export const SUMMARY_MODEL = "claude-haiku-5-5";
 // Bump on every change to the prompt text, so a stored Summary says which prompt produced it.
 export const PROMPT_VERSION = "v8";
 
@@ -43,16 +42,18 @@ function delimiterFor(notes: string): string {
   return tag;
 }
 
-export type SummaryInput ={ releaseId: string; technologyName: string; version: string; notes: string };
+// `model` is the one the Developer configured (issue #280): it travels with the request and is stored
+// with the Summary.
+export type SummaryInput = { releaseId: string; model: string; technologyName: string; version: string; notes: string };
 
 export type PreparedRequest = { ok: true; request: SummaryRequest } | { ok: false; reason: string };
 
-export function prepareSummaryRequest({ releaseId, technologyName, version, notes }: SummaryInput): PreparedRequest {
+export function prepareSummaryRequest({ releaseId, model, technologyName, version, notes }: SummaryInput): PreparedRequest {
   if (notes.trim() === "") return { ok: false, reason: "release notes are empty" };
   if (notes.length > MAX_NOTES_LENGTH) {
     return { ok: false, reason: `release notes are ${notes.length} characters, over the ${MAX_NOTES_LENGTH} limit` };
   }
   const tag = delimiterFor(notes);
   const prompt = `Release notes of ${technologyName} ${version}, between <${tag}> and </${tag}>:\n\n<${tag}>\n${notes}\n</${tag}>`;
-  return { ok: true, request: { releaseId, model: SUMMARY_MODEL, system: SYSTEM, prompt } };
+  return { ok: true, request: { releaseId, model, system: SYSTEM, prompt } };
 }

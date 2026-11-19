@@ -1,6 +1,6 @@
 // The privacy notice, one namespace because it is one page. Since issue #236 there is no account and
 // no table of rows held about a person: the data is two files on the reader's computer, and the
-// page says so. The names of the providers (GitHub, npm, Vercel, Anthropic) are not here: they are
+// page says so. The names of the providers (GitHub, npm, Vercel) are not here: they are
 // names, and they stay in the component beside the prose that describes them.
 export const privacy = {
   "privacy.lede":
@@ -8,13 +8,13 @@ export const privacy = {
 
   "privacy.held.title": "what is held, and where",
   "privacy.held.intro":
-    "Nothing about you is held by us. The app keeps two files on your computer: `verdict.json`, with the technologies you follow and the version you run of each, and `verdict.db`, with the catalog, the releases, the summaries and your notifications. Your Anthropic key and your webhook address, if you give them, sit in a `.env` file next to them. We have no copy of any of it.",
+    "Nothing about you is held by us. The app keeps two files on your computer: `verdict.json`, with the technologies you follow and the version you run of each, and `verdict.db`, with the catalog, the releases, the summaries and your notifications. The address and key of your model and your webhook address, if you give them, sit in a `.env` file next to them. We have no copy of any of it.",
 
   "privacy.prompt.title": "no personal data enters a prompt",
   "privacy.prompt.body":
-    "The summaries are written by a language model, called from your computer with your key, and the model is never told who you are. The request carries one thing: the release notes a project published. It says nothing about which technologies you follow, and a summary is the same text for every reader.",
+    "The summaries are written by the language model you set up, called from your computer, and the model is never told who you are. The request carries one thing: the release notes a project published. It says nothing about which technologies you follow, and a summary is the same text for every reader.",
   "privacy.prompt.images":
-    "The browser never talks to a third party either. The pages come from the app on your computer, and every call to GitHub, npm or Anthropic is made by the app, not by the browser.",
+    "The browser never talks to a third party either. The pages come from the app on your computer, and every call to GitHub, npm or your model is made by the app, not by the browser.",
 
   "privacy.who.title": "who else touches it",
   "privacy.who.github":
@@ -23,8 +23,8 @@ export const privacy = {
     "serves the app itself through `npx`, and the version lists of the technologies published there.",
   "privacy.who.vercel":
     "hosts the showcase, so it serves every request to it, keeps the request logs that come with doing so, and counts page views through Vercel Analytics. The app on your computer does not go through Vercel.",
-  "privacy.who.anthropic":
-    "provides the model that writes the summaries. The app calls it with your key, from public release notes alone, as above.",
+  "privacy.who.model":
+    "The model you set up receives the public release notes to summarize, and nothing else, as above. With Ollama on your computer they never leave it; with a remote provider, that provider's own terms apply to them.",
 
   "privacy.cookies.title": "cookies, and what is in your browser",
   "privacy.cookies.body":

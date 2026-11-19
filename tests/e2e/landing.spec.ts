@@ -233,7 +233,7 @@ test("the landing is built once: nothing over the fold is swapped after it arriv
 test("the four things to know before installing are on the page", async ({ page }) => {
   await page.goto("/");
   const band = page.getByRole("region", { name: "Before you install" });
-  for (const term of ["your Anthropic key", "your disk", "verdict.json", "with the app closed"])
+  for (const term of ["your model", "your disk", "verdict.json", "with the app closed"])
     await expect(band.getByRole("term").filter({ hasText: term })).toBeVisible();
   await expect(band.getByRole("link", { name: "github.com/RobertoZeppilli/verdict-tracker" })).toBeVisible();
 });

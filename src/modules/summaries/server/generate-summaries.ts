@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Database } from "@/modules/db/server";
 import { parseSummaryOutput } from "../domain/summary-output";
-import { PROMPT_VERSION, prepareSummaryRequest, SUMMARY_MODEL } from "../domain/summary-prompt";
+import { PROMPT_VERSION, prepareSummaryRequest } from "../domain/summary-prompt";
 import type { SummaryResult, SummaryWriter } from "../domain/summary-writer";
 import type { SummaryScope } from "./summary-scope";
 
@@ -32,7 +32,7 @@ type Outcome = { status: "ready"; content: string } | { status: "failed"; reason
 export async function generatePendingSummaries(
   db: Database,
   write: SummaryWriter,
-  { maxCount = 1000, technologyIds }: { maxCount?: number } & SummaryScope = {},
+  { model, maxCount = 1000, technologyIds }: { model: string; maxCount?: number } & SummaryScope,
 ): Promise<GenerateReport> {
   const ids = claimPending(db, maxCount, technologyIds);
   const report: GenerateReport = { ready: [], failed: [], pending: [], changed: [] };
@@ -47,6 +47,7 @@ export async function generatePendingSummaries(
     const release = ClaimedReleaseSchema.parse(load.get(id));
     const prepared = prepareSummaryRequest({
       releaseId: release.id,
+      model,
       technologyName: release.name,
       version: release.version,
       notes: release.body ?? "",
@@ -55,11 +56,11 @@ export async function generatePendingSummaries(
     if (outcome.status === "pending") {
       // The next Summary would meet the same wall: everything not yet written goes back to waiting.
       const rest = ids.slice(index);
-      for (const waiting of rest) save(db, waiting, outcome);
+      for (const waiting of rest) save(db, waiting, outcome, model);
       report.pending.push(...rest);
       break;
     }
-    save(db, id, outcome);
+    save(db, id, outcome, model);
     report[outcome.status].push(id);
     report.changed.push({ slug: release.slug, version: release.version });
   }
@@ -100,7 +101,7 @@ function claimPending(db: Database, maxCount: number, technologyIds: string[] | 
   return ClaimedSchema.parse(claimed).map((row) => row.release_id);
 }
 
-function save(db: Database, releaseId: string, outcome: Outcome): void {
+function save(db: Database, releaseId: string, outcome: Outcome, model: string): void {
   db.prepare(
     `update summaries set status = :status, content = :content, failure_reason = :reason,
        model = :model, prompt_version = :prompt_version, updated_at = :now
@@ -109,7 +110,7 @@ function save(db: Database, releaseId: string, outcome: Outcome): void {
     status: outcome.status,
     content: outcome.status === "ready" ? outcome.content : null,
     reason: outcome.status === "failed" ? outcome.reason : null,
-    model: outcome.status === "pending" ? null : SUMMARY_MODEL,
+    model: outcome.status === "pending" ? null : model,
     prompt_version: outcome.status === "pending" ? null : PROMPT_VERSION,
     now: new Date().toISOString(),
     release_id: releaseId,
