@@ -26,7 +26,6 @@ export {
   type PreparedRequest,
   PROMPT_VERSION,
   prepareSummaryRequest,
-  SUMMARY_MODEL,
   type SummaryInput,
 } from "./domain/summary-prompt";
 export { type Judged, judge, type SummaryVerdict, SummaryVerdictSchema } from "./domain/summary-verdict";

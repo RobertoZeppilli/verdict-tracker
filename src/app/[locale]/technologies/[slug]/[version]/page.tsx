@@ -123,7 +123,7 @@ export default async function ReleasePage({ params }: Props) {
             release={release}
             hasGitHub={githubRepo(technology.sources) !== null}
             // The showcase is built without a key and is not where anyone adds one.
-            hasKey={STATIC_SITE || serverEnv.ANTHROPIC_API_KEY !== undefined}
+            hasKey={STATIC_SITE || serverEnv.VERDICT_MODEL !== undefined}
             t={t}
           />
           {lines && release.notes && <ReleaseNotesSource lines={lines} url={release.notes.url} />}

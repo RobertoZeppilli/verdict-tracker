@@ -3,7 +3,9 @@
 # Copy this file to `.github/workflows/verdict.yml` in a repository of yours, put your `verdict.json`
 # at its root, and add the repository secrets (Settings → Secrets and variables → Actions):
 #   VERDICT_WEBHOOK_URL   a Slack or Discord incoming webhook
-#   ANTHROPIC_API_KEY     optional: without it the messages say the Summaries are missing
+#   VERDICT_MODEL_URL, VERDICT_MODEL, VERDICT_MODEL_KEY   optional: a remote model that speaks the
+#                         chat completions of OpenAI (the runner has no Ollama). Without them the
+#                         messages say the Summaries are missing
 # Nothing else needs changing.
 name: Verdict
 
@@ -42,7 +44,9 @@ jobs:
         env:
           VERDICT_DATA_DIR: .
           VERDICT_WEBHOOK_URL: ${{ secrets.VERDICT_WEBHOOK_URL }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          VERDICT_MODEL_URL: ${{ secrets.VERDICT_MODEL_URL }}
+          VERDICT_MODEL: ${{ secrets.VERDICT_MODEL }}
+          VERDICT_MODEL_KEY: ${{ secrets.VERDICT_MODEL_KEY }}
           # Raises GitHub's limit for reading the Releases; it is the token every run already has.
           GITHUB_TOKEN: ${{ github.token }}
 

@@ -24,10 +24,16 @@ const ServerEnvSchema = z.object({
   // routes answering in production. Renaming it to `E2E_SECRET` would be right and costs one line
   // in `.github/workflows/ci.yml`, which is a file this branch may not touch.
   E2E_AUTH_SECRET: z.preprocess((value) => (value === "" ? undefined : value), z.string().min(32).optional()),
-  // Without it the summary jobs answer 503; an app that only reads Summaries still starts.
-  ANTHROPIC_API_KEY: z.preprocess(
+  // The model that writes the Summaries (issue #280), any server that speaks the chat completions of
+  // OpenAI: Ollama on this computer by default, or a remote provider with its key. Without
+  // VERDICT_MODEL there is no writer and the Summaries stay `pending`; the app still starts.
+  VERDICT_MODEL_URL: z.preprocess((value) => (value === "" ? undefined : value), z.url().default("http://localhost:11434/v1")),
+  VERDICT_MODEL: z.preprocess((value) => (value === "" ? undefined : value), z.string().min(1).optional()),
+  VERDICT_MODEL_KEY: z.preprocess((value) => (value === "" ? undefined : value), z.string().min(1).optional()),
+  // The context the model runs with, in tokens: notes that would not fit are refused, not cut.
+  VERDICT_MODEL_CONTEXT: z.preprocess(
     (value) => (value === "" ? undefined : value),
-    z.string().startsWith("sk-ant-").optional(),
+    z.coerce.number().int().positive().optional(),
   ),
   // `verdict-tracker sync --notify` on a GitHub runner (issue #218): a Slack or Discord webhook, which
   // wins over the one saved in `/settings`. Optional: the app on a laptop saves its own. The prefixes

@@ -5,7 +5,6 @@ import { publicPagesFor } from "@/modules/releases";
 import {
   MAX_NOTES_LENGTH,
   PROMPT_VERSION,
-  SUMMARY_MODEL,
   type SummaryRequest,
   type SummaryResult,
   type SummaryWriter,
@@ -36,6 +35,7 @@ const SummaryRowSchema = z.object({
 });
 
 const db = testDatabase();
+const MODEL = "test-model";
 let technologyId: string;
 let slug: string;
 
@@ -43,7 +43,7 @@ let slug: string;
 // unfenced, these tests would hand every real pending Summary to a fake (issue #55). Each call here
 // stays inside the Technology the test seeded.
 function generate(writer: SummaryWriter, options: { maxCount?: number } = {}) {
-  return generatePendingSummaries(db, writer, { ...options, technologyIds: [technologyId] });
+  return generatePendingSummaries(db, writer, { ...options, model: MODEL, technologyIds: [technologyId] });
 }
 
 // The Messages API as the tests see it: it answers from `respond` and remembers whom it was asked for.
@@ -118,7 +118,7 @@ describe("summaries pipeline", () => {
     expect(await readSummary(releaseId)).toMatchObject({
       status: "ready",
       content,
-      model: SUMMARY_MODEL,
+      model: MODEL,
       prompt_version: PROMPT_VERSION,
       failure_reason: null,
     });
@@ -233,8 +233,8 @@ describe("the provenance of a ready Summary", () => {
 
   it.each([
     ["model", { status: "ready", content, prompt_version: PROMPT_VERSION }],
-    ["prompt version", { status: "ready", content, model: SUMMARY_MODEL }],
-    ["content", { status: "ready", model: SUMMARY_MODEL, prompt_version: PROMPT_VERSION }],
+    ["prompt version", { status: "ready", content, model: MODEL }],
+    ["content", { status: "ready", model: MODEL, prompt_version: PROMPT_VERSION }],
   ])("is refused by the database without the %s", async (_what, row) => {
     const releaseId = await seedPending("9.0.0");
 

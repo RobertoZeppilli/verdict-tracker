@@ -8,21 +8,21 @@ import {
   parseSummaryOutput,
   prepareSummaryRequest,
   PROMPT_VERSION,
-  SUMMARY_MODEL,
   type SummaryContent,
   type SummaryEvaluation,
   type SummaryResult,
   type SummaryUsage,
 } from "@/modules/summaries";
-import { createSummaryWriter } from "@/modules/summaries/server";
+import { openAICompatibleSummaryWriter } from "@/modules/summaries/server";
 
 // A run to score, whether it was just paid for or read back from the file a run left behind.
 type Replayable = { results: Map<string, SummaryResult>; startedAt: Date };
 
-// The evaluation set of issue #14: every case through the real Messages API, one request each,
-// compared against what a human said the Summary must say. Costs a few tens of cents a run.
-// `pnpm summary:eval` · `pnpm summary:eval --dry` prints the set without calling Anthropic.
-// `--model <id>` runs the set on another model than the one the app uses, which is how two
+// The evaluation set of issue #14: every case through the model of `VERDICT_MODEL_URL` (Ollama by
+// default, issue #280), one request each,
+// compared against what a human said the Summary must say. A remote model costs a few tens of cents a run.
+// `pnpm summary:eval` · `pnpm summary:eval --dry` prints the set without calling the model.
+// `--model <id>` runs the set on another model than VERDICT_MODEL, which is how two
 // models are compared on the same prompt (#57): the report keeps the model in its name, so the
 // runs sit side by side in `reports/`.
 // `--results <file>` scores a run that has already been paid for, from the `.results.json` every
@@ -33,8 +33,8 @@ const dry = process.argv.includes("--dry");
 const replayFile = process.argv.includes("--results") ? (process.argv[process.argv.indexOf("--results") + 1] ?? "") : null;
 if (replayFile === "") throw new Error("--results wants the path of a saved results file");
 const modelArgument = process.argv[process.argv.indexOf("--model") + 1];
-const model = process.argv.includes("--model") ? (modelArgument ?? "") : SUMMARY_MODEL;
-if (!model.startsWith("claude-")) throw new Error(`--model wants a model id, got ${JSON.stringify(modelArgument)}`);
+const model = process.argv.includes("--model") ? (modelArgument ?? "") : (process.env.VERDICT_MODEL ?? "");
+if (model === "" || model.startsWith("--")) throw new Error(`--model or VERDICT_MODEL wants a model id, got ${JSON.stringify(model)}`);
 
 const ExpectedBreakingChangeSchema = z.object({
   id: z.string(),
@@ -72,12 +72,13 @@ const idOf = (slug: string, version: string): string => `${slug}-${version}`.rep
 const requests = cases.map((item) => {
   const prepared = prepareSummaryRequest({
     releaseId: idOf(item.slug, item.version),
+    model,
     technologyName: item.technologyName,
     version: item.version,
     notes: item.text,
   });
   if (!prepared.ok) throw new Error(`${item.slug} ${item.version}: ${prepared.reason}`);
-  return { ...prepared.request, model };
+  return prepared.request;
 });
 
 const characters = cases.reduce((total, item) => total + item.text.length, 0);
@@ -106,9 +107,14 @@ const SavedResultsSchema = z.object({
 const { results, startedAt, replayed } = replayFile === null ? await run() : await replay(replayFile);
 
 async function run(): Promise<Replayable & { replayed: false }> {
-  const env = z.object({ ANTHROPIC_API_KEY: z.string().startsWith("sk-ant-") }).parse(process.env);
-  const write = createSummaryWriter(env.ANTHROPIC_API_KEY);
-  if (write === null) throw new Error("no ANTHROPIC_API_KEY in the environment");
+  // Issue #280: every model through the chat completions of OpenAI, Ollama's by default.
+  const env = z
+    .object({
+      VERDICT_MODEL_URL: z.url().default("http://localhost:11434/v1"),
+      VERDICT_MODEL_KEY: z.string().min(1).optional(),
+    })
+    .parse(process.env);
+  const write = openAICompatibleSummaryWriter({ baseUrl: env.VERDICT_MODEL_URL, apiKey: env.VERDICT_MODEL_KEY });
 
   const startedAt = new Date();
   const results = new Map<string, SummaryResult>();
@@ -178,7 +184,7 @@ const totals = {
 
 const report = { promptVersion: PROMPT_VERSION, model, startedAt, replayed, totals, cases: reports };
 const stamp = startedAt.toISOString().replaceAll(/[:.]/g, "-");
-const path = join(SET_DIR, "reports", `${PROMPT_VERSION}-${model}-${stamp}.json`);
+const path = join(SET_DIR, "reports", `${PROMPT_VERSION}-${model.replace(/[^\w.-]+/g, "_")}-${stamp}.json`);
 await mkdir(dirname(path), { recursive: true });
 await writeFile(path, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 // What the model answered, kept apart from how it scored. A run is paid for once and rereading it

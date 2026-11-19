@@ -92,7 +92,7 @@ async function sync(notify) {
     console.log(
       run.summaryKey
         ? `Summaries: ${run.summaries.ready.length} written, ${run.summaries.failed.length} failed`
-        : "Summaries: missing, ANTHROPIC_API_KEY is not set. Notifications go out without them.",
+        : "Summaries: missing, VERDICT_MODEL is not set. Notifications go out without them.",
     );
     // `planned` counts the ones already there too: the insert skips those.
     console.log(`Notifications: ${run.notifications.planned} for the Releases you follow`);
@@ -114,7 +114,7 @@ async function sync(notify) {
 
 /** @param {number} port */
 function serve(port) {
-  // The Anthropic key, for whoever prefers a file to a variable in the shell. A variable already set
+  // The model and its key (VERDICT_MODEL_*), for whoever prefers a file to a variable in the shell. A variable already set
   // in the shell wins over the file.
   const envFile = join(directory, ".env");
   if (existsSync(envFile)) process.loadEnvFile(envFile);

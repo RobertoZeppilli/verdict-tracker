@@ -1,21 +1,25 @@
 import { z } from "zod";
 import { getDatabase } from "@/modules/db/server";
 import { locateCitation, parseSummaryOutput, prepareSummaryRequest } from "@/modules/summaries";
+import { parseServerEnv } from "@/env/parse-env";
 import { createSummaryWriter } from "@/modules/summaries/server";
 
-// A single real Release through the real Messages API, to read a Summary with your own eyes
-// before the evaluation set exists. Costs a few cents: `pnpm summary:try <slug> <version>`.
+// A single real Release through the configured model, to read a Summary with your own eyes.
+// With a remote model it costs a few cents: `pnpm summary:try <slug> <version>`.
 const [slug, version] = process.argv.slice(2);
 if (slug === undefined || version === undefined) {
   console.error("usage: pnpm summary:try <slug> <version>");
   process.exit(1);
 }
 
-const env = z
-  .object({
-    ANTHROPIC_API_KEY: z.string().startsWith("sk-ant-"),
-  })
-  .parse(process.env);
+const env = parseServerEnv(process.env);
+const writer = createSummaryWriter({
+  url: env.VERDICT_MODEL_URL,
+  model: env.VERDICT_MODEL,
+  key: env.VERDICT_MODEL_KEY,
+  contextTokens: env.VERDICT_MODEL_CONTEXT,
+});
+if (writer === null) throw new Error("VERDICT_MODEL is not set");
 const data = getDatabase()
   .prepare(
     `select n.body, r.id, r.version, t.name from release_notes n
@@ -32,17 +36,16 @@ const notes = row.body;
 
 const prepared = prepareSummaryRequest({
   releaseId: row.id,
+  model: writer.model,
   technologyName: row.name,
   version: row.version,
   notes,
 });
 if (!prepared.ok) throw new Error(`cannot summarize: ${prepared.reason}`);
 
-const write = createSummaryWriter(env.ANTHROPIC_API_KEY);
-if (write === null) throw new Error("no ANTHROPIC_API_KEY in the environment");
 
 console.log(`${slug} ${version}: ${notes.length} characters of notes. Writing...`);
-const result = await write(prepared.request);
+const result = await writer.write(prepared.request);
 if (result.type !== "succeeded") throw new Error(`${result.type}: ${result.message}`);
 
 const parsed = parseSummaryOutput(result.text);
