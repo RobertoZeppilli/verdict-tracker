@@ -7,7 +7,9 @@ the release notes it was read from, so you can check it in one click instead of 
 It runs on your computer. There is no account, and no server of ours in between. The interface is in
 English and Italian.
 
-The showcase, with a demo dashboard: <https://verdict-tracker.vercel.app>.
+The showcase, with a demo dashboard: <https://verdict-tracker.vercel.app>. It shows the summaries
+already in the data file and writes no new ones: those are written by each installation, with its
+own model.
 
 ## Run it
 

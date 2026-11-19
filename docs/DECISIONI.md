@@ -201,6 +201,10 @@ primo numero non confondibile con un bot, e quel numero adesso non c'è.
 - Credito prepagato: carica iniziale ~$20–25, ricarica automatica se disponibile, limite di spesa
   mensile.
 - API key dedicata al progetto, in un workspace separato.
+- **Il maintainer non paga modelli per gli utenti** (#283, decisa il 2026-11-19): solo per sviluppo
+  e test. La vetrina mostra le Sintesi già nel `verdict.db` della Release e non ne scrive di nuove,
+  nemmeno con un segreto configurato; ogni installazione scrive le sue col modello che configura
+  (#280). Supera la #269.
 
 ## Test
 

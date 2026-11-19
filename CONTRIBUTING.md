@@ -123,5 +123,6 @@ For the maintainer.
   publishes the same tarball to npm. Secret: `NPM_TOKEN`.
 - The showcase on Vercel is static, built by `pnpm build:static`. The `Showcase` workflow rebuilds it
   once a day and on pushes to `main` that touch it: it downloads the data file from the latest
-  Release, checks for new releases, writes up to 100 pending summaries, puts the file back on the
-  Release and deploys. Secrets: `VERCEL_TOKEN`, and `ANTHROPIC_API_KEY` for the summaries.
+  Release, checks for new releases and deploys. It writes no summaries: the showcase shows the ones
+  already in the data file, and each installation writes new ones with its own model. Secret:
+  `VERCEL_TOKEN`.

@@ -57,6 +57,6 @@ sono il `verdict.db` allegato alla Release di GitHub.
   `VERDICT_DATA_DIR`. `pnpm catalog:sync` lo riempie con Catalogo e Release.
 - `pnpm summary:try <slug> <version>`: una Sintesi vera, costa qualche centesimo. Chiedi prima.
 - `pnpm summaries:pending`: tutte le Sintesi `pending` del file (al massimo `SUMMARY_MAX_COUNT`, 100).
-  La usa la Action della vetrina (#269); in locale costa, chiedi prima.
+  Solo per sviluppo: la vetrina non scrive Sintesi (#283). Costa, chiedi prima.
 - Ambiente: `.env.example` → `.env.local`, schema Zod in `src/env/`.
 - Next.js 16: leggi `AGENTS.md` e `node_modules/next/dist/docs/` prima di usare API di Next.
