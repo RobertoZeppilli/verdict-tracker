@@ -72,8 +72,9 @@ pnpm dev
 ```
 
 The data file is `~/.verdict/verdict.db` (`%LOCALAPPDATA%\verdict` on Windows), or wherever
-`VERDICT_DATA_DIR` points. Without `ANTHROPIC_API_KEY` in `.env.local` everything works, and new
-releases show their summary as missing.
+`VERDICT_DATA_DIR` points. Without `VERDICT_MODEL` in `.env.local` everything works, and new
+releases show their summary as missing. With Ollama running and `VERDICT_MODEL` set to a model
+you have pulled, summaries cost nothing.
 
 Checks, the same ones CI runs:
 
@@ -85,9 +86,9 @@ pnpm test:integration   # SQLite in memory
 pnpm test:e2e           # Playwright; E2E_PORT=3100 if port 3000 is taken
 ```
 
-Two commands call Anthropic and cost money: `pnpm summary:try <slug> <version>` writes one summary
-(a few cents), and `pnpm summaries:pending` writes every pending one, up to `SUMMARY_MAX_COUNT`
-(100 by default).
+Two commands call the model in `VERDICT_MODEL`, and with a remote provider they cost money:
+`pnpm summary:try <slug> <version>` writes one summary, and `pnpm summaries:pending` writes every
+pending one, up to `SUMMARY_MAX_COUNT` (100 by default).
 
 ## How the code is laid out
 
@@ -98,7 +99,7 @@ Two commands call Anthropic and cost money: `pnpm summary:try <slug> <version>` 
   such as `featured`, `notable`, `digest`, `preview` and `note:` stay English in every language.
 - Database changes are new numbered `.sql` files in `src/modules/db/migrations/`. Never edit an
   old one: people have real data files.
-- GitHub, npm and Anthropic are called from the server only, never from the browser.
+- GitHub, npm and the model are called from the server only, never from the browser.
 - Accessibility target: WCAG 2.2 AA.
 
 The domain documents (`GLOSSARY.md`, `docs/DECISIONI.md`, `docs/adr/`) are in Italian; the glossary

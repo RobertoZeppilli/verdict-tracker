@@ -84,12 +84,12 @@ export const landing = {
   "landing.install.title": "Prima di installare",
   "landing.install.sub":
     "Verdict gira sul tuo computer. Non c'è un account, e in mezzo non c'è nessun nostro server.",
-  "landing.install.key.term": "la tua chiave Anthropic",
+  "landing.install.key.term": "il tuo modello",
   "landing.install.key.body":
-    "Claude scrive la sintesi di ogni release nuova con la tua chiave, a tue spese: qualche centesimo a release. Le sintesi già scritte arrivano col file dei dati. Senza chiave le release nuove arrivano lo stesso, e le loro sintesi aspettano.",
+    "La sintesi di ogni release nuova la scrive il modello che imposti: uno che gira sul tuo computer con Ollama, gratis, oppure un provider qualsiasi con un'API compatibile con OpenAI e la tua chiave. Le sintesi già scritte arrivano col file dei dati. Senza modello le release nuove arrivano lo stesso, e le loro sintesi aspettano.",
   "landing.install.data.term": "il tuo disco",
   "landing.install.data.body":
-    "I dati sono un file SQLite, in {home} su macOS e Linux, in {windows} su Windows, oppure dove punta {env}. Ad Anthropic vanno le note di rilascio da sintetizzare, e niente che riguardi te.",
+    "I dati sono un file SQLite, in {home} su macOS e Linux, in {windows} su Windows, oppure dove punta {env}. Al tuo modello vanno le note di rilascio da sintetizzare, e niente che riguardi te.",
   "landing.install.follows.term": "verdict.json",
   "landing.install.follows.body":
     "Le tecnologie che segui, e la versione che usi di ognuna, stanno in {file} accanto ai dati. Copi quel file su un altro computer e vengono con te.",

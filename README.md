@@ -25,19 +25,30 @@ its releases and the summaries already written. After that it uses what it has.
 
 ## Before you install
 
-- **Your Anthropic key.** Claude writes the summary of each new release with your key, on your bill:
-  a few cents a release. The summaries already written come with the data file. Without a key, new
-  releases still arrive and their summaries wait. Put the key in a `.env` file next to `verdict.db`,
-  or set it in your shell, which wins over the file:
+- **Your model.** The summary of each new release is written by the model you set up: one that runs
+  on your computer with [Ollama](https://ollama.com), at no cost, or any provider with an
+  OpenAI-compatible API and your key. The summaries already written come with the data file. Without
+  a model, new releases still arrive and their summaries wait. Put the settings in a `.env` file next
+  to `verdict.db`, or set them in your shell, which wins over the file:
 
   ```sh
-  ANTHROPIC_API_KEY=sk-ant-...
+  VERDICT_MODEL=<the model name, as your server knows it>
+  # Only for a remote provider; the default is Ollama on this computer.
+  VERDICT_MODEL_URL=https://<provider>/v1
+  VERDICT_MODEL_KEY=<your key>
   ```
+
+  No model is recommended here: pick one and check a few summaries against the notes they cite.
+  Ollama runs a model with a short context unless told otherwise, and through its OpenAI-compatible
+  API it cannot be raised per request: long release notes would be cut without a warning. Start
+  Ollama with a larger `OLLAMA_CONTEXT_LENGTH` (for example `32768`) and set
+  `VERDICT_MODEL_CONTEXT` to the same number. Verdict then refuses the notes that would not fit
+  instead of summarizing half of them.
 
   A `GITHUB_TOKEN` in the same file raises GitHub's limit of 60 requests an hour.
 - **Your disk.** The data is one SQLite file in `~/.verdict/` on macOS and Linux, in
   `%LOCALAPPDATA%\verdict` on Windows, or wherever `VERDICT_DATA_DIR` points. Release notes go to
-  Anthropic to be summarized, and nothing about you goes with them.
+  your model to be summarized, and nothing about you goes with them.
 - **`verdict.json`.** The technologies you follow, and the version you run of each, are kept in
   `verdict.json` next to the data. Copy that one file to another computer and they come with you.
   `verdict.db` does not need copying: it downloads again.
@@ -78,7 +89,9 @@ the free minutes.
 2. Copy [`examples/verdict-notify.yml`](examples/verdict-notify.yml) to
    `.github/workflows/verdict.yml`. Nothing in it needs changing.
 3. Add the repository secrets (Settings, Secrets and variables, Actions): `VERDICT_WEBHOOK_URL`, a
-   Slack or Discord incoming webhook, and `ANTHROPIC_API_KEY` if you want the summaries.
+   Slack or Discord incoming webhook, and `VERDICT_MODEL_URL`, `VERDICT_MODEL` and
+   `VERDICT_MODEL_KEY` if you want the summaries. The runner has no Ollama, so this takes a remote
+   provider.
 4. Run it once by hand from the Actions tab (Run workflow) and watch the message arrive.
 
 The workflow runs `npx verdict-tracker sync --notify`. It checks for new releases with no browser

@@ -8,13 +8,13 @@ export const privacy = {
 
   "privacy.held.title": "cosa viene tenuto, e dove",
   "privacy.held.intro":
-    "Di te non teniamo niente. L'app tiene due file sul tuo computer: `verdict.json`, con le tecnologie che segui e la versione che usi di ognuna, e `verdict.db`, con il catalogo, le release, le sintesi e le tue notifiche. La tua chiave Anthropic e l'indirizzo del webhook, se li dai, stanno in un file `.env` accanto a loro. Non ne abbiamo nessuna copia.",
+    "Di te non teniamo niente. L'app tiene due file sul tuo computer: `verdict.json`, con le tecnologie che segui e la versione che usi di ognuna, e `verdict.db`, con il catalogo, le release, le sintesi e le tue notifiche. L'indirizzo e la chiave del tuo modello e l'indirizzo del webhook, se li dai, stanno in un file `.env` accanto a loro. Non ne abbiamo nessuna copia.",
 
   "privacy.prompt.title": "nessun dato personale entra in un prompt",
   "privacy.prompt.body":
-    "Le sintesi le scrive un modello linguistico, chiamato dal tuo computer con la tua chiave, e al modello non viene mai detto chi sei. La richiesta porta una cosa sola: le note di rilascio che un progetto ha pubblicato. Non dice niente di quali tecnologie segui, e una sintesi è lo stesso testo per chiunque legga.",
+    "Le sintesi le scrive il modello linguistico che imposti, chiamato dal tuo computer, e al modello non viene mai detto chi sei. La richiesta porta una cosa sola: le note di rilascio che un progetto ha pubblicato. Non dice niente di quali tecnologie segui, e una sintesi è lo stesso testo per chiunque legga.",
   "privacy.prompt.images":
-    "Nemmeno il browser parla con un terzo. Le pagine arrivano dall'app sul tuo computer, e ogni chiamata a GitHub, npm o Anthropic la fa l'app, non il browser.",
+    "Nemmeno il browser parla con un terzo. Le pagine arrivano dall'app sul tuo computer, e ogni chiamata a GitHub, npm o al tuo modello la fa l'app, non il browser.",
 
   "privacy.who.title": "chi altro ci mette le mani",
   "privacy.who.github":
@@ -23,8 +23,8 @@ export const privacy = {
     "serve l'app stessa attraverso `npx`, e gli elenchi delle versioni delle tecnologie pubblicate lì.",
   "privacy.who.vercel":
     "ospita la vetrina, quindi serve ogni richiesta che le arriva, tiene i log delle richieste che ne vengono, e conta le visualizzazioni delle pagine con Vercel Analytics. L'app sul tuo computer da Vercel non passa.",
-  "privacy.who.anthropic":
-    "fornisce il modello che scrive le sintesi. L'app lo chiama con la tua chiave, a partire dalle sole note di rilascio pubbliche, come sopra.",
+  "privacy.who.model":
+    "Il modello che imposti riceve le note di rilascio pubbliche da sintetizzare, e nient'altro, come sopra. Con Ollama sul tuo computer non ne escono mai; con un provider remoto valgono per loro i termini di quel provider.",
 
   "privacy.cookies.title": "i cookie, e cosa c'è nel tuo browser",
   "privacy.cookies.body":

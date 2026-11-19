@@ -21,5 +21,5 @@ export const attributions = {
 
   "attributions.runs.title": "what it runs on",
   "attributions.runs.body":
-    "Next.js and React for the app, SQLite for the data on your computer, Vercel for the public showcase, Anthropic for the model that writes the summaries, and a long list of open source packages under each one. Which of them touch anything of yours is in the {privacy}.",
+    "Next.js and React for the app, SQLite for the data on your computer, Vercel for the public showcase, and a long list of open source packages under each one. Which of them touch anything of yours is in the {privacy}.",
 } as const;

@@ -7,7 +7,7 @@ export const terms = {
 
   "terms.service.title": "the service",
   "terms.service.body":
-    "Verdict follows the releases of the technologies in its catalog and gives each one a verdict: whether it asks something of you, what breaks, and how to migrate. It is open source software under the MIT license and runs on your computer, with your Anthropic key and your data in files of your own. The showcase online is a public, read-only copy of the same pages.",
+    "Verdict follows the releases of the technologies in its catalog and gives each one a verdict: whether it asks something of you, what breaks, and how to migrate. It is open source software under the MIT license and runs on your computer, with the model you choose and your data in files of your own. The showcase online is a public, read-only copy of the same pages.",
 
   "terms.catalog.title": "the catalog is curated",
   "terms.catalog.body":
@@ -20,9 +20,9 @@ export const terms = {
   "terms.summaries.check":
     "A model can misread. That is why a summary is not the last word on the page: its claims carry the line of the release notes they were read from, and the page links the notes at their source. The quote is there so you can check instead of trust. When a change is expensive to get wrong, read the cited line before you act on the verdict.",
 
-  "terms.data.title": "your data and your key",
+  "terms.data.title": "your data and your model",
   "terms.data.body":
-    "There is no account. The technologies you follow and the versions you declared are in `verdict.json`, and everything else in `verdict.db`, both on your computer: deleting them deletes all of it. The summaries of new releases are written with your Anthropic key, and Anthropic bills you for them. What leaves your computer, and where it goes, is in the {privacy}.",
+    "There is no account. The technologies you follow and the versions you declared are in `verdict.json`, and everything else in `verdict.db`, both on your computer: deleting them deletes all of it. The summaries of new releases are written by the model you set up; a remote provider bills you for them under its own terms. What leaves your computer, and where it goes, is in the {privacy}.",
 
   "terms.conduct.title": "what we ask of you",
   "terms.conduct.body":
