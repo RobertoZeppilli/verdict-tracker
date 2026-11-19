@@ -24,7 +24,7 @@ export type Dashboard = {
 // The Dashboard looks back 30 days, always from an injected `now` so the page is testable.
 export const WINDOW_DAYS = 30;
 
-function windowStart(now: Date): Date {
+export function windowStart(now: Date): Date {
   return new Date(now.getTime() - WINDOW_DAYS * 24 * 60 * 60 * 1000);
 }
 

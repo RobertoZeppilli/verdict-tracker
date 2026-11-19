@@ -29,13 +29,14 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function DemoPage() {
   const t = await getTranslator();
   const locale = await currentLocale();
-  const { followed, releases } = await readDemoDashboard(getDatabase(), DEMO_STACK);
+  const now = new Date();
+  const { followed, releases } = await readDemoDashboard(getDatabase(), DEMO_STACK, now);
   // Loud at the showcase build: a slug that left the Catalog would quietly shrink the demo. Only
   // there: the installed app is built over an empty file and links no demo.
   if (STATIC_SITE && followed.length !== DEMO_STACK.length) {
     throw new Error("A technology of DEMO_STACK is not in the data file.");
   }
-  const dashboard = buildDashboard(followed, releases, new Date());
+  const dashboard = buildDashboard(followed, releases, now);
 
   return (
     <>
