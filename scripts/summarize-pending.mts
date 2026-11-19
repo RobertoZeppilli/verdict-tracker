@@ -3,9 +3,8 @@ import { getDatabase } from "@/modules/db/server";
 import { parseServerEnv } from "@/env/parse-env";
 import { createSummaryWriter, generatePendingSummaries } from "@/modules/summaries/server";
 
-// The pending Summaries of the whole data file, for the showcase (issue #269): the Action runs it
-// after `catalog:sync` and puts the file back on the Release, so a Summary is written once. With a
-// remote model it costs: `pnpm summaries:pending` writes up to SUMMARY_MAX_COUNT of them.
+// The pending Summaries of the whole data file, for development only: the showcase writes none
+// (#283). With a remote model it costs: `pnpm summaries:pending` writes up to SUMMARY_MAX_COUNT.
 const env = z
   .object({
     SUMMARY_MAX_COUNT: z.coerce.number().int().positive().default(100),

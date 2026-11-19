@@ -8,13 +8,12 @@ name: Showcase
 # Rilevamento e le Tecnologie nuove del Catalogo (`catalog:sync`). Finché una Release non esiste si
 # parte da un file vuoto, e la vetrina non ha Sintesi.
 #
-# Le Sintesi pending (#269): solo in produzione, al massimo 100 per giro, poi il file torna sulla
-# Release (`--clobber`) così una Sintesi si paga una volta. Le anteprime delle PR non generano e non
-# scrivono. Senza `ANTHROPIC_API_KEY` il giro avvisa e pubblica senza Sintesi nuove.
+# Nessuna Sintesi nuova (#283): la vetrina mostra quelle già nel file. Il maintainer non paga modelli
+# per gli utenti; le Sintesi delle Release nuove le scrive ogni installazione col suo modello.
 #
 # Su una PR che tocca la vetrina: un'anteprima. Su `main`, una volta al giorno o a mano: produzione.
 #
-# Segreti: `ANTHROPIC_API_KEY` (facoltativo) e `VERCEL_TOKEN` (vercel.com → Account Settings → Tokens, scope sul team del progetto).
+# Segreto: `VERCEL_TOKEN` (vercel.com → Account Settings → Tokens, scope sul team del progetto).
 # Gli ID del team e del progetto non sono segreti e stanno qui sotto (`.vercel/repo.json` dopo
 # `vercel link`). ⚠️ L'ID del team comincia con `team_`: con un altro valore `vercel deploy` lo
 # prende per un utente, chiede `/v2/user` e risponde "Project not found".
@@ -56,9 +55,8 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    # The data file goes back on the Release after the Summaries.
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -83,37 +81,9 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: pnpm catalog:sync
 
-      # A Summary that fails stays out; the site goes out with the ones that came.
-      - name: Pending Summaries
-        id: summaries
-        if: env.VERCEL_ENVIRONMENT == 'production'
-        continue-on-error: true
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "::warning::No ANTHROPIC_API_KEY secret: the showcase goes out without new Summaries."
-            exit 0
-          fi
-          # Before the run: a Summary already paid goes back on the Release even if a later one crashes.
-          echo "written=true" >> "$GITHUB_OUTPUT"
-          pnpm summaries:pending
-
-      # One file without its write-ahead log, for the Release and for Vercel alike.
+      # One file without its write-ahead log, for Vercel.
       - name: Fold the write-ahead log into the data file
         run: node -e "new (require('node:sqlite').DatabaseSync)(process.argv[1]).exec('pragma wal_checkpoint(truncate); pragma journal_mode = delete')" "$VERDICT_DATA_DIR/verdict.db"
-
-      # Back on the Release the file came from, so tomorrow does not pay the same Summaries again.
-      - name: The data file back on the latest Release
-        if: steps.summaries.outputs.written == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if tag=$(gh release view --json tagName --jq .tagName); then
-            gh release upload "$tag" "$VERDICT_DATA_DIR/verdict.db" --clobber
-          else
-            echo "::warning::No Release to put verdict.db back on: tomorrow pays these Summaries again."
-          fi
 
       # Vercel builds, not this runner: a prebuilt upload is capped at 15000 files, and the export has
       # ~24000 (six RSC payloads for each of ~4000 pages). What goes up is the source plus the data
