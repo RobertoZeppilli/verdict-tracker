@@ -8,8 +8,9 @@ web
 
 ## Stack
 
-Next.js App Router, TypeScript strict, Supabase (Postgres, RLS, Auth), Tailwind CSS, shadcn/ui,
-Lucide Icons, TanStack Query v5, Zod; compatible with React Compiler. Deployed on Vercel (Hobby).
+Next.js App Router, TypeScript strict, SQLite (`node:sqlite`, one file on the user's disk), Tailwind
+CSS, shadcn/ui, Lucide Icons, TanStack Query v5, Zod; compatible with React Compiler. Installed with
+`npx verdict-tracker`; the public showcase is static files on Vercel (Hobby).
 Full rationale in `docs/DECISIONI.md` and `docs/adr/`.
 
 ## Users
