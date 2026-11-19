@@ -120,7 +120,6 @@ export const landing = {
   "landing.foot.read": "content read from public release notes",
   "landing.foot.notes": "{name} {version} notes",
 
-  // The entry action, in its two faces. `Continue with GitHub` is the login page's own button
-  // (`account.login.button`) and this is the landing's invitation, which is why the two differ.
+  // The entry action: the landing's way into the Dashboard.
   "landing.entry.developer": "Go to your dashboard",
 } as const;

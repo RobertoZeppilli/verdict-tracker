@@ -23,5 +23,5 @@ export const attributions = {
 
   "attributions.runs.title": "su cosa gira",
   "attributions.runs.body":
-    "Next.js e React per l'app, Supabase per il database e l'accesso, Vercel per l'hosting, Anthropic per il modello che scrive le sintesi, e sotto a ognuno una lunga lista di pacchetti open source. Quali di questi tocchino qualcosa di tuo sta nell'{privacy}.",
+    "Next.js e React per l'app, SQLite per i dati sul tuo computer, Vercel per la vetrina pubblica, Anthropic per il modello che scrive le sintesi, e sotto a ognuno una lunga lista di pacchetti open source. Quali di questi tocchino qualcosa di tuo sta nell'{privacy}.",
 } as const satisfies Partial<MessageDictionary>;

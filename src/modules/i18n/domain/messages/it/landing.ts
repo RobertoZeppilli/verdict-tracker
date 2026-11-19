@@ -101,7 +101,6 @@ export const landing = {
   "landing.foot.read": "contenuto letto dalle note di rilascio pubbliche",
   "landing.foot.notes": "note di {name} {version}",
 
-  // `Continua con GitHub` è il pulsante della pagina di accesso (`account.login.button`); questo è
-  // l'invito della landing, ed è il motivo per cui i due sono diversi. `Dashboard` resta Dashboard.
+  // L'ingresso dalla landing alla Dashboard. `Dashboard` resta Dashboard.
   "landing.entry.developer": "Vai alla tua Dashboard",
 } as const;
