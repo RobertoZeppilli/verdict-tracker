@@ -154,8 +154,8 @@ test("at 390px the sections are in the menu, one copy of each", async ({ page })
 });
 
 // Above 640px there is no menu at all: the sections are the row in the bar and the preferences a
-// word beside the bell, so a panel would be a press to reach a link that already fits.
-test("above 640px there is no menu, and the settings are a word in the bar", async ({ page }) => {
+// gear beside the bell, so a panel would be a press to reach a link that already fits.
+test("above 640px there is no menu, and the settings are a gear in the bar", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/dashboard");
 

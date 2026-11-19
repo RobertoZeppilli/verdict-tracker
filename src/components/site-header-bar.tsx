@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
+import { Menu, Settings, X } from "lucide-react";
 import { LocaleLink as Link, useTranslator } from "@/modules/i18n/ui";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { STATIC_SITE } from "@/lib/static-site";
@@ -66,7 +66,7 @@ type BarProps = { children: ReactNode; section?: NavItem };
 // Below 640px the panel holds the two destinations, because that is where they live on a phone (see
 // `SLOT` in `site-header.tsx`): the row in the bar is `display: none` there and these rows are
 // `display: none` above it, so the page never has two `dashboard` links and a screen reader never
-// meets two copies of the same navigation. Above 640px `settings` is a word in the bar instead, in
+// meets two copies of the same navigation. Above 640px `settings` is a gear in the bar instead, in
 // the place the sign-in used to hold, and there is no panel at all: a menu that held one line would
 // be a press to reach a link that fits.
 function AppBar({ children, section }: BarProps) {
@@ -118,9 +118,10 @@ function AppBar({ children, section }: BarProps) {
         <NotificationBell />
         <Link
           href="/settings"
-          className="inline-flex min-h-5 items-center font-mono text-label text-text-muted no-underline hover:text-text max-sm:hidden"
+          aria-label={t("shell.settings")}
+          className="inline-flex size-[34px] items-center justify-center rounded-md border border-rule-strong text-text-muted no-underline hover:border-text-faint hover:bg-raised hover:text-text max-sm:hidden"
         >
-          {t("shell.settings")}
+          <Settings aria-hidden strokeWidth={1.75} className="size-4" />
         </Link>
         <button
           ref={button}
@@ -144,7 +145,7 @@ function AppBar({ children, section }: BarProps) {
 
 // The phone's menu: the two sections and the settings, over the whole screen, with its own row at
 // the top to close it. It exists below 640px only, which is why it has one shape and not two: above
-// that width the sections are a row in the bar and the settings a word beside the bell, so there is
+// that width the sections are a row in the bar and the settings a gear beside the bell, so there is
 // nothing left for a panel to hold.
 function MenuPanel({
   ref,
