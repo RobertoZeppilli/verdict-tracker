@@ -1,3 +1,4 @@
+import { request } from "node:http";
 import { posix, win32 } from "node:path";
 
 // The pure half of the launcher (issue #214), apart so it can be tested. Plain JavaScript because
@@ -61,4 +62,33 @@ export function nextSyncState(previous, delivered, now) {
   const kept = Object.entries(previous.sent).filter(([, at]) => Date.parse(at) >= oldest);
   const added = delivered.map((key) => [key, now.toISOString()]);
   return { lastRun: now.toISOString(), sent: Object.fromEntries([...kept, ...added].sort()) };
+}
+
+/**
+ * A JSON POST with no time limit of its own. `fetch` stops waiting for the headers after 300 s
+ * (undici's `headersTimeout`), and a run with many Summaries to write takes longer: the command
+ * would fail with the Summaries paid and nothing remembered, so the next run pays them again
+ * (issue #261). The workflow's `timeout-minutes` is the limit.
+ * @param {string} url
+ * @param {Record<string, string>} headers
+ * @param {unknown} body
+ * @returns {Promise<{ status: number, text: string }>}
+ */
+export function postJson(url, headers, body) {
+  const payload = JSON.stringify(body);
+  return new Promise((done, fail) => {
+    const sent = request(
+      url,
+      { method: "POST", headers: { ...headers, "content-type": "application/json", "content-length": Buffer.byteLength(payload) } },
+      (response) => {
+        let text = "";
+        response.setEncoding("utf8");
+        response.on("data", (chunk) => (text += chunk));
+        response.on("end", () => done({ status: response.statusCode ?? 0, text }));
+        response.on("error", fail);
+      },
+    );
+    sent.on("error", fail);
+    sent.end(payload);
+  });
 }

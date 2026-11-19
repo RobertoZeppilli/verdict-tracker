@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
-import { DEFAULT_PORT, dataDirectory, initialFileUrl, nextSyncState, parseSyncState } from "./launch.mjs";
+import { DEFAULT_PORT, dataDirectory, initialFileUrl, nextSyncState, parseSyncState, postJson } from "./launch.mjs";
 
 // `npx verdict-tracker` (issue #214): the data file in place, then the standalone server of Next on
 // localhost, then the browser.
@@ -81,13 +81,13 @@ async function sync(notify) {
   try {
     await waitFor(url);
     // `origin` is what the proxy asks of a request that writes (`src/lib/trusted-request.ts`).
-    const response = await fetch(`${url}/api/detection`, {
-      method: "POST",
-      headers: { "content-type": "application/json", origin: url },
-      body: JSON.stringify({ force: true, ...(notify ? { notify: { sent: Object.keys(previous.sent) } } : {}) }),
-    });
-    if (!response.ok) throw new Error(`the app answered ${response.status}`);
-    const run = await response.json();
+    const response = await postJson(
+      `${url}/api/detection`,
+      { origin: url },
+      { force: true, ...(notify ? { notify: { sent: Object.keys(previous.sent) } } : {}) },
+    );
+    if (response.status !== 200) throw new Error(`the app answered ${response.status}`);
+    const run = JSON.parse(response.text);
     console.log(`Detection: ${run.detected.length} new Releases, ${run.failed.length} Technologies not reached`);
     console.log(
       run.summaryKey
