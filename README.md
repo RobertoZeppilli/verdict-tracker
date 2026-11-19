@@ -1,6 +1,11 @@
-# release-tracker
+# verdict-tracker
 
-Traccia le Release delle Tecnologie di un Catalogo curato e ne genera Sintesi con l'AI.
+Traccia le Release delle Tecnologie di un Catalogo curato e ne genera Sintesi con l'AI. Gira sul tuo
+computer, con la tua chiave Anthropic e i dati in un file SQLite: niente account, niente server.
+L'interfaccia è in inglese e in italiano (la lingua si sceglie in Settings).
+
+La vetrina, con una Dashboard dimostrativa: <https://verdict-tracker.vercel.app>.
+
 Prodotto e dominio: `PRODUCT.md`, `GLOSSARY.md`; decisioni: `docs/DECISIONI.md`, `docs/adr/`.
 
 ## Usarlo
@@ -71,6 +76,11 @@ pnpm dev
 ```
 
 Controlli: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`, `pnpm test:e2e`.
+Gli e2e usano la porta 3000; se è occupata da altro, `E2E_PORT=3100 pnpm test:e2e`.
+
+Due comandi chiamano Anthropic e costano: `pnpm summary:try <slug> <version>` scrive la Sintesi di
+una Release (qualche centesimo), `pnpm summaries:pending` scrive tutte quelle in attesa, al massimo
+`SUMMARY_MAX_COUNT` (100 se non lo imposti).
 Nuova migrazione: un file `.sql` numerato in `src/modules/db/migrations/`, applicato al prossimo avvio.
 
 ### Le Tecnologie che segui: `verdict.json`
@@ -110,6 +120,8 @@ git tag v0.2.0 && git push origin v0.2.0
 
 Al tag il workflow prende `verdict.db` dalla Release precedente, ci aggiunge le Release nuove del
 Catalogo, lo allega alla Release del tag e solo dopo pubblica su npm. Serve il segreto `NPM_TOKEN`.
+Nel frattempo il file allegato all'ultima Release lo aggiorna ogni giorno il workflow `Showcase`
+(sotto), quindi chi installa adesso parte già con le Sintesi più recenti.
 
 La prima, `v0.1.0`, è stata creata a mano col file esportato dalla produzione prima di spegnerla
 (#222): da lì ogni versione parte dal file di quella prima.
@@ -121,11 +133,15 @@ push: la pubblica il workflow `Showcase` (`.github/workflows/showcase.yml`).
 
 - **Vetrina**: una volta al giorno, a ogni push su `main` che la tocca o a mano (Actions → Showcase →
   "Run workflow"), il workflow scarica il file dati dell'ultima Release di GitHub, ci fa sopra
-  `pnpm catalog:sync` (Rilevamento e Tecnologie nuove, senza Sintesi), costruisce e pubblica in
-  produzione. Una PR che tocca la vetrina riceve un'anteprima. Segreto: `VERCEL_TOKEN`.
+  `pnpm catalog:sync` (Rilevamento e Tecnologie nuove) e `pnpm summaries:pending` (al massimo 100
+  Sintesi), rimette il file sulla Release, costruisce e pubblica in produzione. Così ogni Sintesi si
+  paga una volta. Senza `ANTHROPIC_API_KEY` il giro avvisa e pubblica senza Sintesi nuove.
+- **Anteprime**: una PR che tocca la vetrina riceve un'anteprima. Le anteprime non generano Sintesi e
+  non scrivono sulla Release.
 - **Catalogo**: un file `catalog/<slug>.json` per Tecnologia, validato da `pnpm test`. Togliere un file
   ritira la Tecnologia, non la cancella. In locale `pnpm catalog:sync` riempie il file dati.
 
-Il progetto Vercel non ha variabili d'ambiente: quelle della build le passa il workflow. L'unico
-segreto del repository che serve è `VERCEL_TOKEN`. Nessun segreto sta nel repository: `.env.local` è
-ignorato da git e la CI usa valori segnaposto.
+Il progetto Vercel non ha variabili d'ambiente: quelle della build le passa il workflow. I segreti
+del repository sono `VERCEL_TOKEN` (vetrina), `ANTHROPIC_API_KEY` (Sintesi della vetrina, facoltativo)
+e `NPM_TOKEN` (pubblicazione). Nel codice non ce n'è nessuno: `.env.local` è ignorato da git e la CI
+usa valori segnaposto.
