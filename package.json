@@ -12,7 +12,6 @@
     "test": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:e2e": "playwright test",
-    "db:export": "tsx --conditions=react-server scripts/export-production.mts",
     "catalog:sync": "tsx --conditions=react-server scripts/sync-catalog.mts",
     "notes:backfill": "tsx --conditions=react-server scripts/backfill-notes.mts",
     "summary:try": "tsx --conditions=react-server scripts/summarize-release.mts",

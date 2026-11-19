@@ -8,7 +8,8 @@ Anthropic e i dati in un file SQLite. Non si vende, non ha account, lo Sviluppat
 ⚠️ **Conversione in corso**, issue in quest'ordine: #212 → #213 → #217 → #214 → #218 → #221 → #222 → #216.
 La produzione è una **vetrina statica** (#215): `pnpm build` è l'app che si installa,
 `pnpm build:static` il sito che Vercel serve. Vercel non fa deploy (`deploymentEnabled: false`)
-fino alla fine della conversione; il progetto Supabase di produzione si spegne nella #222.
+fino alla fine della conversione. Il database di produzione non esiste più (#222): i dati iniziali
+sono il `verdict.db` allegato alla Release di GitHub.
 
 ## Da dove partire
 

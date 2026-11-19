@@ -111,13 +111,8 @@ git tag v0.2.0 && git push origin v0.2.0
 Al tag il workflow prende `verdict.db` dalla Release precedente, ci aggiunge le Release nuove del
 Catalogo, lo allega alla Release del tag e solo dopo pubblica su npm. Serve il segreto `NPM_TOKEN`.
 
-**La prima volta** non c'è una Release precedente: si crea a mano, col file esportato dalla
-produzione, prima di spingere il tag (che `gh release create` crea da sé):
-
-```sh
-node -e "new (require('node:sqlite').DatabaseSync)(process.argv[1]).exec('pragma wal_checkpoint(truncate); pragma journal_mode = delete')" ~/verdict-export/verdict.db
-gh release create v0.1.0 ~/verdict-export/verdict.db --target main --title v0.1.0 --notes "Prima versione."
-```
+La prima, `v0.1.0`, è stata creata a mano col file esportato dalla produzione prima di spegnerla
+(#222): da lì ogni versione parte dal file di quella prima.
 
 ## Deploy
 
@@ -129,30 +124,8 @@ push: la pubblica il workflow `Showcase` (`.github/workflows/showcase.yml`).
   `pnpm catalog:sync` (Rilevamento e Tecnologie nuove, senza Sintesi), costruisce e pubblica in
   produzione. Una PR che tocca la vetrina riceve un'anteprima. Segreto: `VERCEL_TOKEN`.
 - **Catalogo**: un file `catalog/<slug>.json` per Tecnologia, validato da `pnpm test`. Togliere un file
-  ritira la Tecnologia, non la cancella. Il sync non gira mai nella build di Vercel: le anteprime
-  condividono il database di produzione. In locale: `pnpm catalog:sync` con le variabili di `.env.local`.
+  ritira la Tecnologia, non la cancella. In locale `pnpm catalog:sync` riempie il file dati.
 
-### Configurazione manuale (una volta)
-
-1. **Supabase**: progetto in regione Frankfurt con Data API attiva, "Automatically expose new tables" e
-   "Enable automatic RLS" disattivati (permessi e RLS li definiscono le migrazioni).
-2. **Vercel**: progetto importato da GitHub, senza l'integrazione Supabase del Marketplace. Variabili
-   d'ambiente per Production e Preview:
-
-   | Variabile | Valore |
-   |---|---|
-   | `NEXT_PUBLIC_SITE_URL` | URL di produzione, senza `/` finale |
-   | `NEXT_PUBLIC_SUPABASE_URL` | `https://<project-ref>.supabase.co` |
-   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase → Project Settings → API Keys (`sb_publishable_…`) |
-   | `SUPABASE_SECRET_KEY` | Stessa pagina (`sb_secret_…`), marcata **Sensitive**; solo lato server |
-
-3. **GitHub** → Settings → Secrets and variables → Actions:
-
-   | Segreto | Valore |
-   |---|---|
-   | `SUPABASE_DB_PASSWORD` | Password del database (reimpostabile da Project Settings → Database); le migrazioni si collegano con questa, non con un access token |
-   | `SUPABASE_PROJECT_ID` | Project ref, l'ID nell'URL della dashboard |
-   | `SUPABASE_URL` | `https://<project-ref>.supabase.co` |
-   | `SUPABASE_SECRET_KEY` | Supabase → Project Settings → API Keys (`sb_secret_…`), per il sync del Catalogo |
-
-Nessun segreto sta nel repository: `.env.local` è ignorato da git e la CI usa valori segnaposto.
+Il progetto Vercel non ha variabili d'ambiente: quelle della build le passa il workflow. L'unico
+segreto del repository che serve è `VERCEL_TOKEN`. Nessun segreto sta nel repository: `.env.local` è
+ignorato da git e la CI usa valori segnaposto.
