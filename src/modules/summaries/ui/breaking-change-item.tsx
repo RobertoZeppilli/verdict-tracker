@@ -9,7 +9,7 @@ import { Glyph } from "./glyph";
 import { InlineCode } from "./inline-code";
 
 const gutter = "grid grid-cols-[5ch_1fr] phone:grid-cols-[4.5ch_1fr]";
-// Ligatures off, so the `-->` pointer stays the three characters it is written as.
+// Ligatures off, so the `|` and `=` marks stay the characters they are written as.
 const gutterLabel = "pr-[1.5ch] text-right text-text-faint [font-variant-ligatures:none] select-none phone:pr-[1ch]";
 
 // A quoted piece keeps the monospace grid: `quoted-code` is the Inline Code token without the size
@@ -93,9 +93,8 @@ export function BreakingChangeItem({
         {citation && (
           <>
             <div className={gutter}>
-              <span aria-hidden className={gutterLabel}>
-                {"-->"}
-              </span>
+              {/* The gutter cell stays, empty, so the cite lines up with the `|` and `=` rows. */}
+              <span aria-hidden className={gutterLabel} />
               <span>
                 <CitePointer citation={citation} severity="breaking" origin={{ id, label: `breaking[${number}]` }} />
               </span>

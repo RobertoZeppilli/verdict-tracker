@@ -1,4 +1,4 @@
-import { BackPointer } from "@/components/help-pointer";
+import { HelpPointer } from "@/components/help-pointer";
 import type { Translator } from "@/modules/i18n";
 import type { RecordedHistory } from "../domain/upgrade-path";
 import { SeverityLabel } from "./severity-label";
@@ -27,7 +27,7 @@ export function HistoryOverview<T>({
         <SeverityLabel tone="muted" label="note:" /> {historySentence(history, t)}
       </p>
       <p className="mt-5">
-        <BackPointer href={base}>{t("path.history.back")}</BackPointer>
+        <HelpPointer href={base}>{t("path.history.back")}</HelpPointer>
       </p>
     </section>
   );

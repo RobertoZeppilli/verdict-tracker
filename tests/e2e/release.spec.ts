@@ -53,7 +53,7 @@ test("pending: the notes are folded, numbered and open from the keyboard", async
 // The provenance row is the one line on the page where a link stands beside a static fact in the same
 // faint Mono. It used to be "View on GitHub" with the default underline, indistinguishable at a glance
 // from the `detected 2026-10-01 via tag` beside it; now it is a Help Pointer, the way every other link
-// in the system declares itself. The `-->` is aria-hidden, so the dashed cyan border is what is read.
+// in the system declares itself. There is no arrow before it (issue #236): the dashed border is all.
 test("the link out of the provenance row declares itself as a pointer", async ({ page }) => {
   await page.goto(`/technologies/${technology.slug}/2.0.0`);
   const pointer = page.getByRole("link", { name: "view on github" });
@@ -66,9 +66,7 @@ test("the link out of the provenance row declares itself as a pointer", async ({
   });
   expect(style.style, "the pointer underline").toBe("dashed");
   expect(style.width, "the pointer underline").not.toBe("0px");
-  // The arrow is the other half of the grammar, and it carries no meaning of its own.
-  await expect(pointer).toContainText("-->");
-  expect(await pointer.locator("[aria-hidden]").count()).toBe(1);
+  await expect(pointer).not.toContainText("-->");
 });
 
 test("the Release notes action opens the folded notes", async ({ page }) => {

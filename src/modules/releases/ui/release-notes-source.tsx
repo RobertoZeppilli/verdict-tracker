@@ -35,12 +35,8 @@ function BackToDiagnostic({ to, wash }: { to: CiteOrigin; wash: string }) {
 
   return (
     <li className={`${GUTTER} ${wash}`}>
-      <span
-        aria-hidden
-        className="pr-[2ch] text-right text-text-faint [font-variant-ligatures:none] select-none phone:pr-[1.2ch]"
-      >
-        {"<--"}
-      </span>
+      {/* The gutter cell stays, empty, so the link lines up with the cited lines below it. */}
+      <span aria-hidden />
       <span>
         <a
           href={`#${to.id}`}
