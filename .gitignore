@@ -37,3 +37,7 @@ docs/Cattura.JPG
 
 # Il pacchetto npm di `pnpm pack:cli` (#214)
 /dist/
+
+# I documenti nuovi restano in locale. DECISIONI.md, adr/ e l'audit sono gia' tracciati e restano
+# nel repository; un ADR nuovo si aggiunge con `git add -f`.
+/docs/

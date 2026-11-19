@@ -14,11 +14,11 @@ fino alla fine della conversione; il progetto Supabase di produzione si spegne n
 
 - **Dalla issue** (`gh issue view N`; PRD nella #1). `ready-for-agent` = in autonomia,
   `ready-for-human` = fermati e chiedi. Rispetta "Blocked by" e i criteri di accettazione.
-- `docs/HANDOFF.md` serve solo a riprendere un lavoro interrotto: leggilo se la issue lo nomina o
-  se l'utente lo chiede.
 - Quando servono: `GLOSSARY.md`, `docs/DECISIONI.md`, `docs/adr/`, `DESIGN.md` e i mock in
-  `design/mocks/`. Prima di dare qualcosa per non deciso: `grep -rn "<parola>" docs/handoff/`
-  (il diario, da non leggere per intero).
+  `design/mocks/`. Prima di dare qualcosa per non deciso: `gh search issues "<parola>" --repo
+  RobertoZeppilli/verdict-tracker` (issue e commenti sono la storia del lavoro).
+- `docs/` è in `.gitignore`: un documento nuovo lì resta in locale. Per versionarlo (un ADR nuovo)
+  serve `git add -f`.
 
 ## Regole
 
