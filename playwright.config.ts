@@ -10,10 +10,11 @@ process.env.VERDICT_DATA_DIR ||= ".e2e-data";
 // Next does not override a variable already set, and the schema reads "" as unset.
 process.env.VERDICT_VAULT_DIR = "";
 
-// ⚠️ `reuseExistingServer` trusts whatever answers on this port, and it cannot tell this app from
-// another one: a dev server of a different project sitting on 3000 is the server the whole suite
-// then talks to, which reads as dozens of unrelated failures. `E2E_PORT` is how a machine that keeps
-// something else on 3000 gives this project a port of its own.
+// ⚠️ The suite always starts its own server, never one already on the port: a `pnpm dev` of yours
+// reads your data file and your vault, not `.e2e-data`, and a server of another project reads as
+// dozens of unrelated failures. With the port taken the run stops at once: `E2E_PORT` gives it
+// another one when another project holds it, while a `pnpm dev` of this one has to be stopped, since
+// Next runs one dev server per folder.
 const port = Number(process.env.E2E_PORT ?? 3000);
 const baseURL = `http://localhost:${port}`;
 
@@ -35,10 +36,10 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-  // CI runs against the production build; locally the dev server is reused if already running.
+  // CI runs against the production build, locally against the dev server.
   webServer: {
     command: isCI ? `pnpm start --port ${port}` : `pnpm dev --port ${port}`,
     url: baseURL,
-    reuseExistingServer: !isCI,
+    reuseExistingServer: false,
   },
 });
