@@ -32,3 +32,9 @@ export type SaveWebhook = (previous: WebhookSaved, form: FormData) => Promise<We
 export type TestSent = { status: "idle" | "sent" | "failed"; error: string | null };
 
 export type SendTest = (previous: TestSent, form: FormData) => Promise<TestSent>;
+
+// The vault field of `/settings` (issue #244): the path saved now, and on a refusal why, as the server
+// says it (the folder that does not exist, the permission that is missing).
+export type VaultSaved = { status: Saving; path: string | null; error: string | null };
+
+export type SaveVault = (previous: VaultSaved, form: FormData) => Promise<VaultSaved>;

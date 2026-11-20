@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createTranslator, dictionaryFor } from "@/modules/i18n";
-import { isDiscordWebhook, isSlackWebhook, MAX_LINES, type SlackLine, slackMessage, webhookHint } from "./slack";
+import { isDiscordWebhook, isSlackWebhook, isWebhook, MAX_LINES, type SlackLine, slackMessage, webhookHint } from "./slack";
 
 const t = createTranslator("en", dictionaryFor("en"));
 
@@ -44,6 +44,18 @@ describe("webhookHint", () => {
     const hint = webhookHint("https://hooks.slack.com/services/T0/B0/sEcReT1234");
     expect(hint).toBe("hooks.slack.com/…1234");
     expect(hint).not.toContain("sEcReT");
+  });
+
+  it("names Discord when the webhook is Discord's", () => {
+    expect(webhookHint("https://discord.com/api/webhooks/1/sEcReT9876")).toBe("discord.com/…9876");
+  });
+});
+
+describe("isWebhook", () => {
+  it("takes Slack and Discord and nothing else", () => {
+    expect(isWebhook("https://hooks.slack.com/services/T0/B0/xxxx")).toBe(true);
+    expect(isWebhook("https://discord.com/api/webhooks/1/xxxx")).toBe(true);
+    expect(isWebhook("https://example.com/hook")).toBe(false);
   });
 });
 

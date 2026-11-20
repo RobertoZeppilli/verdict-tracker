@@ -35,6 +35,16 @@ describe("serializeStateFile", () => {
   });
 });
 
+describe("the vault", () => {
+  it("is read, kept by a merge and written back after the follows", () => {
+    const read = parseStateFile('{ "vault": "C:/notes", "follows": { "vite": {} } }');
+    expect(read).toEqual({ ok: true, state: { follows: { vite: {} }, vault: "C:/notes" } });
+    if (!read.ok) return;
+    const merged = mergeStateFile(read.state, { next: {} }, new Set(["vite", "next"]));
+    expect(serializeStateFile(merged)).toBe('{\n  "follows": {\n    "next": {}\n  },\n  "vault": "C:/notes"\n}\n');
+  });
+});
+
 describe("mergeStateFile", () => {
   it("takes what the database follows and keeps the slugs it does not know", () => {
     const previous = { follows: { vite: {}, next: { currentVersion: "15.0.0" }, mystery: {} } };

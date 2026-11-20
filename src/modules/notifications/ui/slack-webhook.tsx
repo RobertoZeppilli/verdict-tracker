@@ -50,7 +50,7 @@ export function SlackWebhook({
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
-            placeholder="https://hooks.slack.com/services/…"
+            placeholder="https://hooks.slack.com/services/… · https://discord.com/api/webhooks/…"
             aria-invalid={saved.status === "failed" ? true : undefined}
             aria-describedby={HINT_ID}
             className={`${FIELD} mt-1`}

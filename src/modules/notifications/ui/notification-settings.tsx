@@ -7,7 +7,7 @@ import { SlackGuide } from "./slack-guide";
 import { SlackWebhook } from "./slack-webhook";
 
 // The channels a switch may be drawn for (`canSwitch`): the bell, free for good, and Slack, which
-// #172 lit. The email is not named anywhere on this page until #173 sends one: a channel announced
+// #172 lit and which since #244 is Slack or Discord, whichever the webhook is. The email is not named anywhere on this page until #173 sends one: a channel announced
 // before it exists is a promise, and the words for it were taken out on 2026-10-28.
 const [BELL, SLACK] = LIVE_CHANNELS;
 
@@ -47,17 +47,17 @@ export function NotificationSettings({
 }) {
   return (
     <section aria-labelledby="notifications" className="mt-8 max-w-measure border-t border-rule pt-4">
-      <h2 id="notifications" className="font-sans text-title font-semibold text-text">
+      <h2 id="notifications" className="font-sans text-headline font-semibold text-text">
         {t("settings.notifications.title")}
       </h2>
-      <p className="mt-2 max-w-prose font-sans text-meta text-text-muted">
+      <p className="mt-2 max-w-prose font-sans text-body text-text-muted">
         {t("settings.notifications.intro")}
       </p>
 
       {/* The channels are the `h3` of this zone, one each, and the levels stop there: the heading
           structure is assistive reading and not decoration (WCAG 2.2 AA, 1.3.1). What was an `h4`
           and an `h5` here is now a mark, a line of prose or nothing at all. */}
-      <h3 className="mt-6 font-mono text-label text-text">{t("settings.notifications.bell.title")}</h3>
+      <h3 className="mt-6 font-sans text-title font-medium text-text">{t("settings.notifications.bell.title")}</h3>
       <ul className="mt-4">
         {LIVE_EVENTS.map((event) => (
           <PreferenceRow
@@ -80,7 +80,7 @@ export function NotificationSettings({
           not a heading, which is why their own sentence is prose here. When #173 brings the email it
           becomes a brother of this `h3`, not a fourth level. The `Pro` mark that used to hang off it
           went with the Plan (issue #209). */}
-      <h3 className="mt-6 border-t border-rule pt-4 font-mono text-label text-text">
+      <h3 className="mt-6 border-t border-rule pt-4 font-sans text-title font-medium text-text">
         {t("settings.notifications.slack.title")}
       </h3>
 
@@ -111,6 +111,8 @@ export function NotificationSettings({
       <p className="mt-2 max-w-prose font-sans text-meta text-text-faint">
         {t("settings.notifications.slack.grouping")}
       </p>
+      {/* What works with the app closed (#244): the workflow of #218, for Slack and Discord alike. */}
+      <p className="mt-4 max-w-prose font-sans text-meta text-text-faint">{t("settings.notifications.closed")}</p>
     </section>
   );
 }

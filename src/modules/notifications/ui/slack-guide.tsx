@@ -26,11 +26,19 @@ export function SlackGuide() {
       <DialogContent>
         <DialogTitle>{t("settings.notifications.slack.guide.title")}</DialogTitle>
         <DialogDescription>{t("settings.notifications.slack.guide.intro")}</DialogDescription>
-        <ol className="mt-4 list-decimal space-y-2 pl-5 font-sans text-meta text-text">
+        {/* Slack, then Discord (#244): the field takes either. */}
+        <p className="mt-4 font-mono text-label text-text-muted">{t("settings.notifications.slack.guide.slack")}</p>
+        <ol className="mt-2 list-decimal space-y-2 pl-5 font-sans text-meta text-text">
           <li>{t("settings.notifications.slack.guide.stepCreate")}</li>
           <li>{t("settings.notifications.slack.guide.stepActivate")}</li>
           <li>{t("settings.notifications.slack.guide.stepChannel")}</li>
           <li>{t("settings.notifications.slack.guide.stepPaste")}</li>
+        </ol>
+        <p className="mt-4 font-mono text-label text-text-muted">{t("settings.notifications.slack.guide.discord")}</p>
+        <ol className="mt-2 list-decimal space-y-2 pl-5 font-sans text-meta text-text">
+          <li>{t("settings.notifications.slack.guide.discordSettings")}</li>
+          <li>{t("settings.notifications.slack.guide.discordCreate")}</li>
+          <li>{t("settings.notifications.slack.guide.discordPaste")}</li>
         </ol>
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <a href={SLACK_APPS} target="_blank" rel="noreferrer" className={VERSION_BUTTON_CLASS}>

@@ -108,18 +108,19 @@ sends the message right away.
 
 ## Releases that need action, in your Obsidian vault
 
-Set `VERDICT_VAULT_DIR` to the folder of your vault. When a release of a technology you follow gets
+Write the folder of your vault in the Obsidian section of `/settings`, or set `VERDICT_VAULT_DIR`,
+which wins over the field. When a release of a technology you follow gets
 a summary that asks for action, Verdict writes a note to `<vault>/Verdict/<Technology>/<Version>.md`.
 Releases that ask for nothing are left out. It writes plain files, so there is no plugin to install
 and Obsidian can be closed. Notes are written after every summary the app generates, and at startup
 for any that are missing.
 
 A note is written once and never overwritten: what you add to it stays. Delete it and the next start
-writes it again. Without `VERDICT_VAULT_DIR` nothing is written. A folder that is missing or read-only
-is reported in the terminal and the app starts anyway.
+writes it again. Without a vault nothing is written. `/settings` refuses a folder that is missing or
+read-only; a variable that points to one is reported in the terminal and the app starts anyway.
 
 To keep the vault up to date with the app closed, schedule `npx verdict-tracker sync` on your
-computer, with `VERDICT_VAULT_DIR` in the `.env` next to the data. Each run checks for new releases,
+computer. It uses the vault saved in `/settings`, or `VERDICT_VAULT_DIR` in the `.env` next to the data. Each run checks for new releases,
 writes their summaries, then the notes that are missing. Running it twice writes nothing new. On
 Windows, create a basic task in Task Scheduler that starts `npx` with the argument
 `verdict-tracker sync` once a day. On macOS or Linux, a crontab line does the same:
@@ -129,7 +130,7 @@ Windows, create a basic task in Task Scheduler that starts `npx` with the argume
 ```
 
 The command exits with an error when the vault cannot be written. The GitHub workflow above runs on
-a machine that cannot see your vault, so there `VERDICT_VAULT_DIR` is ignored.
+a machine that cannot see your vault, so there the vault is ignored.
 
 ```markdown
 ---

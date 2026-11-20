@@ -68,6 +68,13 @@ describe("the webhook as a secret", () => {
     expect((await readNotificationSettings(db)).slackHint).toBe("hooks.slack.com/…good");
     expect(JSON.stringify(db.prepare("select * from notification_settings").all())).not.toContain(GOOD);
   });
+
+  // Discord since #244 (migration 0005), and still no other host.
+  it("takes a Discord webhook and refuses any other host", async () => {
+    await writeSlackWebhook(db, { url: "https://discord.com/api/webhooks/1/abcd", hint: "discord.com/…abcd" });
+    expect((await readNotificationSettings(db)).slackHint).toBe("discord.com/…abcd");
+    await expect(writeSlackWebhook(db, { url: "https://example.com/hook", hint: "x" })).rejects.toThrow();
+  });
 });
 
 describe("deliverSlack", () => {

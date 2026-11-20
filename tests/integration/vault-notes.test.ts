@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { writePreferredLocale, writeVaultNotes } from "@/modules/notifications/server";
+import { readLastVaultWrite, writePreferredLocale, writeVaultNotes } from "@/modules/notifications/server";
 import { generatePendingSummaries } from "@/modules/summaries/server";
 import { type Content, seedContent, testDatabase } from "./database";
 
@@ -37,6 +37,16 @@ function slug(): string {
 }
 
 describe("writeVaultNotes", () => {
+  it("records how many notes the last write wrote, for /settings (issue #244)", async () => {
+    db.prepare("insert into follows (technology_id) values (?)").run(content.technologyId);
+    expect(readLastVaultWrite(db)).toBeNull();
+    const first = await writeVaultNotes(db, { vaultDir: vault, siteUrl: SITE });
+    expect(first).toMatchObject({ written: [expect.any(String)] });
+    expect(readLastVaultWrite(db)).toMatchObject({ written: 1, skipped: 0, failed: 0 });
+    await writeVaultNotes(db, { vaultDir: vault, siteUrl: SITE });
+    expect(readLastVaultWrite(db)).toMatchObject({ written: 0, skipped: 1 });
+  });
+
   it("writes the note of a generated Summary that asks for action, for a followed Technology", async () => {
     db.prepare("insert into follows (technology_id) values (?)").run(content.technologyId);
     await writePreferredLocale(db, "it");

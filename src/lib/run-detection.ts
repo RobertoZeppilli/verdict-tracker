@@ -2,7 +2,8 @@ import "server-only";
 
 import { serverEnv } from "@/env/server";
 import { SHOWCASE_URL } from "@/lib/static-site";
-import { getDatabase } from "@/modules/db/server";
+import { defaultStateFile, getDatabase } from "@/modules/db/server";
+import { readVault } from "@/modules/follows/server";
 import { isDetectionStale } from "@/modules/detection";
 import { createSourceAdapters, detectReleases, readLastDetection, recordDetection } from "@/modules/detection/server";
 import { deliverSlack, generateNotifications, pruneNotifications, writeVaultNotes } from "@/modules/notifications/server";
@@ -71,13 +72,20 @@ async function runOnce(notify?: Notify) {
   return { ...report, detected, summaries, summaryKey: writer !== null, notifications, slack, vault, pruned, revalidated };
 }
 
-// Without VERDICT_VAULT_DIR nothing happens and nothing is said. A vault that cannot be used, or a
-// note that cannot be written, is printed and goes no further: the Summaries are already saved.
+// The vault: VERDICT_VAULT_DIR, otherwise the one saved in `/settings` (issue #244).
+// A GitHub runner does not see the vault (#243), and a `verdict.json` committed there may name one.
+export function vaultDir(): string | undefined {
+  if (process.env.GITHUB_ACTIONS === "true") return undefined;
+  return serverEnv.VERDICT_VAULT_DIR ?? readVault(defaultStateFile());
+}
+
+// Without a vault nothing happens and nothing is said. A vault that cannot be used, or a note that
+// cannot be written, is printed and goes no further: the Summaries are already saved.
 export async function writeVault() {
-  const report = await writeVaultNotes(getDatabase(), { vaultDir: serverEnv.VERDICT_VAULT_DIR, siteUrl: SHOWCASE_URL });
+  const report = await writeVaultNotes(getDatabase(), { vaultDir: vaultDir(), siteUrl: SHOWCASE_URL });
   if (report === null) return null;
-  if ("error" in report) console.warn(`VERDICT_VAULT_DIR: ${report.error}`);
-  else for (const { path, reason } of report.failed) console.warn(`VERDICT_VAULT_DIR: ${path} not written: ${reason}`);
+  if ("error" in report) console.warn(`vault: ${report.error}`);
+  else for (const { path, reason } of report.failed) console.warn(`vault: ${path} not written: ${reason}`);
   return report;
 }
 

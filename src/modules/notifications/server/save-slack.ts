@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getDatabase } from "@/modules/db/server";
 import { createTranslator, dictionaryFor } from "@/modules/i18n";
 import type { TestSent, WebhookSaved } from "../domain/saving";
-import { isSlackWebhook, webhookHint } from "../domain/slack";
+import { isWebhook, webhookHint } from "../domain/slack";
 import { sendToSlack } from "./send-slack";
 import { readNotificationSettings } from "./read-notification-settings";
 import { readSlackWebhook, writeSlackWebhook } from "./write-notification-settings";
@@ -35,9 +35,9 @@ export async function saveSlackWebhook(previous: WebhookSaved, form: FormData): 
     return { status: "saved", hint: null };
   }
 
-  // Another host would be this reader's secret posted to somebody else's server. The database
+  // Slack or Discord (#244). Another host would be this reader's secret posted to somebody else's server. The database
   // refuses it as well, because this check is not the only door to the row.
-  if (!isSlackWebhook(url)) return { status: "failed", hint: previous.hint };
+  if (!isWebhook(url)) return { status: "failed", hint: previous.hint };
 
   const hint = webhookHint(url);
   try {

@@ -4,7 +4,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Database } from "@/modules/db/server";
-import { alignFollows, readFollows, saveFollows, writeCurrentVersion, writeFollows } from "@/modules/follows/server";
+import {
+  alignFollows,
+  readFollows,
+  readVault,
+  saveFollows,
+  saveVault,
+  writeCurrentVersion,
+  writeFollows,
+} from "@/modules/follows/server";
 import { retire, seedTechnology, testDatabase } from "./database";
 
 // `verdict.json` is the authority and the database a cache (issue #217): what follows proves it by
@@ -42,6 +50,16 @@ function written(): unknown {
 }
 
 describe("the follows file", () => {
+  it("keeps the vault when a follow rewrites it (issue #244)", () => {
+    const { db, ids } = catalogDatabase();
+    expect(saveVault(file, "C:/notes")).toEqual({ ok: true });
+    writeFollows(db, [ids.vite!], true);
+    saveFollows(db, file);
+    expect(readVault(file)).toBe("C:/notes");
+    expect(saveVault(file, null)).toEqual({ ok: true });
+    expect(written()).toEqual({ follows: { vite: {} } });
+  });
+
   it("brings back every follow and Version in use when the database is thrown away", async () => {
     const before = catalogDatabase();
     writeFollows(before.db, [before.ids.next!, before.ids.vite!], true);
