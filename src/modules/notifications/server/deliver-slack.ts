@@ -13,7 +13,7 @@ import {
 import { releasePath, rowVerdict, SummaryStatusSchema } from "@/modules/releases";
 import { judge, storedNotesHead, SummaryContentSchema } from "@/modules/summaries";
 import { NotificationChannelSchema, NotificationEventSchema } from "../domain/events";
-import { LIVE_EVENTS, type Preference } from "../domain/preferences";
+import { switchedOn } from "../domain/preferences";
 import { slackMessage } from "../domain/slack";
 import { type PendingSlack, planSlackSend, type SlackRecipient } from "../domain/slack-plan";
 import { sendToSlack, type SendToSlack } from "./send-slack";
@@ -167,11 +167,4 @@ async function readRecipient(db: Database, fromEnv: string | undefined): Promise
     locale: settings === undefined ? DEFAULT_LOCALE : SettingsSchema.parse(settings).preferred_locale,
     preferences: fromEnv === undefined ? saved : switchedOn(saved),
   };
-}
-
-// A webhook in the environment is a channel switched on: what was saved still wins, and a missing row
-// counts as on, since on a GitHub runner `/settings` was never opened (issue #218).
-function switchedOn(saved: Preference[]): Preference[] {
-  const missing = LIVE_EVENTS.filter((event) => !saved.some((one) => one.event === event && one.channel === "slack"));
-  return [...saved, ...missing.map((event) => ({ event, channel: "slack" as const, enabled: true }))];
 }

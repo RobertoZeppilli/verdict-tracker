@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { serverEnv } from "@/env/server";
 import { vaultDir } from "@/lib/run-detection";
 import { saveVault } from "@/lib/save-vault";
+import { sendWebhookTest } from "@/lib/send-webhook-test";
 import { getDatabase } from "@/modules/db/server";
 import { getTranslator } from "@/modules/i18n/server";
 import { LocalePicker } from "@/modules/i18n/ui";
@@ -31,7 +32,7 @@ export default async function SettingsPage() {
   const t = await getTranslator();
   // Read here and handed down, so the section stays a component that is given what it draws.
   const db = getDatabase();
-  const settings = await readNotificationSettings(db);
+  const settings = await readNotificationSettings(db, serverEnv.VERDICT_WEBHOOK_URL);
 
   return (
     <>
@@ -65,6 +66,8 @@ export default async function SettingsPage() {
         <NotificationSettings
           preferences={settings.preferences}
           slackHint={settings.slackHint}
+          slackFromEnv={settings.slackFromEnv}
+          test={sendWebhookTest}
           t={t}
         />
         <VaultSettings

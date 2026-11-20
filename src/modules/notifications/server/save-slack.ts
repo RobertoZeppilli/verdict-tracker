@@ -2,12 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { getDatabase } from "@/modules/db/server";
-import { createTranslator, dictionaryFor } from "@/modules/i18n";
-import type { TestSent, WebhookSaved } from "../domain/saving";
+import type { WebhookSaved } from "../domain/saving";
 import { isWebhook, webhookHint } from "../domain/slack";
-import { sendToSlack } from "./send-slack";
-import { readNotificationSettings } from "./read-notification-settings";
-import { readSlackWebhook, writeSlackWebhook } from "./write-notification-settings";
+import { writeSlackWebhook } from "./write-notification-settings";
 
 // The webhook of `/settings`, in the shape #171 settled for the switches: the form is validated
 // here, because a form can be posted without the page.
@@ -47,20 +44,4 @@ export async function saveSlackWebhook(previous: WebhookSaved, form: FormData): 
   }
   revalidatePath("/[locale]/settings", "page");
   return { status: "saved", hint };
-}
-
-// The proof of delivery (#172): a wrong webhook is otherwise discovered the day it was needed.
-//
-// The one place a page reads a webhook, and only to send to it: the answer never carries it.
-// It takes no arguments although `SendTest` is called with two: the previous state and the form say
-// nothing here, and a parameter that is read by nobody is a parameter somebody will try to trust.
-export async function sendSlackTest(): Promise<TestSent> {
-  const db = getDatabase();
-  const webhook = readSlackWebhook(db);
-  if (webhook === null) return { status: "failed", error: null };
-
-  const { preferredLocale } = await readNotificationSettings(db);
-  const t = createTranslator(preferredLocale, dictionaryFor(preferredLocale));
-  const result = await sendToSlack(webhook, t("notification.slack.test"));
-  return result.ok ? { status: "sent", error: null } : { status: "failed", error: result.error };
 }

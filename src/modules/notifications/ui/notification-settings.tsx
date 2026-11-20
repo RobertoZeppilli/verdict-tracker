@@ -1,7 +1,8 @@
 import type { MessageKey, Translator } from "@/modules/i18n";
 import { isEnabled, LIVE_CHANNELS, LIVE_EVENTS, type Preference } from "../domain/preferences";
 import { savePreference } from "../server/save-notification-settings";
-import { saveSlackWebhook, sendSlackTest } from "../server/save-slack";
+import type { SendTest } from "../domain/saving";
+import { saveSlackWebhook } from "../server/save-slack";
 import { PreferenceRow } from "./preference-row";
 import { SlackGuide } from "./slack-guide";
 import { SlackWebhook } from "./slack-webhook";
@@ -36,11 +37,17 @@ const SLACK_OFF: Readonly<Record<(typeof LIVE_EVENTS)[number], MessageKey>> = {
 export function NotificationSettings({
   preferences,
   slackHint,
+  slackFromEnv,
+  test,
   t,
 }: {
   preferences: readonly Preference[];
-  // The hint of the saved webhook, or null: the URL itself is never read back (#172).
+  // The hint of the webhook in use, or null: the URL itself is never read back (#172).
   slackHint: string | null;
+  // VERDICT_WEBHOOK_URL is the webhook, so the field is read-only (#291).
+  slackFromEnv: boolean;
+  // Handed in by the page: it sends where the job sends, which only the environment knows.
+  test: SendTest;
   // A prop and not `getTranslator()`: this file is exported from the module's `ui` index, which
   // client components import too.
   t: Translator;
@@ -90,7 +97,7 @@ export function NotificationSettings({
       <p className="mt-2 max-w-prose font-sans text-meta text-text-muted">
         {t("settings.notifications.slack.manualNote")}
       </p>
-      <SlackWebhook hint={slackHint} save={saveSlackWebhook} test={sendSlackTest} />
+      <SlackWebhook hint={slackHint} fromEnv={slackFromEnv} save={saveSlackWebhook} test={test} />
       {/* The switches come after the webhook, in the order the Developer does it: there is nothing
           to switch on before there is somewhere to send. */}
       <ul className="mt-4">

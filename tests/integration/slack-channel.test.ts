@@ -7,6 +7,7 @@ import {
   writeSlackWebhook,
 } from "@/modules/notifications/server";
 import type { SendResult } from "@/modules/notifications/server";
+import { isEnabled } from "@/modules/notifications";
 import { type Content, seedContent, testDatabase } from "./database";
 
 const SITE = "https://example.test";
@@ -146,6 +147,20 @@ describe("deliverSlack under sync --notify", () => {
 
     expect(slack.sent.map((one) => one.url)).toEqual([DISCORD]);
     expect(report.delivered).toEqual([key()]);
+  });
+
+  // What `/settings` draws with the variable set (#291): where the webhook comes from, its hint and
+  // never the URL, and the switches as the job reads them.
+  it("tells /settings the webhook comes from the environment, with the switches the job obeys", async () => {
+    await writeSlackWebhook(db, null);
+    db.exec("delete from notification_preferences");
+    const settings = await readNotificationSettings(db, DISCORD);
+
+    expect(settings.slackHint).toBe("discord.com/…/env");
+    expect(settings.slackFromEnv).toBe(true);
+    expect(JSON.stringify(settings)).not.toContain(DISCORD);
+    expect(isEnabled(settings.preferences, "featured_release", "slack")).toBe(true);
+    expect(isEnabled(settings.preferences, "notable_release", "slack")).toBe(true);
   });
 
   it("lets a saved switch turned off win over the environment", async () => {

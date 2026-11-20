@@ -22,7 +22,7 @@ export const terms = {
 
   "terms.data.title": "your data and your model",
   "terms.data.body":
-    "There is no account. The technologies you follow and the versions you declared are in `verdict.json`, and everything else in `verdict.db`, both on your computer: deleting them deletes all of it. The summaries of new releases are written by the model you set up; a remote provider bills you for them under its own terms. What leaves your computer, and where it goes, is in the {privacy}.",
+    "There is no account. The technologies you follow, the versions you declared and the folder of your Obsidian vault are in `verdict.json`, and everything else in `verdict.db`, both on your computer: deleting them deletes all of it. The summaries of new releases are written by the model you set up; a remote provider bills you for them under its own terms. What leaves your computer, and where it goes, is in the {privacy}.",
 
   "terms.conduct.title": "what we ask of you",
   "terms.conduct.body":

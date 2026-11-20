@@ -9,6 +9,9 @@ process.env.VERDICT_DATA_DIR ||= ".e2e-data";
 // action, and a VERDICT_VAULT_DIR from `.env.local` would get their notes. Empty and not deleted:
 // Next does not override a variable already set, and the schema reads "" as unset.
 process.env.VERDICT_VAULT_DIR = "";
+// And for the webhook (#291): one in `.env.local` would get the messages of every run, and replaces
+// the field of `/settings` that the suite saves into.
+process.env.VERDICT_WEBHOOK_URL = "";
 // The app ignores the vault on a GitHub runner (`vaultDir()`, issue #244), where `verdict-tracker sync`
 // cannot see it. The CI of this repo is a runner too, but the app under test is not a sync: without
 // this the vault saved by `vault-settings.spec.ts` would never be written.

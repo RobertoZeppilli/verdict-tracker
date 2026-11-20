@@ -103,6 +103,7 @@ export const CLIENT_KEYS = [
   "settings.notifications.locale.choose",
   "settings.notifications.locale.error",
   "settings.notifications.slack.current",
+  "settings.notifications.slack.env",
   "settings.notifications.slack.guide.close",
   "settings.notifications.slack.guide.discord",
   "settings.notifications.slack.guide.discordCreate",

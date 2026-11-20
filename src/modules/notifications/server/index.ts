@@ -12,6 +12,7 @@ export { type SendResult, sendToSlack, type SendToSlack } from "./send-slack";
 export { checkVault, type LastVaultWrite, readLastVaultWrite, type VaultReport, writeVaultNotes } from "./write-vault-notes";
 export {
   writePreference,
+  readSlackWebhook,
   writePreferredLocale,
   writeSlackWebhook,
 } from "./write-notification-settings";
