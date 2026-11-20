@@ -29,8 +29,9 @@ const database = join(directory, "verdict.db");
 // ⚠️ `exitCode` and not `process.exit`: on Windows, exiting while `fetch` closes its handles trips
 // an assertion in libuv and the command dies with 127 instead of the message.
 const [command, ...flags] = process.argv.slice(2);
-if (command !== undefined && command !== "sync") {
-  console.error("Usage: verdict-tracker [sync [--notify]]");
+if (command === "--version") console.log(version);
+else if (command !== undefined && command !== "sync") {
+  console.error("Usage: verdict-tracker [--version | sync [--notify]]");
   process.exitCode = 1;
 } else if (!existsSync(database) && !(await download())) process.exitCode = 1;
 else if (command === "sync") await sync(flags.includes("--notify"));
