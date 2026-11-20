@@ -47,13 +47,14 @@ export async function generateNotifications(
   { withoutSummary = false }: { withoutSummary?: boolean } = {},
 ): Promise<GenerateReport> {
   const since = new Date(now.getTime() - WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  // After a `catalog:sync` every Release carries the same `created_at`, so for thirty days the window
-  // holds the whole Catalog: one read, which SQLite does not cap the way PostgREST did (issue #190).
+  // `published_at` and not `created_at`: after a `catalog:sync`, or on a freshly downloaded data
+  // file, every Release carries today's `created_at`, and the first run would notify the whole
+  // Catalog (issue #260). One read, which SQLite does not cap the way PostgREST did (issue #190).
   const releases = db
     .prepare(
       `select r.id, r.technology_id, r.significance, r.significance_override, s.status as summary_status
        from releases r left join summaries s on s.release_id = r.id
-       where r.created_at >= ?`,
+       where r.published_at >= ?`,
     )
     .all(since);
 

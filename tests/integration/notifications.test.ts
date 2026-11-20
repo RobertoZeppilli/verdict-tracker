@@ -102,6 +102,23 @@ describe("generateNotifications", () => {
     await generateNotifications(db);
     expect(notifications()).toEqual([]);
   });
+
+  // A fresh data file holds every Release with today's `created_at`: the window reads the day the
+  // Release came out, or the first run would notify a month of the Catalog at once (issue #260).
+  it("writes none for a Release published long before it was imported", async () => {
+    setSummaryStatus("ready");
+    const published = (daysAgo: number) =>
+      db
+        .prepare("update releases set published_at = ? where id = ?")
+        .run(new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(), content.releaseId);
+    published(60);
+    try {
+      await generateNotifications(db);
+      expect(notifications()).toEqual([]);
+    } finally {
+      published(0);
+    }
+  });
 });
 
 // What `/api/notifications` answers the bell with (issue #211).
