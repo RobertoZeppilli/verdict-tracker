@@ -118,6 +118,19 @@ A note is written once and never overwritten: what you add to it stays. Delete i
 writes it again. Without `VERDICT_VAULT_DIR` nothing is written. A folder that is missing or read-only
 is reported in the terminal and the app starts anyway.
 
+To keep the vault up to date with the app closed, schedule `npx verdict-tracker sync` on your
+computer, with `VERDICT_VAULT_DIR` in the `.env` next to the data. Each run checks for new releases,
+writes their summaries, then the notes that are missing. Running it twice writes nothing new. On
+Windows, create a basic task in Task Scheduler that starts `npx` with the argument
+`verdict-tracker sync` once a day. On macOS or Linux, a crontab line does the same:
+
+```sh
+17 7 * * * npx verdict-tracker sync >> ~/.verdict/sync.log 2>&1
+```
+
+The command exits with an error when the vault cannot be written. The GitHub workflow above runs on
+a machine that cannot see your vault, so there `VERDICT_VAULT_DIR` is ignored.
+
 ```markdown
 ---
 technology: "Next.js"
