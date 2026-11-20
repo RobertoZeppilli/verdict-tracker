@@ -9,19 +9,24 @@ export function isSlackWebhook(url: string): boolean {
   return url.startsWith(SLACK_WEBHOOK_PREFIX) && url.length > SLACK_WEBHOOK_PREFIX.length;
 }
 
-// Discord takes the same message from `verdict-tracker sync --notify` (issue #218), which reads the
-// webhook from `VERDICT_WEBHOOK_URL` and not from `/settings`: Slack is still the only one a form saves.
+// Discord takes the same message (issue #218), from `VERDICT_WEBHOOK_URL` and, since #244, from the
+// field of `/settings` too. The channel keeps its name `slack` in the code and the database.
 const DISCORD_WEBHOOK_PREFIX = "https://discord.com/api/webhooks/";
 
 export function isDiscordWebhook(url: string): boolean {
   return url.startsWith(DISCORD_WEBHOOK_PREFIX) && url.length > DISCORD_WEBHOOK_PREFIX.length;
 }
 
+// What the field of `/settings` accepts, and the database with it (migration 0005).
+export function isWebhook(url: string): boolean {
+  return isSlackWebhook(url) || isDiscordWebhook(url);
+}
+
 // What a Developer reads back instead of the URL, since the URL never leaves the server again: the
 // host, which says where it goes, and the last four characters, which say **which** webhook it is
 // when a Slack workspace holds several. Four and not more: the tail of the path is the secret.
 export function webhookHint(url: string): string {
-  return `hooks.slack.com/…${url.slice(-4)}`;
+  return `${isDiscordWebhook(url) ? "discord.com" : "hooks.slack.com"}/…${url.slice(-4)}`;
 }
 
 // One line of the message: the Technology, the Version, what the Summary says about upgrading, and

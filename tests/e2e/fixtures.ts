@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { z } from "zod";
 import type { Category } from "@/modules/catalog";
 // The file and not the module's index: the index is `server-only`, which Playwright cannot load.
 // eslint-disable-next-line no-restricted-imports -- see the line above
-import { type Database, defaultDatabaseFile, openDatabase } from "@/modules/db/server/open-database";
+import { type Database, defaultDatabaseFile, defaultStateFile, openDatabase } from "@/modules/db/server/open-database";
 import type { SummaryContent } from "@/modules/summaries";
 
 // The data file the app under test reads: `playwright.config.ts` points both at `.e2e-data/`, so
@@ -324,4 +324,18 @@ export async function savedLocale(): Promise<string | null> {
 export async function releaseIdFor(technologyId: string, version: string): Promise<string> {
   const row = db().prepare("select id from releases where technology_id = ? and version = ?").get(technologyId, version);
   return z.object({ id: z.uuid() }).parse(row).id;
+}
+
+// `verdict.json` of `.e2e-data`, where `/settings` saves the vault (issue #244).
+export function stateFile(): string {
+  return defaultStateFile();
+}
+
+// The vault taken out of it again, so no later test writes notes.
+export function clearVault(): void {
+  const file = defaultStateFile();
+  if (!existsSync(file)) return;
+  const state = z.record(z.string(), z.unknown()).parse(JSON.parse(readFileSync(file, "utf8")));
+  delete state.vault;
+  writeFileSync(file, `${JSON.stringify(state, null, 2)}\n`);
 }

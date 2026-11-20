@@ -5,13 +5,13 @@ import { expect, test } from "@playwright/test";
 test("the guide lists the steps, links to Slack, and closes", async ({ page }) => {
   await page.goto("/settings");
   // The field is always there now: no credentials decide the layout any more.
-  await expect(page.getByLabel("incoming webhook URL")).toBeVisible();
+  await expect(page.getByLabel("webhook URL")).toBeVisible();
 
   const open = page.getByRole("button", { name: "how to make a webhook" });
   await open.click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog.getByText("A Slack webhook, step by step")).toBeVisible();
-  await expect(dialog.getByRole("listitem")).toHaveCount(4);
+  await expect(dialog.getByText("A webhook, step by step")).toBeVisible();
+  await expect(dialog.getByRole("listitem")).toHaveCount(7);
   await expect(dialog.getByRole("link", { name: "open Slack's app page" })).toHaveAttribute(
     "href",
     "https://api.slack.com/apps",

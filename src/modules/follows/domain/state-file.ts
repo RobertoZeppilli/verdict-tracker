@@ -11,7 +11,12 @@ const StateEntrySchema = z.object({
   declaredAt: z.iso.datetime({ offset: true }).optional(),
 });
 
-export const StateFileSchema = z.object({ follows: z.record(z.string().min(1), StateEntrySchema) });
+// `vault` is the Obsidian vault of `/settings` (issue #244): a preference of this install, so it lives
+// here and not in the database, which can be rebuilt. `VERDICT_VAULT_DIR` wins over it.
+export const StateFileSchema = z.object({
+  follows: z.record(z.string().min(1), StateEntrySchema),
+  vault: z.string().trim().min(1).optional(),
+});
 
 export type StateEntry = z.infer<typeof StateEntrySchema>;
 export type StateFile = z.infer<typeof StateFileSchema>;
@@ -32,17 +37,17 @@ export function parseStateFile(text: string): ParsedStateFile {
 // Sorted by slug, so a file kept in a repository changes by one line when one follow changes.
 export function serializeStateFile(state: StateFile): string {
   const follows = Object.fromEntries(Object.entries(state.follows).sort(([a], [b]) => a.localeCompare(b)));
-  return `${JSON.stringify({ follows }, null, 2)}\n`;
+  return `${JSON.stringify({ ...state, follows }, null, 2)}\n`;
 }
 
 // The file written back after a change in the interface: what the database follows, plus the entries
 // it cannot speak for, a slug it does not know (written by hand, or not in this Catalog yet), which
-// stay as they were written.
+// stay as they were written. Everything that is not a follow (the vault) stays as well.
 export function mergeStateFile(
   previous: StateFile,
   followed: Readonly<Record<string, StateEntry>>,
   known: ReadonlySet<string>,
 ): StateFile {
   const kept = Object.entries(previous.follows).filter(([slug]) => !known.has(slug));
-  return { follows: { ...Object.fromEntries(kept), ...followed } };
+  return { ...previous, follows: { ...Object.fromEntries(kept), ...followed } };
 }

@@ -9,6 +9,10 @@ process.env.VERDICT_DATA_DIR ||= ".e2e-data";
 // action, and a VERDICT_VAULT_DIR from `.env.local` would get their notes. Empty and not deleted:
 // Next does not override a variable already set, and the schema reads "" as unset.
 process.env.VERDICT_VAULT_DIR = "";
+// The app ignores the vault on a GitHub runner (`vaultDir()`, issue #244), where `verdict-tracker sync`
+// cannot see it. The CI of this repo is a runner too, but the app under test is not a sync: without
+// this the vault saved by `vault-settings.spec.ts` would never be written.
+process.env.GITHUB_ACTIONS = "";
 
 // ⚠️ The suite always starts its own server, never one already on the port: a `pnpm dev` of yours
 // reads your data file and your vault, not `.e2e-data`, and a server of another project reads as

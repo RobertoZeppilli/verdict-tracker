@@ -65,10 +65,31 @@ export async function writeVaultNotes(
   });
   const followed = new Set(rows.map((row) => row.slug));
   const { preferredLocale } = await readNotificationSettings(db);
-  return writeNotes(vaultDir, vaultNotes(releases, followed, preferredLocale, siteUrl));
+  const report = writeNotes(vaultDir, vaultNotes(releases, followed, preferredLocale, siteUrl));
+  // What `/settings` prints beside the field (#244).
+  db.prepare(
+    `insert into vault_writes (singleton, written, skipped, failed, finished_at) values (1, ?, ?, ?, ?)
+     on conflict (singleton) do update set written = excluded.written, skipped = excluded.skipped,
+       failed = excluded.failed, finished_at = excluded.finished_at`,
+  ).run(report.written.length, report.skipped.length, report.failed.length, new Date().toISOString());
+  return report;
 }
 
-function checkVault(vaultDir: string): string | null {
+const LastWriteSchema = z.object({ written: z.number(), skipped: z.number(), failed: z.number(), finished_at: z.string() });
+
+export type LastVaultWrite = { written: number; skipped: number; failed: number; finishedAt: string };
+
+// The last time a usable vault was written, or null when it never was.
+export function readLastVaultWrite(db: Database): LastVaultWrite | null {
+  const row = db.prepare("select written, skipped, failed, finished_at from vault_writes").get();
+  if (row === undefined) return null;
+  const { finished_at, ...counts } = LastWriteSchema.parse(row);
+  return { ...counts, finishedAt: finished_at };
+}
+
+// Null when the folder exists and can be written, otherwise why not: at every write and when
+// `/settings` saves the path (#244).
+export function checkVault(vaultDir: string): string | null {
   try {
     if (!statSync(vaultDir).isDirectory()) return `${vaultDir} is not a folder`;
     accessSync(vaultDir, constants.W_OK);

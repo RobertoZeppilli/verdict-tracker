@@ -24,7 +24,7 @@ export function PreferredLocaleSection({
   if (!connected) return null;
   return (
     <>
-      <h3 className="mt-6 font-mono text-label text-text">{t("settings.notifications.locale.title")}</h3>
+      <h3 className="mt-6 font-sans text-title font-medium text-text">{t("settings.notifications.locale.title")}</h3>
       <p className="mt-2 max-w-prose font-sans text-meta text-text-muted">
         {t("settings.notifications.locale.note")}
       </p>

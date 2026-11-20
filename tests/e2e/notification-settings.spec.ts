@@ -81,7 +81,7 @@ test("Slack is a heading of its own, with the two switches that belong to it", a
 
   // The heading carries nothing beside the channel's name: the `Pro` mark left with the Plan
   // (issue #209), and so did the thirty days the whole zone used to be gated on.
-  await expect(page.getByRole("heading", { level: 3, name: "slack", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3, name: "Slack or Discord", exact: true })).toBeVisible();
   // Four: the two bell switches and the two Slack ones (#172). The email has none, because a switch
   // for a channel that sends nothing would be a promise, and #173 brings its own.
   await expect(page.getByRole("checkbox")).toHaveCount(4);
@@ -92,9 +92,9 @@ test("Slack is a heading of its own, with the two switches that belong to it", a
 test("the Slack webhook is read back as a hint, never as the URL", async ({ page }) => {
   await page.goto("/settings");
 
-  const field = page.getByLabel("incoming webhook URL");
+  const field = page.getByLabel("webhook URL");
   await field.fill("https://hooks.slack.com/services/T0/B0/E2eTest4321");
-  await page.getByRole("button", { name: "save" }).click();
+  await page.getByRole("button", { name: "save", exact: true }).click();
 
   await expect(page.getByText("Sending to hooks.slack.com/\u20264321")).toBeVisible();
   await expect(page.getByRole("button", { name: "send a test message" })).toBeEnabled();
@@ -103,16 +103,27 @@ test("the Slack webhook is read back as a hint, never as the URL", async ({ page
   await expect(page.locator("body")).not.toContainText("E2eTest4321");
 
   // An empty field saved is the way back out, and it must leave the switches sending nothing.
-  await page.getByRole("button", { name: "save" }).click();
+  await page.getByRole("button", { name: "save", exact: true }).click();
   await expect(page.getByText("No webhook yet")).toBeVisible();
   await expect(page.getByRole("button", { name: "send a test message" })).toBeDisabled();
+});
+
+// The field takes Discord too (#244), and reads it back as Discord.
+test("a Discord webhook is saved and read back as Discord", async ({ page }) => {
+  await page.goto("/settings");
+
+  await page.getByLabel("webhook URL").fill("https://discord.com/api/webhooks/1/E2eDisc8765");
+  await page.getByRole("button", { name: "save", exact: true }).click();
+
+  await expect(page.getByText("Sending to discord.com/…8765")).toBeVisible();
+  await expect(page.locator("body")).not.toContainText("E2eDisc8765");
 });
 
 test("a webhook that is not Slack's is refused, and says why", async ({ page }) => {
   await page.goto("/settings");
 
-  await page.getByLabel("incoming webhook URL").fill("https://hooks.slack.com.example.test/services/T0");
-  await page.getByRole("button", { name: "save" }).click();
+  await page.getByLabel("webhook URL").fill("https://hooks.slack.com.example.test/services/T0");
+  await page.getByRole("button", { name: "save", exact: true }).click();
 
   // Next keeps its own empty `role="alert"` route announcer in the page, so the error is read
   // by the text it carries, not by the role alone.
@@ -125,13 +136,13 @@ test("the language of slack is saved, and is not the language of the site", asyn
   await page.goto("/settings");
 
   // The channel comes first: the choice appears with it, and that appearing is part of the test.
-  await expect(page.getByRole("heading", { level: 3, name: "language of slack" })).toHaveCount(0);
-  await page.getByLabel("incoming webhook URL").fill("https://hooks.slack.com/services/T0/B0/E2eLang4321");
-  await page.getByRole("button", { name: "save" }).click();
-  await expect(page.getByRole("heading", { level: 3, name: "language of slack" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3, name: "Language of the messages" })).toHaveCount(0);
+  await page.getByLabel("webhook URL").fill("https://hooks.slack.com/services/T0/B0/E2eLang4321");
+  await page.getByRole("button", { name: "save", exact: true }).click();
+  await expect(page.getByRole("heading", { level: 3, name: "Language of the messages" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Write Slack in Italiano" }).click();
-  await expect(page.getByRole("button", { name: "Write Slack in Italiano" })).toHaveAttribute(
+  await page.getByRole("button", { name: "Write the messages in Italiano" }).click();
+  await expect(page.getByRole("button", { name: "Write the messages in Italiano" })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
@@ -144,7 +155,7 @@ test("the language of slack is saved, and is not the language of the site", asyn
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
 
   await page.reload();
-  await expect(page.getByRole("button", { name: "Write Slack in Italiano" })).toHaveAttribute(
+  await expect(page.getByRole("button", { name: "Write the messages in Italiano" })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
@@ -172,27 +183,27 @@ test("the Italian page keeps its switches at 320px", async ({ page }) => {
 // The two zones of the page (#194). What is asserted is the structure, not the pixels: an `h2` per
 // zone, `h3` inside, and nothing below that. A heading level is assistive reading (WCAG 2.2 AA,
 // 1.3.1), so a fourth level creeping back in is a regression a test should catch.
-test("the page is two zones, with headings that stop at the third level", async ({ page }) => {
+test("the page is three zones, with headings that stop at the third level", async ({ page }) => {
   await page.goto("/settings");
 
   // Scoped to `main`: the foot of every page carries headings of its own, the language picker
   // among them (ADR 0008), and they are not the structure of this page.
   const main = page.getByRole("main");
   await expect(main.getByRole("heading", { level: 1 })).toHaveText("Settings");
-  await expect(main.getByRole("heading", { level: 2 })).toHaveText(["Language", "Notifications"]);
-  // The 18px of the zone titles is the token `--text-title`, read off the element so the test says
-  // what the reader sees and not which class was written.
+  await expect(main.getByRole("heading", { level: 2 })).toHaveText(["Language", "Notifications", "Obsidian"]);
+  // The 22px of the zone titles is the token `--text-headline` (#244), read off the element so the
+  // test says what the reader sees and not which class was written.
   const size = await main
     .getByRole("heading", { level: 2, name: "Notifications" })
     .evaluate((node) => getComputedStyle(node).fontSize);
-  expect(size).toBe("18px");
+  expect(size).toBe("22px");
   await expect(main.getByRole("heading", { level: 4 })).toHaveCount(0);
   await expect(main.getByRole("heading", { level: 5 })).toHaveCount(0);
 
-  await expect(main.getByRole("heading", { level: 3, name: "interface language" })).toBeVisible();
+  await expect(main.getByRole("heading", { level: 3, name: "Interface language" })).toBeVisible();
   // The language of Slack is not here yet: with no channel it is a preference about nothing, so it
   // is drawn only once Verdict is in a workspace (decided on 2026-10-28). The test below adds one.
-  await expect(main.getByRole("heading", { level: 3, name: "language of slack" })).toHaveCount(0);
+  await expect(main.getByRole("heading", { level: 3, name: "Language of the messages" })).toHaveCount(0);
 });
 
 test("at 390px the page does not scroll sideways", async ({ page }) => {

@@ -9,6 +9,7 @@ import {
   type ParsedStateFile,
   parseStateFile,
   type StateEntry,
+  type StateFile,
   serializeStateFile,
 } from "../domain/state-file";
 import { typedVersion } from "./follows";
@@ -138,9 +139,26 @@ export function saveFollows(db: Database, file: string): void {
     ]),
   );
   const known = new Set(db.prepare("select slug from technologies").all().map((row) => String(row.slug)));
-  const state = mergeStateFile(read.ok ? read.state : { follows: {} }, followed, known);
+  writeStateFile(file, mergeStateFile(read.ok ? read.state : { follows: {} }, followed, known));
+}
 
-  // Written aside and renamed over, so a sync client or a crash never sees half a file.
+// The vault of `/settings` (issue #244), or undefined when none was saved or the file does not parse.
+export function readVault(file: string): string | undefined {
+  const read = readStateFile(file);
+  return read.ok ? read.state.vault : undefined;
+}
+
+// Null removes it. A file that does not parse is refused rather than rewritten, as in `saveFollows`.
+export function saveVault(file: string, vault: string | null): { ok: true } | { ok: false; reason: string } {
+  const read = readStateFile(file);
+  if (!read.ok && !("missing" in read)) return { ok: false, reason: `${file} is not valid: ${read.reason}` };
+  // `undefined` is left out by `JSON.stringify`, so null drops the key.
+  writeStateFile(file, { ...(read.ok ? read.state : { follows: {} }), vault: vault ?? undefined });
+  return { ok: true };
+}
+
+// Written aside and renamed over, so a sync client or a crash never sees half a file.
+function writeStateFile(file: string, state: StateFile): void {
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(`${file}.tmp`, serializeStateFile(state));
   renameSync(`${file}.tmp`, file);
