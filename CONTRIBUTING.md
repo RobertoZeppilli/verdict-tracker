@@ -83,7 +83,7 @@ pnpm lint
 pnpm typecheck
 pnpm test               # unit
 pnpm test:integration   # SQLite in memory
-pnpm test:e2e           # Playwright; E2E_PORT=3100 if port 3000 is taken
+pnpm test:e2e           # Playwright, on its own server: stop your pnpm dev first; E2E_PORT=3100 if another app holds 3000
 ```
 
 Two commands call the model in `VERDICT_MODEL`, and with a remote provider they cost money:
