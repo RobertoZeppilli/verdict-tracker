@@ -417,6 +417,7 @@ l'italiano: **`breaking changes` resta in inglese**, perché è quello che il le
 | Lingua preferita | `preferredLocale` | nelle impostazioni delle Notifiche, per email e Slack che non hanno un URL; manca, vale `en` |
 | Consegna | `NotificationDelivery` | tabella `notification_deliveries`, una riga per Notifica e canale con esito, errore e istante |
 | Webhook Slack | `slackWebhookUrl` | segreto in `notification_secrets`, tabella senza grant per il client; si rilegge solo l'indizio `slackWebhookHint` (host e ultime quattro cifre) |
+| Nota nel vault | `VaultNote` | un file markdown in `<vault>/Verdict/<Tecnologia>/<Versione>.md`, scritto quando una Release di una Tecnologia seguita riceve una Sintesi con Intervento richiesto e `VERDICT_VAULT_DIR` è impostata. Il frontmatter ha chiavi inglesi in ogni lingua; le intestazioni seguono la Lingua preferita. Si scrive solo se il file non esiste: l'esistenza è lo stato, una nota modificata a mano non si tocca, una cancellata si riscrive (#242) |
 | Prodotto | `Verdict` | mai tradotto, mai con l'articolo |
 
 ## Ambiguità risolte

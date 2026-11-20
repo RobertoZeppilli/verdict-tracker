@@ -5,7 +5,7 @@ import { SHOWCASE_URL } from "@/lib/static-site";
 import { getDatabase } from "@/modules/db/server";
 import { isDetectionStale } from "@/modules/detection";
 import { createSourceAdapters, detectReleases, readLastDetection, recordDetection } from "@/modules/detection/server";
-import { deliverSlack, generateNotifications, pruneNotifications } from "@/modules/notifications/server";
+import { deliverSlack, generateNotifications, pruneNotifications, writeVaultNotes } from "@/modules/notifications/server";
 import { revalidateReleasePages } from "@/modules/releases/server";
 import { createSummaryWriter, generatePendingSummaries } from "@/modules/summaries/server";
 
@@ -60,13 +60,25 @@ async function runOnce(notify?: Notify) {
     webhookUrl: serverEnv.VERDICT_WEBHOOK_URL,
     skip: new Set(notify?.sent),
   });
+  // The vault after the Summaries, which are what a note is written from (issue #242).
+  const vault = await writeVault();
   const pruned = await pruneNotifications(db);
   // Recorded only at the end: a run that throws half way leaves the data stale, so the next opening
   // of the Dashboard tries again.
   recordDetection(db, new Date());
   // A new Release changes the Technology page and gives the Release page its own address.
   const revalidated = revalidateReleasePages([...detected, ...changed]);
-  return { ...report, detected, summaries, summaryKey: writer !== null, notifications, slack, pruned, revalidated };
+  return { ...report, detected, summaries, summaryKey: writer !== null, notifications, slack, vault, pruned, revalidated };
+}
+
+// Without VERDICT_VAULT_DIR nothing happens and nothing is said. A vault that cannot be used, or a
+// note that cannot be written, is printed and goes no further: the Summaries are already saved.
+export async function writeVault() {
+  const report = await writeVaultNotes(getDatabase(), { vaultDir: serverEnv.VERDICT_VAULT_DIR, siteUrl: SHOWCASE_URL });
+  if (report === null) return null;
+  if ("error" in report) console.warn(`VERDICT_VAULT_DIR: ${report.error}`);
+  else for (const { path, reason } of report.failed) console.warn(`VERDICT_VAULT_DIR: ${path} not written: ${reason}`);
+  return report;
 }
 
 // What the Developer configured in the environment, read here so the summaries module stays free of it.

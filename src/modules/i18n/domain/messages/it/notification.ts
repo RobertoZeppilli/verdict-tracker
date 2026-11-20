@@ -32,4 +32,7 @@ export const notification = {
   },
   "notification.slack.test": "Messaggio di prova da verdict. Il canale Slack funziona.",
   "notification.unseen": "da vedere",
+  "notification.vault.breaking": "Breaking changes",
+  "notification.vault.migration": "Migrazione",
+  "notification.vault.keyPoints": "Punti chiave",
 } as const satisfies Partial<MessageDictionary>;

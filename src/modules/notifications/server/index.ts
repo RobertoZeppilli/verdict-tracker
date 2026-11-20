@@ -9,6 +9,7 @@ export { pruneNotifications, RETENTION_DAYS } from "./prune-notifications";
 export { readFeed, readUnseen, writeSeen } from "./read-feed";
 export { type NotificationSettings, readNotificationSettings } from "./read-notification-settings";
 export { type SendResult, sendToSlack, type SendToSlack } from "./send-slack";
+export { type VaultReport, writeVaultNotes } from "./write-vault-notes";
 export {
   writePreference,
   writePreferredLocale,

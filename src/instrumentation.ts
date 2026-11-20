@@ -6,4 +6,7 @@ export async function register(): Promise<void> {
   const { defaultStateFile, getDatabase } = await import("@/modules/db/server");
   const { alignFollows } = await import("@/modules/follows/server");
   for (const warning of await alignFollows(getDatabase(), defaultStateFile())) console.warn(`verdict.json: ${warning}`);
+  // The vault notes that are missing (issue #242), after the follows, which decide which notes are due.
+  const { writeVault } = await import("@/lib/run-detection");
+  await writeVault();
 }
