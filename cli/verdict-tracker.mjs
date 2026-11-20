@@ -101,9 +101,15 @@ async function sync(notify) {
         ? "Webhook: the send failed, see the reason in /settings or check VERDICT_WEBHOOK_URL"
         : `Webhook: ${run.slack.sent} sent`,
     );
+    // `null` is no vault (VERDICT_VAULT_DIR unset, or a runner): nothing to say, as before #243.
+    if (run.vault?.error) console.log(`Vault: not written, ${run.vault.error}`);
+    else if (run.vault) {
+      console.log(`Vault: ${run.vault.written.length} notes written, ${run.vault.skipped.length} already there`);
+      for (const { path, reason } of run.vault.failed) console.log(`Vault: ${path} not written: ${reason}`);
+    }
     if (notify) writeFileSync(stateFile, `${JSON.stringify(nextSyncState(previous, run.slack.delivered, new Date()), null, 2)}\n`);
     // A red run in the Actions tab is how a broken webhook gets noticed with nobody looking.
-    if (run.slack.failed > 0) process.exitCode = 1;
+    if (run.slack.failed > 0 || run.vault?.error || run.vault?.failed.length > 0) process.exitCode = 1;
   } catch (error) {
     console.error(`The run did not complete: ${error instanceof Error ? error.message : error}`);
     process.exitCode = 1;
@@ -129,7 +135,9 @@ function serve(port) {
     stdio: "inherit",
     // `VERDICT_DATA_DIR` already resolved: the server runs from `app/`, so a relative one (the
     // workflow's `.`) would name another directory there.
-    env: { ...process.env, VERDICT_DATA_DIR: directory, PORT: String(port), HOSTNAME: "localhost", NODE_ENV: "production", NEXT_TELEMETRY_DISABLED: "1" },
+    // A GitHub runner does not see the vault (issue #243): there the variable is dropped, no error.
+    // `""` is how the env schema reads unset.
+    env: { ...process.env, ...(process.env.GITHUB_ACTIONS === "true" ? { VERDICT_VAULT_DIR: "" } : {}), VERDICT_DATA_DIR: directory, PORT: String(port), HOSTNAME: "localhost", NODE_ENV: "production", NEXT_TELEMETRY_DISABLED: "1" },
   });
 }
 
