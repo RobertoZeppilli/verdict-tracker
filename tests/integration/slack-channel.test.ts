@@ -179,6 +179,21 @@ describe("deliverSlack under sync --notify", () => {
     expect(report.delivered).toEqual([]);
   });
 
+  // The Notification is born today on a fresh data file, so the week is measured on the Release
+  // (issue #260): what came out more than seven days ago is not news, however new its row.
+  it("sends nothing for a Release published more than a week ago", async () => {
+    const setPublished = (date: Date) =>
+      db.prepare("update releases set published_at = ? where id = ?").run(date.toISOString(), content.releaseId);
+    setPublished(new Date(Date.now() - 8 * 24 * 60 * 60 * 1000));
+    try {
+      const slack = fakeSlack();
+      expect((await deliverSlack(db, { siteUrl: SITE, send: slack.send })).pending).toBe(0);
+      expect(slack.sent).toEqual([]);
+    } finally {
+      setPublished(new Date());
+    }
+  });
+
   it("notifies without a key, and the line says the Summary is missing", async () => {
     db.exec("delete from notifications");
     db.prepare("update summaries set status = 'pending' where release_id = ?").run(content.releaseId);

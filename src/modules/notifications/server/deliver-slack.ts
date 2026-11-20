@@ -19,9 +19,11 @@ import { type PendingSlack, planSlackSend, type SlackRecipient } from "../domain
 import { sendToSlack, type SendToSlack } from "./send-slack";
 import { readSlackWebhook } from "./write-notification-settings";
 
-// ⚠️ A Notification older than this is not news any more, so it is never sent: without a window, a
-// Developer who pastes a webhook today would be handed a month of Releases they already read on the
-// site (`docs/DECISIONI.md`). The ceiling is what keeps one run from holding the cron open.
+// ⚠️ A Release published longer ago than this is not news any more, so it is never sent: without a
+// window, a Developer who pastes a webhook today would be handed a month of Releases they already
+// read on the site (`docs/DECISIONI.md`). It is measured on the Release and not on the Notification,
+// which a fresh data file gives today's date (issue #260); the price is that a Summary arriving more
+// than a week late reaches the app but not Slack. The ceiling keeps one run from holding the cron open.
 const WINDOW_DAYS = 7;
 const MAX_PER_RUN = 500;
 
@@ -91,7 +93,7 @@ export async function deliverSlack(
        join technologies t on t.id = r.technology_id
        left join summaries s on s.release_id = r.id
        left join release_notes rn on rn.release_id = r.id
-       where n.event in ('featured_release', 'notable_release') and n.created_at >= ?
+       where n.event in ('featured_release', 'notable_release') and r.published_at >= ?
          and not exists (
            select 1 from notification_deliveries d where d.notification_id = n.id and d.channel = 'slack'
          )
