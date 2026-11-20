@@ -18,13 +18,18 @@ const FIELD = `${VERSION_INPUT_CLASS} w-full max-w-measure stacked:w-full`;
 // printed under it is the hint, the host and the last four characters. A browser that offers to
 // remember it is told not to, since a password manager holding a webhook is a secret in one more
 // place for no gain.
+//
+// With VERDICT_WEBHOOK_URL set there is no field (#291): the variable wins, so a save would change
+// nothing, and the sentence says where the webhook comes from. As the vault field does (#244).
 export function SlackWebhook({
   hint,
+  fromEnv,
   save,
   test,
 }: {
-  // What the database holds now, or null when no webhook was ever saved.
+  // Where the webhook in use points, or null when there is none.
   hint: string | null;
+  fromEnv: boolean;
   // Handed down rather than imported: a client component may not import a module's `server` folder
   // (ADR 0006, and `domain/saving` says the rest).
   save: SaveWebhook;
@@ -36,6 +41,7 @@ export function SlackWebhook({
 
   return (
     <div className="mt-4">
+      {!fromEnv && (
       <form action={write} className="flex flex-wrap items-end gap-3">
         <div className="w-full max-w-measure">
           <label htmlFor={FIELD_ID} className="font-mono text-diagnostic text-text-muted">
@@ -60,11 +66,12 @@ export function SlackWebhook({
           {t("settings.notifications.slack.save")}
         </button>
       </form>
+      )}
 
       <p id={HINT_ID} className="mt-2 max-w-prose font-sans text-meta text-text-muted">
         {saved.hint === null
           ? t("settings.notifications.slack.none")
-          : t("settings.notifications.slack.current", { hint: saved.hint })}
+          : t(fromEnv ? "settings.notifications.slack.env" : "settings.notifications.slack.current", { hint: saved.hint })}
       </p>
 
       {saved.status === "failed" && (

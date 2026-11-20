@@ -155,6 +155,7 @@ describe("the Notification settings saved on this copy", () => {
       preferredLocale: DEFAULT_LOCALE,
       // No webhook saved, which is what keeps the Slack switches of #172 sending nothing.
       slackHint: null,
+      slackFromEnv: false,
       preferences: [],
     });
   });

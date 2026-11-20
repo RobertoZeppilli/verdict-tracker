@@ -8,7 +8,7 @@ export const privacy = {
 
   "privacy.held.title": "what is held, and where",
   "privacy.held.intro":
-    "Nothing about you is held by us. The app keeps two files on your computer: `verdict.json`, with the technologies you follow and the version you run of each, and `verdict.db`, with the catalog, the releases, the summaries and your notifications. The address and key of your model and your webhook address, if you give them, sit in a `.env` file next to them. We have no copy of any of it.",
+    "Nothing about you is held by us. The app keeps two files on your computer: `verdict.json`, with the technologies you follow, the version you run of each and the folder of your Obsidian vault if you chose one, and `verdict.db`, with the catalog, the releases, the summaries and your notifications. The address and key of your model and your webhook address, if you give them, sit in a `.env` file next to them. We have no copy of any of it.",
 
   "privacy.prompt.title": "no personal data enters a prompt",
   "privacy.prompt.body":

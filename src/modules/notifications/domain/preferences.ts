@@ -40,6 +40,14 @@ export function isEnabled(preferences: readonly Preference[], event: Notificatio
   return stored?.enabled ?? enabledByDefault(channel);
 }
 
+// A webhook in the environment is a channel switched on: what was saved still wins, and a missing row
+// counts as on, since on a GitHub runner `/settings` was never opened (issue #218). The job sends with
+// these and `/settings` draws them (#291), so the switches say what happens.
+export function switchedOn(saved: readonly Preference[]): Preference[] {
+  const missing = LIVE_EVENTS.filter((event) => !saved.some((one) => one.event === event && one.channel === "slack"));
+  return [...saved, ...missing.map((event) => ({ event, channel: "slack" as const, enabled: true }))];
+}
+
 // A Notification is one row that every channel then reads, so it is worth writing when the Developer
 // wants that event anywhere: with the bell off and the email on, the email still has to be sent.
 export function wantsEvent(preferences: readonly Preference[], event: NotificationEvent): boolean {

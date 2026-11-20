@@ -50,6 +50,7 @@ export const settings = {
   "settings.notifications.slack.save": "save",
   "settings.notifications.slack.remove": "remove",
   "settings.notifications.slack.current": "Sending to {hint}. Leave the field empty and save to remove it.",
+  "settings.notifications.slack.env": "Sending to {hint}, set by VERDICT_WEBHOOK_URL, which wins over a saved webhook. To change it, change the variable and restart the app.",
   "settings.notifications.slack.none": "No webhook yet, so the two switches below send nothing.",
   "settings.notifications.slack.invalid": "Not saved. A webhook URL starts with https://hooks.slack.com/services/ or https://discord.com/api/webhooks/.",
   "settings.notifications.slack.featured.off": "Switched off, featured releases still reach the bell and stop reaching the webhook.",

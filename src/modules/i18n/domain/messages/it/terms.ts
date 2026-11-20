@@ -24,7 +24,7 @@ export const terms = {
 
   "terms.data.title": "i tuoi dati e il tuo modello",
   "terms.data.body":
-    "Non c'è un account. Le tecnologie che segui e le versioni che hai dichiarato stanno in `verdict.json`, e tutto il resto in `verdict.db`, tutti e due sul tuo computer: cancellarli cancella tutto. Le sintesi delle release nuove le scrive il modello che imposti; un provider remoto te le fattura secondo i suoi termini. Cosa esce dal tuo computer, e dove va, sta nell'{privacy}.",
+    "Non c'è un account. Le tecnologie che segui, le versioni che hai dichiarato e la cartella del vault di Obsidian stanno in `verdict.json`, e tutto il resto in `verdict.db`, tutti e due sul tuo computer: cancellarli cancella tutto. Le sintesi delle release nuove le scrive il modello che imposti; un provider remoto te le fattura secondo i suoi termini. Cosa esce dal tuo computer, e dove va, sta nell'{privacy}.",
 
   "terms.conduct.title": "cosa chiediamo a te",
   "terms.conduct.body":

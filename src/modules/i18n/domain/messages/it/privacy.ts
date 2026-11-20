@@ -8,7 +8,7 @@ export const privacy = {
 
   "privacy.held.title": "cosa viene tenuto, e dove",
   "privacy.held.intro":
-    "Di te non teniamo niente. L'app tiene due file sul tuo computer: `verdict.json`, con le tecnologie che segui e la versione che usi di ognuna, e `verdict.db`, con il catalogo, le release, le sintesi e le tue notifiche. L'indirizzo e la chiave del tuo modello e l'indirizzo del webhook, se li dai, stanno in un file `.env` accanto a loro. Non ne abbiamo nessuna copia.",
+    "Di te non teniamo niente. L'app tiene due file sul tuo computer: `verdict.json`, con le tecnologie che segui, la versione che usi di ognuna e la cartella del tuo vault di Obsidian se ne hai scelta una, e `verdict.db`, con il catalogo, le release, le sintesi e le tue notifiche. L'indirizzo e la chiave del tuo modello e l'indirizzo del webhook, se li dai, stanno in un file `.env` accanto a loro. Non ne abbiamo nessuna copia.",
 
   "privacy.prompt.title": "nessun dato personale entra in un prompt",
   "privacy.prompt.body":

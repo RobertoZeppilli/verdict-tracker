@@ -24,4 +24,4 @@ export {
   type Preference,
   wantsEvent,
 } from "./domain/preferences";
-export type { SaveVault, VaultSaved } from "./domain/saving";
+export type { SaveVault, SendTest, TestSent, VaultSaved } from "./domain/saving";
