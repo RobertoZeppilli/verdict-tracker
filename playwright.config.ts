@@ -5,6 +5,10 @@ const isCI = Boolean(process.env.CI);
 // The app under test and the fixtures open the same data file, in a folder of its own: a run never
 // writes into the install of whoever runs it (issue #211). The workers and the web server inherit it.
 process.env.VERDICT_DATA_DIR ||= ".e2e-data";
+// The same for the vault (issue #242): the fixtures follow Technologies whose Summaries ask for
+// action, and a VERDICT_VAULT_DIR from `.env.local` would get their notes. Empty and not deleted:
+// Next does not override a variable already set, and the schema reads "" as unset.
+process.env.VERDICT_VAULT_DIR = "";
 
 // ⚠️ `reuseExistingServer` trusts whatever answers on this port, and it cannot tell this app from
 // another one: a dev server of a different project sitting on 3000 is the server the whole suite
