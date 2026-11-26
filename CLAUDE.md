@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # release-tracker
 
 App **open source** che traccia le Release delle Tecnologie di un Catalogo curato e ne genera
@@ -14,7 +16,8 @@ sono il `verdict.db` allegato alla Release di GitHub.
 ## Da dove partire
 
 - **Dalla issue** (`gh issue view N`; PRD nella #1). `ready-for-agent` = in autonomia,
-  `ready-for-human` = fermati e chiedi. Rispetta "Blocked by" e i criteri di accettazione.
+  `ready-for-human` = fermati e chiedi. Rispetta i blocchi (solo dipendenze native di GitHub, mai righe "Blocked by"
+  nel corpo) e i criteri di accettazione.
 - Quando servono: `GLOSSARY.md`, `docs/DECISIONI.md`, `docs/adr/`, `DESIGN.md` e i mock in
   `design/mocks/`. Prima di dare qualcosa per non deciso: `gh search issues "<parola>" --repo
   RobertoZeppilli/verdict-tracker` (issue e commenti sono la storia del lavoro).
@@ -45,7 +48,8 @@ sono il `verdict.db` allegato alla Release di GitHub.
 ## Flusso
 
 - Un branch per issue; nella PR `Closes #N` **in inglese**, il resto in italiano.
-- Commit, push, PR e creazione di issue **solo dopo conferma dell'utente**.
+- Commit, push, PR e creazione di issue **solo dopo conferma dell'utente**. Eccezione: dentro tai
+  (worktree su un branch `tai/<n>`) committi senza chiedere; push e PR li fa tai.
 - Dai consigli con una raccomandazione motivata.
 
 ## Comandi
