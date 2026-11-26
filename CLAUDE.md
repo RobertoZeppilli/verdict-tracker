@@ -60,3 +60,17 @@ sono il `verdict.db` allegato alla Release di GitHub.
   Solo per sviluppo: la vetrina non scrive Sintesi (#283). Costa, chiedi prima.
 - Ambiente: `.env.example` → `.env.local`, schema Zod in `src/env/`.
 - Next.js 16: leggi `AGENTS.md` e `node_modules/next/dist/docs/` prima di usare API di Next.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues via `gh`; blocchi solo come dipendenze native. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Le cinque label di default (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` e `docs/adr/` alla radice. See `docs/agents/domain.md`.
